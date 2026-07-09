@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мини-апп</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, sans-serif;
+    background: linear-gradient(160deg, #1f1c2c, #928dab);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+  }
+  h1 {
+    color: #fff;
+    font-size: 22px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  button {
+    width: 220px;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  button:active { transform: scale(0.95); }
+  #hello {
+    background: linear-gradient(135deg, #56ab2f, #a8e063);
+    color: white;
+  }
+  #bye {
+    background: linear-gradient(135deg, #cb2d3e, #ef473a);
+    color: white;
+  }
+</style>
+</head>
+<body>
+  <h1>Выбери действие 👇</h1>
+  <button id="hello">👋 Привет</button>
+  <button id="bye">🚪 Пока</button>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    document.getElementById("hello").addEventListener("click", () => {
+      tg.sendData(JSON.stringify({ action: "hello" }));
+    });
+
+    document.getElementById("bye").addEventListener("click", () => {
+      tg.sendData(JSON.stringify({ action: "bye" }));
+    });
+  </script>
+</body>
+</html>
