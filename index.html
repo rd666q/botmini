@@ -130,11 +130,11 @@
     loadCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
     loadCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
 
-    // автообновление каждую минуту
+    // автообновление каждые 15 секунд
     setInterval(() => {
       loadCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
       loadCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
-    }, 60000);
+    }, 15000);
   </script>
 </body>
 </html>
