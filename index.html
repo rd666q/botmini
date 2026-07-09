@@ -3,51 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Мини-апп</title>
+<title>Крипто-курсы</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, sans-serif;
-    background: linear-gradient(160deg, #1f1c2c, #928dab);
-    height: 100vh;
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    background: #f4f5f7;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
+    gap: 16px;
   }
-  h1 {
-    color: #fff;
-    font-size: 22px;
-    margin-bottom: 10px;
-    text-align: center;
-  }
-  button {
-    width: 220px;
-    padding: 16px;
-    font-size: 18px;
-    font-weight: 600;
-    border: none;
+  .card {
+    background: #ffffff;
     border-radius: 16px;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
-  button:active { transform: scale(0.95); }
-  #hello {
-    background: linear-gradient(135deg, #56ab2f, #a8e063);
-    color: white;
-  }
-  #bye {
-    background: linear-gradient(135deg, #cb2d3e, #ef473a);
-    color: white;
-  }
+  .info { display: flex; flex-direction: column; gap: 4px; }
+  .label { font-size: 13px; color: #8b8f97; font-weight: 500; }
+  .price { font-size: 22px; font-weight: 700; color: #1c1c1e; }
+  .change { font-size: 12px; font-weight: 600; }
+  .up { color: #2ecc71; }
+  .down { color: #e74c3c; }
+  canvas { width: 130px; height: 50px; }
+  .loading { font-size: 13px; color: #aaa; text-align: center; padding: 20px; }
 </style>
 </head>
 <body>
-  <h1>Выбери действие 👇</h1>
-  <button id="hello">👋 Привет</button>
-  <button id="bye">🚪 Пока</button>
+
+  <div class="card" id="btc-card">
+    <div class="info">
+      <div class="label">Bitcoin</div>
+      <div class="price" id="btc-price">...</div>
+      <div class="change" id="btc-change"></div>
+    </div>
+    <canvas id="btc-chart" width="260" height="100"></canvas>
+  </div>
+
+  <div class="card" id="ton-card">
+    <div class="info">
+      <div class="label">TON</div>
+      <div class="price" id="ton-price">...</div>
+      <div class="change" id="ton-change"></div>
+    </div>
+    <canvas id="ton-chart" width="260" height="100"></canvas>
+  </div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -55,13 +59,82 @@
     tg.ready();
     tg.expand();
 
-    document.getElementById("hello").addEventListener("click", () => {
-      tg.sendData(JSON.stringify({ action: "hello" }));
-    });
+    async function loadCoin(coinId, priceElId, changeElId, canvasId) {
+      try {
+        const res = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=1`
+        );
+        const data = await res.json();
+        const prices = data.prices.map(p => p[1]);
 
-    document.getElementById("bye").addEventListener("click", () => {
-      tg.sendData(JSON.stringify({ action: "bye" }));
-    });
+        const first = prices[0];
+        const last = prices[prices.length - 1];
+        const change = ((last - first) / first) * 100;
+        const isUp = change >= 0;
+
+        document.getElementById(priceElId).textContent =
+          "$" + last.toLocaleString("en-US", { maximumFractionDigits: last < 10 ? 4 : 0 });
+
+        const changeEl = document.getElementById(changeElId);
+        changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(2) + "%";
+        changeEl.className = "change " + (isUp ? "up" : "down");
+
+        drawChart(canvasId, prices, isUp);
+      } catch (e) {
+        document.getElementById(priceElId).textContent = "н/д";
+        console.error(e);
+      }
+    }
+
+    function drawChart(canvasId, prices, isUp) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const range = max - min || 1;
+
+      const color = isUp ? "#2ecc71" : "#e74c3c";
+      const points = prices.map((p, i) => {
+        const x = (i / (prices.length - 1)) * w;
+        const y = h - ((p - min) / range) * h;
+        return [x, y];
+      });
+
+      // заливка под линией
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], h);
+      points.forEach(([x, y]) => ctx.lineTo(x, y));
+      ctx.lineTo(points[points.length - 1][0], h);
+      ctx.closePath();
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, color + "33");
+      gradient.addColorStop(1, color + "00");
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // сама линия
+      ctx.beginPath();
+      points.forEach(([x, y], i) => {
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    loadCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
+    loadCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
+
+    // автообновление каждую минуту
+    setInterval(() => {
+      loadCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
+      loadCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
+    }, 60000);
   </script>
 </body>
 </html>
