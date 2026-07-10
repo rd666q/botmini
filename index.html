@@ -146,7 +146,6 @@
     <div id="favorites-list"></div>
   </div>
 
-  <!-- Вкладка "С любовью" вместо новостей -->
   <div class="section" id="section-love">
     <div class="empty-state" style="padding-top: 120px;">
       <div style="font-size: 48px; margin-bottom: 20px;">❤️</div>
@@ -319,7 +318,6 @@
   let selectedTf = "1d";
   let lastPrices = {};
   let zoomFactor = 1;
-  let currentNetworkFilter = "all";
 
   let currentChartPoints = [];
   let displayChartPoints = [];
@@ -457,10 +455,8 @@
   }
 
   function buildCard(coin, prevPriceMap) {
-    const arr = sparkHistory[coin.id] || [coin.current_price];
-    const first = arr[0], last = arr[arr.length - 1];
-    const localChange = arr.length > 1 ? ((last - first) / first) * 100 : 0;
-    const isUp = localChange >= 0;
+    const change24h = coin.price_change_percentage_24h || 0;
+    const isUp = change24h >= 0;
 
     const prevPrice = prevPriceMap[coin.id];
     let flashClass = "";
@@ -482,7 +478,7 @@
       </div>
       <div class="coin-mid">
         <div class="coin-price">${formatPrice(coin.current_price)}</div>
-        <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(localChange).toFixed(2)}%</div>
+        <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(change24h).toFixed(2)}%</div>
       </div>
       <button class="star-btn ${isFav ? 'star-active' : 'star-inactive'}" data-id="${coin.id}"></button>
     `;
