@@ -245,7 +245,7 @@
     <div class="modal-address">UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz</div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-secondary" id="donate-copy">Скопировать</button>
-      <a class="modal-btn modal-btn-primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" id="donate-open" href="ton://transfer/UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz">Открыть в кошельке</a>
+      <a class="modal-btn modal-btn-primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" id="donate-open" href="https://app.tonkeeper.com/transfer/UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz" target="_blank" rel="noopener">Открыть в кошельке</a>
     </div>
   </div>
 </div>
@@ -257,6 +257,9 @@
   tg.expand();
 
   const TON_ADDRESS = "UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz";
+  // Универсальная ссылка Tonkeeper: на телефоне сама открывает установленный кошелёк
+  // (или предлагает поставить Tonkeeper), в отличие от ненадёжной схемы ton://.
+  const TON_TRANSFER_URL = "https://app.tonkeeper.com/transfer/" + TON_ADDRESS;
 
   // ===== иконки =====
   const ICONS = {
@@ -352,8 +355,6 @@
   let lastPrices = {};
   let zoomFactor = 1;
   let currentChartPoints = [];
-  let newsCache = null;
-  let newsFetchedAt = 0;
 
   // ===== тема =====
   function applyTheme(theme) {
@@ -405,11 +406,26 @@
       setTimeout(() => e.target.textContent = t("copy"), 1500);
     } catch (err) { console.error(err); }
   });
+  document.getElementById("donate-open").addEventListener("click", (e) => {
+    // Внутри Telegram WebView обычный переход по ссылке не всегда пробрасывает
+    // управление в приложение Tonkeeper — tg.openLink делает это надёжно.
+    if (tg && typeof tg.openLink === "function") {
+      e.preventDefault();
+      tg.openLink(TON_TRANSFER_URL);
+    }
+  });
+
+  // ===== вспомогательное: fetch с таймаутом, чтобы зависшие запросы не тормозили приложение =====
+  function fetchWithTimeout(url, ms, options) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...(options || {}), signal: controller.signal }).finally(() => clearTimeout(id));
+  }
 
   // ===== загрузка рынка =====
   async function fetchMarket() {
     try {
-      const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h");
+      const res = await fetchWithTimeout("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h", 10000);
       const data = await res.json();
       coins = data;
       const now = Date.now();
@@ -477,7 +493,7 @@
     card.className = "coin-card " + flashClass;
     card.innerHTML = `
       <div class="coin-left">
-        <img class="coin-icon" src="${coin.image}" alt="">
+        <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" decoding="async">
         <div class="coin-info">
           <div class="coin-name">${coin.name}</div>
           <div class="coin-symbol">${coin.symbol}</div>
@@ -528,15 +544,27 @@
   // ===== новости =====
   // Берём RSS напрямую с сайтов и прогоняем через открытый CORS-прокси,
   // чтобы не зависеть от общего (быстро исчерпываемого) лимита сторонних JSON-API.
-  const NEWS_FEEDS = [
-    "https://cointelegraph.com/rss",
-    "https://www.coindesk.com/arc/outboundfeeds/rss/"
-  ];
+  // Для каждого языка — свой набор источников и свой кэш.
+  const NEWS_FEEDS_BY_LANG = {
+    ru: [
+      "https://forklog.com/feed/",
+      "https://cointelegraph-ru.com/rss"
+    ],
+    en: [
+      "https://cointelegraph.com/rss",
+      "https://www.coindesk.com/arc/outboundfeeds/rss/"
+    ]
+  };
 
   const NEWS_PROXIES = [
     (url) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
     (url) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url)
   ];
+
+  const NEWS_PROXY_TIMEOUT_MS = 7000;
+
+  let newsCacheByLang = { ru: null, en: null };
+  let newsFetchedAtByLang = { ru: 0, en: 0 };
 
   function extractImgFromHtml(html) {
     if (!html) return "";
@@ -549,19 +577,22 @@
     return found ? found.textContent.trim() : "";
   }
 
+  // Пробуем все прокси ОДНОВРЕМЕННО и берём тот, что ответит первым — это в разы быстрее,
+  // чем ждать таймаута одного прокси перед тем, как пробовать следующий.
   async function fetchXmlViaProxies(feedUrl) {
-    let lastErr;
-    for (const makeProxyUrl of NEWS_PROXIES) {
-      try {
-        const res = await fetch(makeProxyUrl(feedUrl));
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const text = await res.text();
-        const xml = new DOMParser().parseFromString(text, "text/xml");
-        if (xml.querySelector("parsererror")) throw new Error("XML parse error");
-        return xml;
-      } catch (e) { lastErr = e; }
+    const attempts = NEWS_PROXIES.map(async (makeProxyUrl) => {
+      const res = await fetchWithTimeout(makeProxyUrl(feedUrl), NEWS_PROXY_TIMEOUT_MS);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const xml = new DOMParser().parseFromString(text, "text/xml");
+      if (xml.querySelector("parsererror")) throw new Error("XML parse error");
+      return xml;
+    });
+    try {
+      return await Promise.any(attempts);
+    } catch (e) {
+      throw new Error("All proxies failed for " + feedUrl);
     }
-    throw lastErr || new Error("All proxies failed for " + feedUrl);
   }
 
   async function fetchOneFeed(feedUrl) {
@@ -592,21 +623,24 @@
   }
 
   async function fetchNews(force) {
-    if (newsCache && !force && Date.now() - newsFetchedAt < 5 * 60 * 1000) return newsCache;
+    const lang = currentLang;
+    const cached = newsCacheByLang[lang];
+    if (cached && !force && Date.now() - newsFetchedAtByLang[lang] < 5 * 60 * 1000) return cached;
     try {
-      const results = await Promise.allSettled(NEWS_FEEDS.map(fetchOneFeed));
+      const feeds = NEWS_FEEDS_BY_LANG[lang] || NEWS_FEEDS_BY_LANG.en;
+      const results = await Promise.allSettled(feeds.map(fetchOneFeed));
       const merged = results
         .filter(r => r.status === "fulfilled")
         .flatMap(r => r.value)
         .sort((a, b) => b.published_on - a.published_on);
-      if (merged.length === 0) throw new Error("All news feeds failed");
-      newsCache = merged.slice(0, 30);
-      newsFetchedAt = Date.now();
+      if (merged.length === 0) throw new Error("All news feeds failed for lang " + lang);
+      newsCacheByLang[lang] = merged.slice(0, 30);
+      newsFetchedAtByLang[lang] = Date.now();
     } catch (e) {
       console.error("Ошибка загрузки новостей:", e);
-      newsCache = newsCache || [];
+      newsCacheByLang[lang] = newsCacheByLang[lang] || [];
     }
-    return newsCache;
+    return newsCacheByLang[lang];
   }
 
   function timeAgo(unixSeconds) {
@@ -619,8 +653,10 @@
 
   async function renderNews() {
     const list = document.getElementById("news-list");
-    if (!newsCache) list.innerHTML = `<div class="empty-state">${t("newsLoading")}</div>`;
+    const langAtStart = currentLang;
+    if (!newsCacheByLang[langAtStart]) list.innerHTML = `<div class="empty-state">${t("newsLoading")}</div>`;
     const items = await fetchNews(false);
+    if (currentLang !== langAtStart) return; // язык успели переключить ещё раз — этот ответ уже неактуален
     list.innerHTML = "";
     if (!items.length) {
       list.innerHTML = `<div class="empty-state">${t("newsError")}</div>`;
@@ -630,7 +666,7 @@
       const card = document.createElement("div");
       card.className = "news-card";
       card.innerHTML = `
-        <img class="news-img" src="${item.imageurl}" alt="" onerror="this.style.display='none'">
+        <img class="news-img" src="${item.imageurl}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">
         <div class="news-body">
           <div class="news-source">${item.source_info?.name || item.source || ""}</div>
           <div class="news-title">${item.title}</div>
@@ -777,10 +813,27 @@
     drawDetailChart();
   }
 
+  // Рисуем в реальном разрешении экрана (devicePixelRatio), а не в фиксированных 600x320 —
+  // на Retina/AMOLED-экранах график получается заметно резче и без размытия.
+  function prepareHiDPICanvas(canvas, fallbackH) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const cssW = rect.width || canvas.clientWidth || 600;
+    const cssH = rect.height || canvas.clientHeight || fallbackH || 200;
+    const targetW = Math.round(cssW * dpr);
+    const targetH = Math.round(cssH * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: cssW, h: cssH };
+  }
+
   function drawDetailChart() {
     const canvas = document.getElementById("detail-canvas");
-    const ctx = canvas.getContext("2d");
-    const w = canvas.width, h = canvas.height;
+    const { ctx, w, h } = prepareHiDPICanvas(canvas, 200);
     ctx.clearRect(0, 0, w, h);
 
     const total = currentChartPoints.length;
@@ -794,17 +847,19 @@
     const isUp = prices[prices.length - 1] >= prices[0];
     const color = isUp ? "#2ecc71" : "#e74c3c";
 
-    const padTop = 24, padBottom = 24, padX = 4;
+    const padTop = 22, padBottom = 24, padX = 6;
     const chartH = h - padTop - padBottom;
 
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--grid-line") || "rgba(0,0,0,0.06)";
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text-secondary") || "#999";
-    ctx.font = "11px -apple-system, sans-serif";
+    ctx.font = "600 12px -apple-system, sans-serif";
     ctx.lineWidth = 1;
-    [0, 0.5, 1].forEach(f => {
+    // 5 уровней вместо 3 — больше значений цены видно на графике сразу
+    [0, 0.25, 0.5, 0.75, 1].forEach(f => {
       const y = padTop + chartH * f;
       ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(w - padX, y); ctx.stroke();
-      ctx.fillText(formatPrice(max - range * f), padX, y - 4);
+      const labelY = f === 0 ? y + 12 : y - 5;
+      ctx.fillText(formatPrice(max - range * f), padX, labelY);
     });
 
     const points = prices.map((p, i) => [
@@ -835,7 +890,7 @@
 
     smoothPath(ctx, points);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 3;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.stroke();
@@ -848,6 +903,7 @@
       if (tf.days <= 30) return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
       return d.toLocaleDateString(locale, { month: "2-digit", year: "2-digit" });
     };
+    ctx.font = "600 12px -apple-system, sans-serif";
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text-secondary") || "#999";
     ctx.fillText(fmt(slice[0].t), padX, h - 6);
     const endLabel = fmt(slice[slice.length - 1].t);
