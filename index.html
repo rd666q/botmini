@@ -127,7 +127,6 @@
     </div>
   </div>
 </div>
-
 <div class="bottom-nav" id="bottom-nav">
   <button class="nav-btn active" data-tab="market">
     <span class="icon" id="nav-icon-market"></span>
@@ -143,6 +142,7 @@
   </button>
 </div>
 
+<!-- экран деталей монеты -->
 <div id="detail-screen">
   <button class="back-btn" id="back-btn"></button>
   <div class="detail-header">
@@ -180,6 +180,7 @@
   </div>
 </div>
 
+<!-- модалка доната -->
 <div class="modal-overlay" id="donate-overlay">
   <div class="modal-box" style="position:relative">
     <button class="modal-close-x" id="donate-close">✕</button>
@@ -198,9 +199,8 @@
   const tg = window.Telegram.WebApp;
   tg.ready();
   tg.expand();
-
   const TON_ADDRESS = "UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz";
-
+  const TON_TRANSFER_URL = "https://app.tonkeeper.com/transfer/" + TON_ADDRESS;
   const ICONS = {
     chart: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
     starOutline: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
@@ -212,7 +212,6 @@
     sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>`,
     gem: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8l3-5h8l3 5-7 12z"/><path d="M5 8h14M9 3l3 5 3-5M12 8l-2.5 12M12 8l2.5 12"/></svg>`,
   };
-
   document.getElementById("search-icon").innerHTML = ICONS.search;
   document.getElementById("nav-icon-market").innerHTML = ICONS.chart;
   document.getElementById("nav-icon-fav").innerHTML = ICONS.starOutline;
@@ -228,42 +227,60 @@
       emptyFav: "Пока пусто<br>Добавьте монеты со вкладки «Рынок»",
       marketCap: "Рыночная капитализация", volume24: "Объём за 24ч", high24: "Максимум за период", low24: "Минимум за период",
       perPeriod: "за период",
+      accumulating: "Копим данные для этого периода — держите приложение открытым подольше 🙂",
       zoomHint: "Сведите/разведите пальцы или крутите колесо мыши, чтобы приблизить график",
       donateTitle: "Поддержать автора", donateDesc: "Если приложение понравилось — можно отправить немного TON автору по адресу:",
-      copy: "Скопировать", copied: "Скопировано!", openWallet: "Открыть в кошельке"
+      copy: "Скопировать", copied: "Скопировано!", openWallet: "Открыть в кошельке",
+      chartLoading: "Загрузка графика..."
     },
-    en: { /* ... аналогично, можно добавить позже */ }
+    en: {
+      market: "Market", favorites: "Favorites", love: "With love",
+      searchPlaceholder: "Search cryptocurrency...",
+      notFound: "Nothing found",
+      emptyFav: "Empty for now<br>Add coins from the Market tab",
+      marketCap: "Market Cap", volume24: "24h Volume", high24: "High", low24: "Low",
+      perPeriod: "for period",
+      accumulating: "Gathering data for this period — keep the app open a bit longer 🙂",
+      zoomHint: "Pinch to zoom or scroll with mouse wheel to zoom the chart",
+      donateTitle: "Support the author", donateDesc: "If you enjoyed the app, you can send some TON to the author at this address:",
+      copy: "Copy", copied: "Copied!", openWallet: "Open in wallet",
+      chartLoading: "Loading chart..."
+    }
   };
-
   const TF_LABELS = {
     ru: { "1h":"1ч", "1d":"1Д", "1w":"1Н", "1mo":"1М", "6mo":"6М", "1y":"1Г" },
     en: { "1h":"1h", "1d":"1D", "1w":"1W", "1mo":"1M", "6mo":"6M", "1y":"1Y" }
   };
-
   let currentLang = localStorage.getItem("app_lang") || "ru";
-  function t(key) { return I18N[currentLang][key] || key; }
-
+  function t(key) { return I18N[currentLang][key]; }
   const TIMEFRAMES = [
-    { key: "1h", days: 1 },
-    { key: "1d", days: 1 },
-    { key: "1w", days: 7 },
-    { key: "1mo", days: 30 },
-    { key: "6mo", days: 180 },
-    { key: "1y", days: 365 }
+    { key: "1h", type: "api-window", minutes: 60, days: 1 },
+    { key: "1d", type: "api", days: 1 },
+    { key: "1w", type: "api", days: 7 },
+    { key: "1mo", type: "api", days: 30 },
+    { key: "6mo", type: "api", days: 180 },
+    { key: "1y", type: "api", days: 365 },
   ];
-
+  const REFRESH_MS = 8000;
+  const MAX_LIVE_POINTS = 130;
   let coins = [];
+  let sparkHistory = {};
+  let liveHistory = {};
+  let apiChartCache = {};
   let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
   let searchQuery = "";
   let currentTab = "market";
   let openCoinId = null;
   let selectedTf = "1d";
+  let lastPrices = {};
   let zoomFactor = 1;
   let currentChartPoints = [];
   let displayChartPoints = [];
-  let crosshair = null;
-  let apiChartCache = new Map();
-  let drawThrottled = null;
+  let chartAnimHandle = null;
+  let detailLastPrice = null;
+
+  // === НОВОЕ: кроссхейр ===
+  let crosshair = null; // {x: number}
 
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -271,7 +288,6 @@
     localStorage.setItem("theme", theme);
   }
   applyTheme(localStorage.getItem("theme") || "light");
-
   document.getElementById("theme-toggle").addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme") || "light";
     applyTheme(cur === "dark" ? "light" : "dark");
@@ -293,49 +309,90 @@
     document.getElementById("donate-open").textContent = t("openWallet");
     buildTfRow();
     renderAll();
+    if (openCoinId) { updateDetailHeader(openCoinId); loadAndDrawChart(openCoinId, selectedTf, false); }
   }
-
   document.getElementById("lang-btn").addEventListener("click", () => {
     currentLang = currentLang === "ru" ? "en" : "ru";
     localStorage.setItem("app_lang", currentLang);
     applyLanguage();
   });
 
-  // Донат
   const donateOverlay = document.getElementById("donate-overlay");
   document.getElementById("donate-btn").addEventListener("click", () => donateOverlay.classList.add("visible"));
   document.getElementById("donate-close").addEventListener("click", () => donateOverlay.classList.remove("visible"));
-  donateOverlay.addEventListener("click", e => { if (e.target === donateOverlay) donateOverlay.classList.remove("visible"); });
-
-  document.getElementById("donate-copy").addEventListener("click", async e => {
-    await navigator.clipboard.writeText(TON_ADDRESS);
-    const orig = e.target.textContent;
-    e.target.textContent = t("copied");
-    setTimeout(() => e.target.textContent = orig, 1500);
+  donateOverlay.addEventListener("click", (e) => { if (e.target === donateOverlay) donateOverlay.classList.remove("visible"); });
+  document.getElementById("donate-copy").addEventListener("click", async (e) => {
+    try {
+      await navigator.clipboard.writeText(TON_ADDRESS);
+      e.target.textContent = t("copied");
+      setTimeout(() => e.target.textContent = t("copy"), 1500);
+    } catch (err) { console.error(err); }
   });
+  document.getElementById("donate-open").addEventListener("click", (e) => {
+    if (tg && typeof tg.openLink === "function") {
+      e.preventDefault();
+      tg.openLink(TON_TRANSFER_URL);
+    }
+  });
+
+  function fetchWithTimeout(url, ms, options) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...(options || {}), signal: controller.signal }).finally(() => clearTimeout(id));
+  }
+
+  function animateNumberText(el, fromVal, toVal, duration, formatFn) {
+    if (fromVal === null || fromVal === undefined || fromVal === toVal) {
+      el.textContent = formatFn(toVal);
+      return;
+    }
+    const start = performance.now();
+    function step(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const val = fromVal + (toVal - fromVal) * eased;
+      el.textContent = formatFn(val);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
 
   async function fetchMarket() {
     try {
-      const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h");
-      coins = await res.json();
+      const res = await fetchWithTimeout("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h", 6000);
+      const data = await res.json();
+      coins = data;
+      const now = Date.now();
+      data.forEach(c => {
+        if (!sparkHistory[c.id]) sparkHistory[c.id] = [];
+        const sArr = sparkHistory[c.id];
+        sArr.push(c.current_price);
+        if (sArr.length > 30) sArr.shift();
+        if (!liveHistory[c.id]) liveHistory[c.id] = [];
+        const lArr = liveHistory[c.id];
+        lArr.push({ t: now, p: c.current_price });
+        if (lArr.length > MAX_LIVE_POINTS) lArr.shift();
+      });
       renderAll();
       renderPopularCoins();
-      if (openCoinId) updateDetailHeader(openCoinId);
-    } catch (e) { console.error(e); }
+      if (openCoinId) {
+        updateDetailHeader(openCoinId);
+        loadAndDrawChart(openCoinId, selectedTf, false);
+      }
+    } catch (e) { console.error("Ошибка загрузки рынка:", e); }
   }
 
   function formatPrice(p) {
     if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 2 });
     return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 6 });
   }
-
   function formatBig(n) {
     if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + (currentLang === "ru" ? " млрд" : "B");
     if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + (currentLang === "ru" ? " млн" : "M");
     return "$" + (n || 0).toLocaleString("en-US");
   }
 
-  function renderPopularCoins() {
+  function renderPopularCoins() { /* ... твой оригинальный код ... */ 
     const container = document.getElementById("popular-coins");
     container.innerHTML = `<div style="display: flex; gap: 12px; overflow-x: auto; padding: 8px 0;">` +
       coins.slice(0, 6).map(coin => {
@@ -351,16 +408,21 @@
       }).join('') + `</div>`;
   }
 
-  function buildCard(coin) {
+  function buildCard(coin, prevPriceMap) { /* ... оригинал ... */ 
     const change24h = coin.price_change_percentage_24h || 0;
     const isUp = change24h >= 0;
+    const prevPrice = prevPriceMap[coin.id];
+    let flashClass = "";
+    if (prevPrice !== undefined) {
+      if (coin.current_price > prevPrice) flashClass = "flash-up";
+      else if (coin.current_price < prevPrice) flashClass = "flash-down";
+    }
     const isFav = favorites.has(coin.id);
-
     const card = document.createElement("div");
-    card.className = `coin-card`;
+    card.className = "coin-card " + flashClass;
     card.innerHTML = `
       <div class="coin-left">
-        <img class="coin-icon" src="${coin.image}" alt="" loading="lazy">
+        <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" decoding="async">
         <div class="coin-info">
           <div class="coin-name">${coin.name}</div>
           <div class="coin-symbol">${coin.symbol}</div>
@@ -372,10 +434,9 @@
       </div>
       <button class="star-btn ${isFav ? 'star-active' : 'star-inactive'}" data-id="${coin.id}"></button>
     `;
-
     const starBtn = card.querySelector(".star-btn");
     starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
-    starBtn.addEventListener("click", e => {
+    starBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       const id = e.currentTarget.dataset.id;
       favorites.has(id) ? favorites.delete(id) : favorites.add(id);
@@ -386,27 +447,23 @@
     return card;
   }
 
-  function renderAll() {
+  function renderAll() { /* оригинал */ 
+    const prevPriceMap = lastPrices;
+    lastPrices = {};
+    coins.forEach(c => lastPrices[c.id] = c.current_price);
     const marketList = document.getElementById("market-list");
     marketList.innerHTML = "";
     const filtered = coins.filter(c => c.name.toLowerCase().includes(searchQuery) || c.symbol.toLowerCase().includes(searchQuery));
-    if (filtered.length === 0) {
-      marketList.innerHTML = `<div class="empty-state">${t("notFound")}</div>`;
-    } else {
-      filtered.forEach(coin => marketList.appendChild(buildCard(coin)));
-    }
-
+    if (filtered.length === 0) marketList.innerHTML = `<div class="empty-state">${t("notFound")}</div>`;
+    filtered.forEach(coin => marketList.appendChild(buildCard(coin, prevPriceMap)));
     const favList = document.getElementById("favorites-list");
     favList.innerHTML = "";
     const favCoins = coins.filter(c => favorites.has(c.id));
-    if (favCoins.length === 0) {
-      favList.innerHTML = `<div class="empty-state">${t("emptyFav")}</div>`;
-    } else {
-      favCoins.forEach(coin => favList.appendChild(buildCard(coin)));
-    }
+    if (favCoins.length === 0) favList.innerHTML = `<div class="empty-state">${t("emptyFav")}</div>`;
+    favCoins.forEach(coin => favList.appendChild(buildCard(coin, prevPriceMap)));
   }
 
-  function buildTfRow() {
+  function buildTfRow() { /* оригинал */ 
     const row = document.getElementById("tf-row");
     row.innerHTML = "";
     TIMEFRAMES.forEach(tf => {
@@ -416,7 +473,9 @@
       btn.addEventListener("click", () => {
         selectedTf = tf.key;
         zoomFactor = 1;
-        loadAndDrawChart(openCoinId, tf.key);
+        displayChartPoints = [];
+        buildTfRow();
+        loadAndDrawChart(openCoinId, tf.key, true);
       });
       row.appendChild(btn);
     });
@@ -425,10 +484,12 @@
   function openDetail(coinId) {
     openCoinId = coinId;
     zoomFactor = 1;
-    crosshair = null;
+    detailLastPrice = null;
+    displayChartPoints = [];
+    crosshair = null; // сброс кроссхейра
     buildTfRow();
     updateDetailHeader(coinId);
-    loadAndDrawChart(coinId, selectedTf);
+    loadAndDrawChart(coinId, selectedTf, true);
     document.getElementById("detail-screen").classList.add("visible");
     document.getElementById("bottom-nav").style.display = "none";
   }
@@ -436,136 +497,214 @@
   function closeDetail() {
     openCoinId = null;
     crosshair = null;
+    if (chartAnimHandle) cancelAnimationFrame(chartAnimHandle);
     document.getElementById("detail-screen").classList.remove("visible");
     document.getElementById("bottom-nav").style.display = "flex";
   }
-
   document.getElementById("back-btn").addEventListener("click", closeDetail);
 
-  function updateDetailHeader(coinId) {
+  function updateDetailHeader(coinId) { /* оригинал */ 
     const coin = coins.find(c => c.id === coinId);
     if (!coin) return;
     document.getElementById("detail-icon").src = coin.image;
     document.getElementById("detail-name").textContent = coin.name;
-    document.getElementById("detail-symbol").textContent = coin.symbol.toUpperCase();
-    document.getElementById("detail-price").textContent = formatPrice(coin.current_price);
+    document.getElementById("detail-symbol").textContent = coin.symbol;
+    const priceEl = document.getElementById("detail-price");
+    animateNumberText(priceEl, detailLastPrice, coin.current_price, 600, formatPrice);
+    detailLastPrice = coin.current_price;
     document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
     document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
   }
 
-  async function loadAndDrawChart(coinId, tfKey) {
-    const cacheKey = `${coinId}_${tfKey}`;
-    let cached = apiChartCache.get(cacheKey);
-
-    if (!cached || Date.now() - cached.ts > 300000) {
+  async function loadAndDrawChart(coinId, tfKey, showLoader) { /* оригинал */ 
+    const tf = TIMEFRAMES.find(x => x.key === tfKey);
+    let points = [];
+    const cacheKey = tfKey;
+    const cached = apiChartCache[coinId]?.[cacheKey];
+    let fullData;
+    if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
+      fullData = cached.data;
+    } else {
       try {
-        const tf = TIMEFRAMES.find(t => t.key === tfKey);
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${tf.days}`);
+        const days = tf.days;
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
         const json = await res.json();
-        cached = { prices: json.prices.map(p => ({t: p[0], p: p[1]})), ts: Date.now() };
-        apiChartCache.set(cacheKey, cached);
+        fullData = (json.prices || []).map(p => ({ t: p[0], p: p[1] }));
+        if (!apiChartCache[coinId]) apiChartCache[coinId] = {};
+        apiChartCache[coinId][cacheKey] = { data: fullData, fetchedAt: Date.now() };
       } catch (e) {
-        console.error(e);
-        cached = { prices: [], ts: Date.now() };
+        console.error("Ошибка загрузки истории:", e);
+        fullData = [];
       }
     }
+    points = fullData;
+    if (points.length > 1) {
+      const prices = points.map(p => p.p);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const first = points[0].p, last = points[points.length - 1].p;
+      const change = ((last - first) / first) * 100;
+      const isUp = change >= 0;
+      const changeEl = document.getElementById("detail-change");
+      changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(2) + "% " + t("perPeriod");
+      changeEl.className = "detail-change " + (isUp ? "up" : "down");
+      document.getElementById("stat-high").textContent = formatPrice(maxPrice);
+      document.getElementById("stat-low").textContent = formatPrice(minPrice);
+    }
+    updateChartPoints(points);
+  }
 
-    currentChartPoints = cached.prices;
-    displayChartPoints = [...currentChartPoints];
+  function updateChartPoints(newPoints) {
+    currentChartPoints = newPoints;
+    displayChartPoints = newPoints.map(p => ({ ...p }));
+    crosshair = null;
     drawDetailChart();
   }
 
   function prepareHiDPICanvas(canvas) {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
+    const cssW = rect.width || canvas.clientWidth || 600;
+    const cssH = rect.height || canvas.clientHeight || 220;
+    const targetW = Math.round(cssW * dpr);
+    const targetH = Math.round(cssH * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    return { ctx, w: rect.width, h: rect.height };
+    return { ctx, w: cssW, h: cssH };
   }
 
+  // ==================== ГЛАВНАЯ ФУНКЦИЯ ГРАФИКА С КРОССХЕЙРОМ ====================
   function drawDetailChart() {
-    if (drawThrottled) return;
-    drawThrottled = requestAnimationFrame(() => {
-      const canvas = document.getElementById("detail-canvas");
-      const { ctx, w, h } = prepareHiDPICanvas(canvas);
-      ctx.clearRect(0, 0, w, h);
+    const canvas = document.getElementById("detail-canvas");
+    const { ctx, w, h } = prepareHiDPICanvas(canvas);
+    ctx.clearRect(0, 0, w, h);
+    const total = displayChartPoints.length;
+    if (total < 2) return;
 
-      if (displayChartPoints.length < 2) {
-        drawThrottled = null;
-        return;
+    const visibleCount = Math.max(2, Math.round(total / zoomFactor));
+    const slice = displayChartPoints.slice(total - visibleCount);
+    const prices = slice.map(pt => pt.p);
+    const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const color = isUp ? "#2ecc71" : "#e74c3c";
+
+    const padTop = 30, padBottom = 30, padX = 10;
+    const chartH = h - padTop - padBottom;
+    const textColor = (getComputedStyle(document.documentElement).getPropertyValue("--text-secondary") || "#999").trim();
+    const bgColor = (getComputedStyle(document.documentElement).getPropertyValue("--card-bg") || "#ffffff").trim();
+
+    ctx.font = "600 11px -apple-system, sans-serif";
+    ctx.lineWidth = 1;
+    ctx.fillStyle = textColor;
+    ctx.fillText(formatPrice(max), padX, padTop + 10);
+    ctx.fillText(formatPrice(min), padX, h - padBottom + 10);
+
+    const points = prices.map((p, i) => [
+      padX + (i / (prices.length - 1)) * (w - padX * 2),
+      padTop + chartH - ((p - min) / range) * chartH
+    ]);
+
+    function smoothPath(ctx, pts) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const midX = (pts[i][0] + pts[i + 1][0]) / 2;
+        const midY = (pts[i][1] + pts[i + 1][1]) / 2;
+        ctx.quadraticCurveTo(pts[i][0], pts[i][1], midX, midY);
+      }
+      ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+    }
+
+    smoothPath(ctx, points);
+    ctx.lineTo(points[points.length - 1][0], h - padBottom);
+    ctx.lineTo(points[0][0], h - padBottom);
+    ctx.closePath();
+    const gradient = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
+    gradient.addColorStop(0, color + "50");
+    gradient.addColorStop(1, color + "00");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    smoothPath(ctx, points);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3.2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    const lastPt = points[points.length - 1];
+    ctx.beginPath();
+    ctx.arc(lastPt[0], lastPt[1], 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = bgColor || "#fff";
+    ctx.stroke();
+
+    // ==================== КРОССХЕЙР ====================
+    if (crosshair) {
+      const x = crosshair.x;
+      ctx.strokeStyle = "#888888";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 2]);
+      ctx.beginPath();
+      ctx.moveTo(x, padTop);
+      ctx.lineTo(x, h - padBottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      let closestIndex = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < points.length; i++) {
+        const dist = Math.abs(points[i][0] - x);
+        if (dist < minDist) {
+          minDist = dist;
+          closestIndex = i;
+        }
       }
 
-      const visibleCount = Math.max(2, Math.round(displayChartPoints.length / zoomFactor));
-      const slice = displayChartPoints.slice(-visibleCount);
-      const prices = slice.map(pt => pt.p);
-      const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
-      const isUp = prices[prices.length - 1] >= prices[0];
-      const color = isUp ? "#2ecc71" : "#e74c3c";
+      const closestPt = points[closestIndex];
+      const closestPrice = slice[closestIndex].p;
 
-      const padTop = 30, padBottom = 30, padX = 10;
-      const chartH = h - padTop - padBottom;
-
-      const points = prices.map((p, i) => [
-        padX + (i / (prices.length - 1)) * (w - padX * 2),
-        padTop + chartH - ((p - min) / range) * chartH
-      ]);
-
+      // Точка
       ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3.2;
-      ctx.lineJoin = "round";
+      ctx.arc(closestPt[0], closestPt[1], 6.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      if (crosshair) {
-        const x = crosshair.x;
-        ctx.strokeStyle = "#888";
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 2]);
-        ctx.beginPath();
-        ctx.moveTo(x, padTop);
-        ctx.lineTo(x, h - padBottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
+      // Плашка с ценой
+      const priceText = formatPrice(closestPrice);
+      ctx.font = "700 13px -apple-system, sans-serif";
+      const textW = ctx.measureText(priceText).width;
+      let boxX = x + 12;
+      if (boxX + textW + 20 > w) boxX = x - textW - 20;
+      const boxY = closestPt[1] - 32;
 
-        let closest = 0, minDist = Infinity;
-        for (let i = 0; i < points.length; i++) {
-          const dist = Math.abs(points[i][0] - x);
-          if (dist < minDist) { minDist = dist; closest = i; }
-        }
-        const pt = points[closest];
-        const price = slice[closest].p;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.beginPath();
+      ctx.roundRect(boxX - 8, boxY - 4, textW + 16, 26, 6);
+      ctx.fill();
 
-        ctx.beginPath();
-        ctx.arc(pt[0], pt[1], 6, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        const priceText = formatPrice(price);
-        ctx.font = "700 13px -apple-system, sans-serif";
-        const tw = ctx.measureText(priceText).width;
-        let bx = x + 12;
-        if (bx + tw + 20 > w) bx = x - tw - 20;
-        ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(bx - 8, pt[1] - 28, tw + 16, 26);
-        ctx.fillStyle = "#fff";
-        ctx.fillText(priceText, bx, pt[1] - 12);
-      }
-      drawThrottled = null;
-    });
+      ctx.fillStyle = "#ffffff";
+      ctx.textBaseline = "middle";
+      ctx.fillText(priceText, boxX, boxY + 9);
+    }
   }
 
-  const canvas = document.getElementById("detail-canvas");
+  // ==================== Обработчики касаний и мыши ====================
+  const detailCanvas = document.getElementById("detail-canvas");
 
   function updateCrosshair(clientX) {
-    const rect = canvas.getBoundingClientRect();
-    crosshair = { x: clientX - rect.left };
+    const rect = detailCanvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    crosshair = { x: Math.max(0, Math.min(rect.width, x)) };
     drawDetailChart();
   }
 
@@ -574,16 +713,55 @@
     drawDetailChart();
   }
 
-  canvas.addEventListener("mousedown", e => updateCrosshair(e.clientX));
-  canvas.addEventListener("mousemove", e => { if (e.buttons === 1) updateCrosshair(e.clientX); });
-  canvas.addEventListener("mouseup", clearCrosshair);
-  canvas.addEventListener("mouseleave", clearCrosshair);
+  // Mouse
+  detailCanvas.addEventListener("mousedown", e => updateCrosshair(e.clientX));
+  detailCanvas.addEventListener("mousemove", e => { if (e.buttons === 1) updateCrosshair(e.clientX); });
+  detailCanvas.addEventListener("mouseup", clearCrosshair);
+  detailCanvas.addEventListener("mouseleave", clearCrosshair);
 
-  canvas.addEventListener("touchstart", e => { if (e.touches.length === 1) updateCrosshair(e.touches[0].clientX); }, { passive: false });
-  canvas.addEventListener("touchmove", e => { if (e.touches.length === 1) updateCrosshair(e.touches[0].clientX); }, { passive: false });
-  canvas.addEventListener("touchend", clearCrosshair);
+  // Touch
+  detailCanvas.addEventListener("touchstart", e => {
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      updateCrosshair(e.touches[0].clientX);
+    }
+  }, { passive: false });
 
-  document.getElementById("search-input").addEventListener("input", e => {
+  detailCanvas.addEventListener("touchmove", e => {
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      updateCrosshair(e.touches[0].clientX);
+    }
+  }, { passive: false });
+
+  detailCanvas.addEventListener("touchend", clearCrosshair);
+  detailCanvas.addEventListener("touchcancel", clearCrosshair);
+
+  // Pinch zoom (оставлен твой оригинальный)
+  let pinchStartDist = null, pinchStartZoom = 1;
+  function touchDist(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); }
+  detailCanvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) { 
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]); 
+      pinchStartZoom = zoomFactor; 
+    }
+  }, { passive: true });
+  detailCanvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2 && pinchStartDist) {
+      e.preventDefault();
+      const d = touchDist(e.touches[0], e.touches[1]);
+      zoomFactor = Math.min(8, Math.max(1, pinchStartZoom * (d / pinchStartDist)));
+      drawDetailChart();
+    }
+  }, { passive: false });
+
+  detailCanvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    zoomFactor = Math.min(8, Math.max(1, zoomFactor - e.deltaY * 0.002));
+    drawDetailChart();
+  }, { passive: false });
+
+  document.getElementById("search-input").addEventListener("input", (e) => {
     searchQuery = e.target.value.trim().toLowerCase();
     renderAll();
   });
@@ -596,23 +774,24 @@
       document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
       document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
       document.getElementById("section-love").classList.toggle("visible", currentTab === "love");
+      document.getElementById("page-title").textContent = currentTab === "market" ? "CryptoFood" : currentTab === "favorites" ? t("favorites") : t("love");
     });
   });
 
   function showSkeletons() {
-    const list = document.getElementById("market-list");
-    list.innerHTML = "";
+    const marketList = document.getElementById("market-list");
+    marketList.innerHTML = "";
     for (let i = 0; i < 6; i++) {
       const sk = document.createElement("div");
       sk.className = "skeleton";
-      list.appendChild(sk);
+      marketList.appendChild(sk);
     }
   }
 
   showSkeletons();
   applyLanguage();
   fetchMarket();
-  setInterval(fetchMarket, 15000);
+  setInterval(fetchMarket, REFRESH_MS);
 </script>
 </body>
 </html>
