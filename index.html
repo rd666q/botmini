@@ -13,11 +13,11 @@
     --modal-overlay: rgba(0,0,0,0.4);
   }
   [data-theme="dark"] {
-    --bg: #111214; --card-bg: #1c1e21; --text: #f0f0f0; --text-secondary: #85898f;
-    --shadow: rgba(0,0,0,0.3); --nav-shadow: rgba(0,0,0,0.4);
-    --skeleton-base: #262830; --skeleton-shine: #32353d;
-    --pill-bg: #2a2c30; --grid-line: rgba(255,255,255,0.08);
-    --modal-overlay: rgba(0,0,0,0.6);
+    --bg: #000000; --card-bg: #0a0a0a; --text: #f5f5f5; --text-secondary: #888888;
+    --shadow: rgba(0,0,0,0.5); --nav-shadow: rgba(0,0,0,0.6);
+    --skeleton-base: #1a1a1a; --skeleton-shine: #252525;
+    --pill-bg: #1a1a1a; --grid-line: rgba(255,255,255,0.08);
+    --modal-overlay: rgba(0,0,0,0.75);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -61,23 +61,7 @@
 
   .star-btn { background: none; border: none; cursor: pointer; margin-left: 8px; transition: transform 0.2s ease; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .star-btn:active { transform: scale(1.4); }
-  .star-active { color: #2d7ff9; } .star-inactive { color: #666666; }
-
-  .star-pill {
-    background: var(--card-bg);
-    border-radius: 999px;
-    padding: 8px;
-    box-shadow: 0 2px 8px var(--shadow);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--grid-line);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .star-pill:active { transform: scale(0.95); }
-
-  .detail-star-btn { width: 36px; height: 36px; flex-shrink: 0; }
-  .detail-star-btn svg { width: 22px; height: 22px; }
+  .star-active { color: #2d7ff9; } .star-inactive { color: #aaaaaa; }
 
   .empty-state { text-align: center; color: var(--text-secondary); font-size: 14px; padding: 60px 20px; }
 
@@ -207,15 +191,10 @@
 <div id="detail-screen">
   <button class="back-btn" id="back-btn"></button>
   <div class="detail-header">
-    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-      <img class="detail-icon" id="detail-icon" src="" alt="">
-      <div style="min-width: 0;">
-        <div class="detail-name" id="detail-name"></div>
-        <div class="detail-symbol" id="detail-symbol"></div>
-      </div>
-    </div>
-    <div class="star-pill">
-      <button class="star-btn detail-star-btn" id="detail-star-btn"></button>
+    <img class="detail-icon" id="detail-icon" src="" alt="">
+    <div>
+      <div class="detail-name" id="detail-name"></div>
+      <div class="detail-symbol" id="detail-symbol"></div>
     </div>
   </div>
   <div class="detail-price" id="detail-price"></div>
