@@ -3,160 +3,366 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Крипто-курсы</title>
+<title>Крипто-биржа</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, "Segoe UI", sans-serif;
     background: #f4f5f7;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    color: #1c1c1e;
+    overflow-x: hidden;
   }
-  .card {
+  #app { padding: 16px 16px 90px; min-height: 100vh; }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 14px;
+  }
+  .search-box input {
+    border: none;
+    outline: none;
+    font-size: 15px;
+    flex: 1;
+    margin-left: 8px;
+    background: transparent;
+  }
+
+  .tab-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 4px 0 12px;
+  }
+
+  .coin-card {
     background: #ffffff;
     border-radius: 16px;
-    padding: 16px 18px;
+    padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    transition: box-shadow 0.3s ease;
+    margin-bottom: 10px;
+    animation: slideIn 0.35s ease;
   }
-  .info { display: flex; flex-direction: column; gap: 4px; }
-  .label { font-size: 13px; color: #8b8f97; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-  .dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #2ecc71;
-    animation: pulse 1.5s infinite;
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 1; }
+
+  .coin-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .coin-icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    background: #eee;
   }
-  .price { font-size: 22px; font-weight: 700; color: #1c1c1e; transition: color 0.3s ease; }
-  .change { font-size: 12px; font-weight: 600; }
+  .coin-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .coin-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+  .coin-symbol { font-size: 11px; color: #9a9ea5; text-transform: uppercase; }
+
+  .coin-mid { display: flex; flex-direction: column; align-items: flex-end; margin-right: 10px; }
+  .coin-price { font-size: 15px; font-weight: 700; transition: color 0.4s ease; }
+  .coin-change { font-size: 11px; font-weight: 600; margin-top: 2px; }
   .up { color: #2ecc71; }
   .down { color: #e74c3c; }
-  canvas { width: 130px; height: 50px; }
+
+  .flash-up { animation: flashUp 0.6s ease; }
+  .flash-down { animation: flashDown 0.6s ease; }
+  @keyframes flashUp {
+    0% { background: rgba(46,204,113,0.15); }
+    100% { background: transparent; }
+  }
+  @keyframes flashDown {
+    0% { background: rgba(231,76,60,0.15); }
+    100% { background: transparent; }
+  }
+
+  canvas.spark { width: 70px; height: 34px; flex-shrink: 0; }
+
+  .star-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .star-btn:active { transform: scale(1.4); }
+  .star-active { color: #f1c40f; }
+  .star-inactive { color: #d3d5d8; }
+
+  .empty-state {
+    text-align: center;
+    color: #9a9ea5;
+    font-size: 14px;
+    padding: 60px 20px;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 16px;
+    height: 66px;
+    margin-bottom: 10px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* нижняя навигация */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #ffffff;
+    display: flex;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    z-index: 10;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: #b0b3b8;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+  .nav-btn.active { color: #2d7ff9; transform: translateY(-2px); }
+  .nav-icon { font-size: 21px; }
+
+  .section { display: none; }
+  .section.visible { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
 
-  <div class="card" id="btc-card">
-    <div class="info">
-      <div class="label"><span class="dot"></span>Bitcoin</div>
-      <div class="price" id="btc-price">...</div>
-      <div class="change" id="btc-change"></div>
+<div id="app">
+
+  <div class="section visible" id="section-market">
+    <div class="tab-title">Рынок</div>
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="search-input" placeholder="Найти криптовалюту...">
     </div>
-    <canvas id="btc-chart" width="260" height="100"></canvas>
+    <div id="market-list"></div>
   </div>
 
-  <div class="card" id="ton-card">
-    <div class="info">
-      <div class="label"><span class="dot"></span>TON</div>
-      <div class="price" id="ton-price">...</div>
-      <div class="change" id="ton-change"></div>
-    </div>
-    <canvas id="ton-chart" width="260" height="100"></canvas>
+  <div class="section" id="section-favorites">
+    <div class="tab-title">Избранное</div>
+    <div id="favorites-list"></div>
   </div>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+</div>
 
-    const MAX_POINTS = 40; // сколько последних точек храним и показываем
-    const history = {
-      bitcoin: [],
-      "the-open-network": []
-    };
+<div class="bottom-nav">
+  <button class="nav-btn active" data-tab="market">
+    <span class="nav-icon">📊</span>
+    Рынок
+  </button>
+  <button class="nav-btn" data-tab="favorites">
+    <span class="nav-icon">⭐</span>
+    Избранное
+  </button>
+</div>
 
-    async function fetchPrice(coinId) {
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  const MAX_POINTS = 30;
+  const REFRESH_MS = 15000;
+
+  let coins = [];              // последние данные с CoinGecko
+  let history = {};            // id -> [цены...]
+  let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
+  let searchQuery = "";
+  let currentTab = "market";
+
+  function saveFavorites() {
+    localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
+  }
+
+  async function fetchMarket() {
+    try {
       const res = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`
+        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h"
       );
       const data = await res.json();
-      return data[coinId].usd;
-    }
+      coins = data;
 
-    async function updateCoin(coinId, priceElId, changeElId, canvasId) {
-      try {
-        const price = await fetchPrice(coinId);
-
-        const arr = history[coinId];
-        arr.push(price);
+      data.forEach(c => {
+        if (!history[c.id]) history[c.id] = [];
+        const arr = history[c.id];
+        arr.push(c.current_price);
         if (arr.length > MAX_POINTS) arr.shift();
+      });
 
-        const first = arr[0];
-        const last = arr[arr.length - 1];
-        const change = arr.length > 1 ? ((last - first) / first) * 100 : 0;
-        const isUp = change >= 0;
+      renderAll();
+    } catch (e) {
+      console.error("Ошибка загрузки рынка:", e);
+    }
+  }
 
-        document.getElementById(priceElId).textContent =
-          "$" + last.toLocaleString("en-US", { maximumFractionDigits: last < 10 ? 4 : 0 });
+  function formatPrice(p) {
+    if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 6 });
+  }
 
-        const changeEl = document.getElementById(changeElId);
-        changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(3) + "%";
-        changeEl.className = "change " + (isUp ? "up" : "down");
+  function drawSpark(canvas, prices, isUp) {
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (prices.length < 2) return;
 
-        drawChart(canvasId, arr, isUp);
-      } catch (e) {
-        console.error(e);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const range = max - min || 1;
+    const color = isUp ? "#2ecc71" : "#e74c3c";
+
+    const points = prices.map((p, i) => [
+      (i / (prices.length - 1)) * w,
+      h - ((p - min) / range) * (h - 6) - 3
+    ]);
+
+    ctx.beginPath();
+    points.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }
+
+  function buildCard(coin, prevPriceMap) {
+    const arr = history[coin.id] || [coin.current_price];
+    const first = arr[0];
+    const last = arr[arr.length - 1];
+    const localChange = arr.length > 1 ? ((last - first) / first) * 100 : 0;
+    const isUp = localChange >= 0;
+
+    const prevPrice = prevPriceMap[coin.id];
+    let flashClass = "";
+    if (prevPrice !== undefined) {
+      if (coin.current_price > prevPrice) flashClass = "flash-up";
+      else if (coin.current_price < prevPrice) flashClass = "flash-down";
+    }
+
+    const isFav = favorites.has(coin.id);
+    const card = document.createElement("div");
+    card.className = "coin-card " + flashClass;
+
+    card.innerHTML = `
+      <div class="coin-left">
+        <img class="coin-icon" src="${coin.image}" alt="">
+        <div class="coin-info">
+          <div class="coin-name">${coin.name}</div>
+          <div class="coin-symbol">${coin.symbol}</div>
+        </div>
+      </div>
+      <div class="coin-mid">
+        <div class="coin-price">${formatPrice(coin.current_price)}</div>
+        <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(localChange).toFixed(2)}%</div>
+      </div>
+      <canvas class="spark" width="140" height="68"></canvas>
+      <button class="star-btn ${isFav ? 'star-active' : 'star-inactive'}" data-id="${coin.id}">
+        ${isFav ? '★' : '☆'}
+      </button>
+    `;
+
+    const canvas = card.querySelector("canvas");
+    requestAnimationFrame(() => drawSpark(canvas, arr, isUp));
+
+    card.querySelector(".star-btn").addEventListener("click", (e) => {
+      const id = e.currentTarget.dataset.id;
+      if (favorites.has(id)) {
+        favorites.delete(id);
+      } else {
+        favorites.add(id);
       }
+      saveFavorites();
+      renderAll();
+    });
+
+    return card;
+  }
+
+  let lastPrices = {};
+
+  function renderAll() {
+    const prevPriceMap = lastPrices;
+    lastPrices = {};
+    coins.forEach(c => lastPrices[c.id] = c.current_price);
+
+    // рынок
+    const marketList = document.getElementById("market-list");
+    marketList.innerHTML = "";
+    const filtered = coins.filter(c =>
+      c.name.toLowerCase().includes(searchQuery) ||
+      c.symbol.toLowerCase().includes(searchQuery)
+    );
+    if (filtered.length === 0) {
+      marketList.innerHTML = `<div class="empty-state">Ничего не найдено 🔍</div>`;
+    } else {
+      filtered.forEach(coin => marketList.appendChild(buildCard(coin, prevPriceMap)));
     }
 
-    function drawChart(canvasId, prices, isUp) {
-      const canvas = document.getElementById(canvasId);
-      const ctx = canvas.getContext("2d");
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-
-      if (prices.length < 2) return;
-
-      const min = Math.min(...prices);
-      const max = Math.max(...prices);
-      const range = max - min || 1;
-
-      const color = isUp ? "#2ecc71" : "#e74c3c";
-      const points = prices.map((p, i) => {
-        const x = (i / (prices.length - 1)) * w;
-        const y = h - ((p - min) / range) * (h - 10) - 5;
-        return [x, y];
-      });
-
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], h);
-      points.forEach(([x, y]) => ctx.lineTo(x, y));
-      ctx.lineTo(points[points.length - 1][0], h);
-      ctx.closePath();
-      const gradient = ctx.createLinearGradient(0, 0, 0, h);
-      gradient.addColorStop(0, color + "33");
-      gradient.addColorStop(1, color + "00");
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      ctx.beginPath();
-      points.forEach(([x, y], i) => {
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+    // избранное
+    const favList = document.getElementById("favorites-list");
+    favList.innerHTML = "";
+    const favCoins = coins.filter(c => favorites.has(c.id));
+    if (favCoins.length === 0) {
+      favList.innerHTML = `<div class="empty-state">Пока пусто ⭐<br>Добавьте монеты со вкладки «Рынок»</div>`;
+    } else {
+      favCoins.forEach(coin => favList.appendChild(buildCard(coin, prevPriceMap)));
     }
+  }
 
-    function updateAll() {
-      updateCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
-      updateCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
+  // поиск
+  document.getElementById("search-input").addEventListener("input", (e) => {
+    searchQuery = e.target.value.trim().toLowerCase();
+    renderAll();
+  });
+
+  // нижняя навигация
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentTab = btn.dataset.tab;
+      document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
+      document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
+    });
+  });
+
+  // начальная загрузка со скелетонами
+  function showSkeletons() {
+    const marketList = document.getElementById("market-list");
+    marketList.innerHTML = "";
+    for (let i = 0; i < 6; i++) {
+      const sk = document.createElement("div");
+      sk.className = "skeleton";
+      marketList.appendChild(sk);
     }
+  }
 
-    updateAll();
-    setInterval(updateAll, 15000);
-  </script>
+  showSkeletons();
+  fetchMarket();
+  setInterval(fetchMarket, REFRESH_MS);
+</script>
 </body>
 </html>
