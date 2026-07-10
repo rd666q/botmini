@@ -14,7 +14,8 @@
     --nav-shadow: rgba(0,0,0,0.08);
     --skeleton-base: #eee;
     --skeleton-shine: #f5f5f5;
-    --border: rgba(0,0,0,0.05);
+    --pill-bg: #f0f1f3;
+    --grid-line: rgba(0,0,0,0.06);
   }
   [data-theme="dark"] {
     --bg: #111214;
@@ -25,10 +26,11 @@
     --nav-shadow: rgba(0,0,0,0.4);
     --skeleton-base: #262830;
     --skeleton-shine: #32353d;
-    --border: rgba(255,255,255,0.06);
+    --pill-bg: #2a2c30;
+    --grid-line: rgba(255,255,255,0.08);
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: -apple-system, "Segoe UI", sans-serif;
     background: var(--bg);
@@ -38,62 +40,38 @@
   }
   #app { padding: 16px 16px 90px; min-height: 100vh; }
 
-  .top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
+  .icon { display: inline-flex; align-items: center; justify-content: center; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .tab-title { font-size: 20px; font-weight: 700; }
   .theme-btn {
-    background: var(--card-bg);
-    border: none;
-    border-radius: 12px;
-    width: 38px; height: 38px;
-    font-size: 18px;
-    cursor: pointer;
+    background: var(--card-bg); border: none; border-radius: 12px;
+    width: 38px; height: 38px; cursor: pointer;
     box-shadow: 0 2px 8px var(--shadow);
-    transition: transform 0.25s ease;
+    transition: transform 0.25s ease; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
   }
   .theme-btn:active { transform: rotate(20deg) scale(0.9); }
 
   .search-box {
-    display: flex;
-    align-items: center;
-    background: var(--card-bg);
-    border-radius: 14px;
-    padding: 10px 14px;
-    box-shadow: 0 2px 8px var(--shadow);
-    margin-bottom: 14px;
+    display: flex; align-items: center; background: var(--card-bg);
+    border-radius: 14px; padding: 10px 14px; box-shadow: 0 2px 8px var(--shadow);
+    margin-bottom: 14px; color: var(--text-secondary);
   }
   .search-box input {
-    border: none;
-    outline: none;
-    font-size: 15px;
-    flex: 1;
-    margin-left: 8px;
-    background: transparent;
-    color: var(--text);
+    border: none; outline: none; font-size: 15px; flex: 1;
+    margin-left: 8px; background: transparent; color: var(--text);
   }
 
   .coin-card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 8px var(--shadow);
-    margin-bottom: 10px;
-    animation: slideIn 0.35s ease;
-    cursor: pointer;
+    background: var(--card-bg); border-radius: 16px; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px var(--shadow); margin-bottom: 10px;
+    animation: slideIn 0.35s ease; cursor: pointer;
     transition: transform 0.15s ease, background 0.3s ease;
   }
   .coin-card:active { transform: scale(0.98); }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .coin-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
   .coin-icon { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; object-fit: cover; background: #eee; }
@@ -115,8 +93,9 @@
   canvas.spark { width: 70px; height: 34px; flex-shrink: 0; }
 
   .star-btn {
-    background: none; border: none; font-size: 18px; cursor: pointer;
-    margin-left: 8px; transition: transform 0.2s ease; flex-shrink: 0;
+    background: none; border: none; cursor: pointer; margin-left: 8px;
+    transition: transform 0.2s ease; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
   }
   .star-btn:active { transform: scale(1.4); }
   .star-active { color: #f1c40f; }
@@ -126,30 +105,23 @@
 
   .skeleton {
     background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s infinite;
-    border-radius: 16px;
-    height: 66px;
-    margin-bottom: 10px;
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
+    border-radius: 16px; height: 66px; margin-bottom: 10px;
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
   .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--card-bg);
-    display: flex;
-    box-shadow: 0 -2px 12px var(--nav-shadow);
-    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-    z-index: 10;
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg);
+    display: flex; box-shadow: 0 -2px 12px var(--nav-shadow);
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 10;
     transition: background 0.3s ease;
   }
   .nav-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
     background: none; border: none; font-size: 11px; color: #b0b3b8; cursor: pointer;
     transition: color 0.2s ease, transform 0.2s ease;
   }
   .nav-btn.active { color: #2d7ff9; transform: translateY(-2px); }
-  .nav-icon { font-size: 21px; }
 
   .section { display: none; }
   .section.visible { display: block; animation: fadeIn 0.3s ease; }
@@ -157,57 +129,61 @@
 
   /* ===== экран деталей монеты ===== */
   #detail-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--bg);
-    z-index: 20;
-    padding: 16px;
-    display: none;
-    overflow-y: auto;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg);
+    z-index: 20; padding: 16px; display: none; overflow-y: auto;
     animation: slideUp 0.3s ease;
   }
   #detail-screen.visible { display: block; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
   .back-btn {
-    background: var(--card-bg);
-    border: none;
-    border-radius: 12px;
-    width: 38px; height: 38px;
-    font-size: 18px;
-    cursor: pointer;
-    box-shadow: 0 2px 8px var(--shadow);
-    margin-bottom: 16px;
+    background: var(--card-bg); border: none; border-radius: 12px;
+    width: 38px; height: 38px; cursor: pointer; box-shadow: 0 2px 8px var(--shadow);
+    margin-bottom: 16px; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
   }
 
-  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .detail-icon { width: 48px; height: 48px; border-radius: 50%; }
   .detail-name { font-size: 20px; font-weight: 700; }
   .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; }
 
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; }
-  .detail-change { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+  .detail-change { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+
+  .tf-row {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px;
+    scrollbar-width: none;
+  }
+  .tf-row::-webkit-scrollbar { display: none; }
+  .tf-btn {
+    flex-shrink: 0; padding: 7px 14px; border-radius: 20px; border: none;
+    background: var(--pill-bg); color: var(--text-secondary);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .tf-btn.active { background: #2d7ff9; color: #fff; }
 
   .detail-chart-box {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 8px var(--shadow);
-    margin-bottom: 16px;
+    background: var(--card-bg); border-radius: 16px; padding: 16px 12px;
+    box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px; position: relative;
+    touch-action: pan-y;
   }
-  #detail-canvas { width: 100%; height: 160px; display: block; }
+  #detail-canvas { width: 100%; height: 200px; display: block; touch-action: none; }
+  .chart-hint {
+    font-size: 12px; color: var(--text-secondary); text-align: center;
+    margin-top: 6px; min-height: 16px;
+  }
+  .chart-loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--text-secondary); background: var(--card-bg);
+    border-radius: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+  }
+  .chart-loading.visible { opacity: 1; pointer-events: all; }
+  .zoom-hint { font-size: 11px; color: var(--text-secondary); text-align: center; margin: 6px 0 16px; }
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .stat-card {
-    background: var(--card-bg);
-    border-radius: 14px;
-    padding: 12px 14px;
-    box-shadow: 0 2px 8px var(--shadow);
-  }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { background: var(--card-bg); border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 8px var(--shadow); }
   .stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
   .stat-value { font-size: 15px; font-weight: 700; }
 </style>
@@ -217,12 +193,12 @@
 <div id="app">
   <div class="top-bar">
     <div class="tab-title" id="page-title">Рынок</div>
-    <button class="theme-btn" id="theme-toggle">🌙</button>
+    <button class="theme-btn" id="theme-toggle"></button>
   </div>
 
   <div class="section visible" id="section-market">
     <div class="search-box">
-      <span>🔍</span>
+      <span class="icon" id="search-icon"></span>
       <input type="text" id="search-input" placeholder="Найти криптовалюту...">
     </div>
     <div id="market-list"></div>
@@ -235,18 +211,18 @@
 
 <div class="bottom-nav" id="bottom-nav">
   <button class="nav-btn active" data-tab="market">
-    <span class="nav-icon">📊</span>
+    <span class="icon" id="nav-icon-market"></span>
     Рынок
   </button>
   <button class="nav-btn" data-tab="favorites">
-    <span class="nav-icon">⭐</span>
+    <span class="icon" id="nav-icon-fav"></span>
     Избранное
   </button>
 </div>
 
 <!-- экран деталей монеты -->
 <div id="detail-screen">
-  <button class="back-btn" id="back-btn">←</button>
+  <button class="back-btn" id="back-btn"></button>
   <div class="detail-header">
     <img class="detail-icon" id="detail-icon" src="" alt="">
     <div>
@@ -257,9 +233,14 @@
   <div class="detail-price" id="detail-price"></div>
   <div class="detail-change" id="detail-change"></div>
 
+  <div class="tf-row" id="tf-row"></div>
+
   <div class="detail-chart-box">
     <canvas id="detail-canvas" width="600" height="320"></canvas>
+    <div class="chart-loading" id="chart-loading">Загрузка графика...</div>
   </div>
+  <div class="chart-hint" id="chart-hint"></div>
+  <div class="zoom-hint">🔍 Сведите/разведите пальцы или крутите колесо мыши, чтобы приблизить график</div>
 
   <div class="stats-grid">
     <div class="stat-card">
@@ -287,32 +268,66 @@
   tg.ready();
   tg.expand();
 
-  const MAX_POINTS = 30;
+  // ===== SVG-иконки (свой минималистичный дизайн вместо смайликов) =====
+  const ICONS = {
+    chart: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
+    starOutline: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
+    starFilled: `<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
+    star18Outline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
+    star18Filled: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
+    back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`,
+    search: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>`,
+    moon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.7A8.5 8.5 0 019.3 3.5 9 9 0 1020.5 14.7z"/></svg>`,
+    sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>`,
+  };
+
+  document.getElementById("search-icon").innerHTML = ICONS.search;
+  document.getElementById("nav-icon-market").innerHTML = ICONS.chart;
+  document.getElementById("nav-icon-fav").innerHTML = ICONS.starOutline;
+  document.getElementById("back-btn").innerHTML = ICONS.back;
+
+  // ===== таймфреймы =====
+  const TIMEFRAMES = [
+    { key: "5m",  label: "5м",  type: "live", minutes: 5 },
+    { key: "15m", label: "15м", type: "live", minutes: 15 },
+    { key: "30m", label: "30м", type: "live", minutes: 30 },
+    { key: "1h",  label: "1ч",  type: "live", minutes: 60 },
+    { key: "3h",  label: "3ч",  type: "live", minutes: 180 },
+    { key: "1d",  label: "1Д",  type: "api",  days: 1 },
+    { key: "1w",  label: "1Н",  type: "api",  days: 7 },
+    { key: "1mo", label: "1М",  type: "api",  days: 30 },
+    { key: "1y",  label: "1Г",  type: "api",  days: 365 },
+  ];
+
+  const MAX_LIVE_POINTS = 760; // ~3.1 часа при опросе раз в 15 сек
   const REFRESH_MS = 15000;
 
   let coins = [];
-  let history = {};
+  let sparkHistory = {};     // для маленьких графиков в списке (сессия)
+  let liveHistory = {};      // { coinId: [{t,p}, ...] } для живых таймфреймов в деталях
+  let apiChartCache = {};    // { coinId: { tfKey: {data, fetchedAt} } }
   let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
   let searchQuery = "";
   let currentTab = "market";
   let openCoinId = null;
+  let selectedTf = "1d";
   let lastPrices = {};
+  let zoomFactor = 1;
+  let currentChartPoints = [];
 
   // ===== тема =====
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
-    document.getElementById("theme-toggle").textContent = theme === "dark" ? "☀️" : "🌙";
+    document.getElementById("theme-toggle").innerHTML = theme === "dark" ? ICONS.sun : ICONS.moon;
     localStorage.setItem("theme", theme);
   }
-  const savedTheme = localStorage.getItem("theme") || "light";
-  applyTheme(savedTheme);
-
+  applyTheme(localStorage.getItem("theme") || "light");
   document.getElementById("theme-toggle").addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme") || "light";
-    applyTheme(current === "dark" ? "light" : "dark");
+    const cur = document.documentElement.getAttribute("data-theme") || "light";
+    applyTheme(cur === "dark" ? "light" : "dark");
   });
 
-  // ===== данные =====
+  // ===== загрузка рынка (каждые 15 сек) =====
   async function fetchMarket() {
     try {
       const res = await fetch(
@@ -320,16 +335,26 @@
       );
       const data = await res.json();
       coins = data;
+      const now = Date.now();
 
       data.forEach(c => {
-        if (!history[c.id]) history[c.id] = [];
-        const arr = history[c.id];
-        arr.push(c.current_price);
-        if (arr.length > MAX_POINTS) arr.shift();
+        if (!sparkHistory[c.id]) sparkHistory[c.id] = [];
+        const sArr = sparkHistory[c.id];
+        sArr.push(c.current_price);
+        if (sArr.length > 30) sArr.shift();
+
+        if (!liveHistory[c.id]) liveHistory[c.id] = [];
+        const lArr = liveHistory[c.id];
+        lArr.push({ t: now, p: c.current_price });
+        if (lArr.length > MAX_LIVE_POINTS) lArr.shift();
       });
 
       renderAll();
-      if (openCoinId) renderDetail(openCoinId);
+      if (openCoinId) {
+        updateDetailHeader(openCoinId);
+        const tf = TIMEFRAMES.find(t => t.key === selectedTf);
+        if (tf.type === "live") loadAndDrawChart(openCoinId, selectedTf, false);
+      }
     } catch (e) {
       console.error("Ошибка загрузки рынка:", e);
     }
@@ -339,77 +364,29 @@
     if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 2 });
     return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 6 });
   }
-
   function formatBig(n) {
     if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + " млрд";
     if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + " млн";
-    return "$" + n.toLocaleString("en-US");
+    return "$" + (n || 0).toLocaleString("en-US");
   }
 
+  // ===== мини-графики в списке =====
   function drawSpark(canvas, prices, isUp) {
     const ctx = canvas.getContext("2d");
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
     if (prices.length < 2) return;
-
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const range = max - min || 1;
+    const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
     const color = isUp ? "#2ecc71" : "#e74c3c";
-
-    const points = prices.map((p, i) => [
-      (i / (prices.length - 1)) * w,
-      h - ((p - min) / range) * (h - 6) - 3
-    ]);
-
+    const points = prices.map((p, i) => [(i / (prices.length - 1)) * w, h - ((p - min) / range) * (h - 6) - 3]);
     ctx.beginPath();
     points.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = "round";
-    ctx.stroke();
-  }
-
-  function drawDetailChart(prices, isUp) {
-    const canvas = document.getElementById("detail-canvas");
-    const ctx = canvas.getContext("2d");
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    if (prices.length < 2) return;
-
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const range = max - min || 1;
-    const color = isUp ? "#2ecc71" : "#e74c3c";
-
-    const points = prices.map((p, i) => [
-      (i / (prices.length - 1)) * w,
-      h - ((p - min) / range) * (h - 20) - 10
-    ]);
-
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], h);
-    points.forEach(([x, y]) => ctx.lineTo(x, y));
-    ctx.lineTo(points[points.length - 1][0], h);
-    ctx.closePath();
-    const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, color + "33");
-    gradient.addColorStop(1, color + "00");
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    ctx.beginPath();
-    points.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.lineJoin = "round";
-    ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
   }
 
   function buildCard(coin, prevPriceMap) {
-    const arr = history[coin.id] || [coin.current_price];
-    const first = arr[0];
-    const last = arr[arr.length - 1];
+    const arr = sparkHistory[coin.id] || [coin.current_price];
+    const first = arr[0], last = arr[arr.length - 1];
     const localChange = arr.length > 1 ? ((last - first) / first) * 100 : 0;
     const isUp = localChange >= 0;
 
@@ -423,7 +400,6 @@
     const isFav = favorites.has(coin.id);
     const card = document.createElement("div");
     card.className = "coin-card " + flashClass;
-
     card.innerHTML = `
       <div class="coin-left">
         <img class="coin-icon" src="${coin.image}" alt="">
@@ -437,30 +413,23 @@
         <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(localChange).toFixed(2)}%</div>
       </div>
       <canvas class="spark" width="140" height="68"></canvas>
-      <button class="star-btn ${isFav ? 'star-active' : 'star-inactive'}" data-id="${coin.id}">
-        ${isFav ? '★' : '☆'}
-      </button>
+      <button class="star-btn ${isFav ? 'star-active' : 'star-inactive'}" data-id="${coin.id}"></button>
     `;
-
     const canvas = card.querySelector("canvas");
     requestAnimationFrame(() => drawSpark(canvas, arr, isUp));
 
-    card.querySelector(".star-btn").addEventListener("click", (e) => {
+    const starBtn = card.querySelector(".star-btn");
+    starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
+    starBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       const id = e.currentTarget.dataset.id;
-      if (favorites.has(id)) favorites.delete(id);
-      else favorites.add(id);
-      saveFavorites();
+      favorites.has(id) ? favorites.delete(id) : favorites.add(id);
+      localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
       renderAll();
     });
 
     card.addEventListener("click", () => openDetail(coin.id));
-
     return card;
-  }
-
-  function saveFavorites() {
-    localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
   }
 
   function renderAll() {
@@ -470,76 +439,234 @@
 
     const marketList = document.getElementById("market-list");
     marketList.innerHTML = "";
-    const filtered = coins.filter(c =>
-      c.name.toLowerCase().includes(searchQuery) ||
-      c.symbol.toLowerCase().includes(searchQuery)
-    );
-    if (filtered.length === 0) {
-      marketList.innerHTML = `<div class="empty-state">Ничего не найдено 🔍</div>`;
-    } else {
-      filtered.forEach(coin => marketList.appendChild(buildCard(coin, prevPriceMap)));
-    }
+    const filtered = coins.filter(c => c.name.toLowerCase().includes(searchQuery) || c.symbol.toLowerCase().includes(searchQuery));
+    marketList.innerHTML = filtered.length === 0 ? `<div class="empty-state">Ничего не найдено</div>` : "";
+    filtered.forEach(coin => marketList.appendChild(buildCard(coin, prevPriceMap)));
 
     const favList = document.getElementById("favorites-list");
     favList.innerHTML = "";
     const favCoins = coins.filter(c => favorites.has(c.id));
-    if (favCoins.length === 0) {
-      favList.innerHTML = `<div class="empty-state">Пока пусто ⭐<br>Добавьте монеты со вкладки «Рынок»</div>`;
-    } else {
-      favCoins.forEach(coin => favList.appendChild(buildCard(coin, prevPriceMap)));
-    }
+    favList.innerHTML = favCoins.length === 0 ? `<div class="empty-state">Пока пусто<br>Добавьте монеты со вкладки «Рынок»</div>` : "";
+    favCoins.forEach(coin => favList.appendChild(buildCard(coin, prevPriceMap)));
   }
 
   // ===== экран деталей =====
+  function buildTfRow() {
+    const row = document.getElementById("tf-row");
+    row.innerHTML = "";
+    TIMEFRAMES.forEach(tf => {
+      const btn = document.createElement("button");
+      btn.className = "tf-btn" + (tf.key === selectedTf ? " active" : "");
+      btn.textContent = tf.label;
+      btn.addEventListener("click", () => {
+        selectedTf = tf.key;
+        zoomFactor = 1;
+        buildTfRow();
+        loadAndDrawChart(openCoinId, tf.key, true);
+      });
+      row.appendChild(btn);
+    });
+  }
+
   function openDetail(coinId) {
     openCoinId = coinId;
-    renderDetail(coinId);
+    zoomFactor = 1;
+    buildTfRow();
+    updateDetailHeader(coinId);
+    loadAndDrawChart(coinId, selectedTf, true);
     document.getElementById("detail-screen").classList.add("visible");
     document.getElementById("bottom-nav").style.display = "none";
   }
-
   function closeDetail() {
     openCoinId = null;
     document.getElementById("detail-screen").classList.remove("visible");
     document.getElementById("bottom-nav").style.display = "flex";
   }
+  document.getElementById("back-btn").addEventListener("click", closeDetail);
 
-  function renderDetail(coinId) {
+  function updateDetailHeader(coinId) {
     const coin = coins.find(c => c.id === coinId);
     if (!coin) return;
-
-    const arr = history[coin.id] || [coin.current_price];
-    const first = arr[0];
-    const last = arr[arr.length - 1];
-    const localChange = arr.length > 1 ? ((last - first) / first) * 100 : 0;
-    const isUp = localChange >= 0;
-
     document.getElementById("detail-icon").src = coin.image;
     document.getElementById("detail-name").textContent = coin.name;
     document.getElementById("detail-symbol").textContent = coin.symbol;
     document.getElementById("detail-price").textContent = formatPrice(coin.current_price);
-
-    const changeEl = document.getElementById("detail-change");
-    changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(localChange).toFixed(2) + "% за сессию";
-    changeEl.className = "detail-change " + (isUp ? "up" : "down");
-
     document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
     document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
     document.getElementById("stat-high").textContent = formatPrice(coin.high_24h);
     document.getElementById("stat-low").textContent = formatPrice(coin.low_24h);
-
-    drawDetailChart(arr, isUp);
   }
 
-  document.getElementById("back-btn").addEventListener("click", closeDetail);
+  function setChartLoading(state) {
+    document.getElementById("chart-loading").classList.toggle("visible", state);
+  }
 
-  // ===== поиск =====
+  async function loadAndDrawChart(coinId, tfKey, showLoader) {
+    const tf = TIMEFRAMES.find(t => t.key === tfKey);
+    let points = [];
+    const hint = document.getElementById("chart-hint");
+    hint.textContent = "";
+
+    if (tf.type === "live") {
+      const windowMs = tf.minutes * 60 * 1000;
+      const now = Date.now();
+      points = (liveHistory[coinId] || []).filter(pt => now - pt.t <= windowMs);
+      if (points.length < 2) {
+        hint.textContent = "Копим данные для этого периода — держите приложение открытым подольше 🙂";
+      }
+    } else {
+      const cached = apiChartCache[coinId]?.[tfKey];
+      if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
+        points = cached.data;
+      } else {
+        if (showLoader) setChartLoading(true);
+        try {
+          const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${tf.days}`);
+          const json = await res.json();
+          points = (json.prices || []).map(p => ({ t: p[0], p: p[1] }));
+          if (!apiChartCache[coinId]) apiChartCache[coinId] = {};
+          apiChartCache[coinId][tfKey] = { data: points, fetchedAt: Date.now() };
+        } catch (e) {
+          console.error("Ошибка загрузки истории:", e);
+        }
+        if (showLoader) setChartLoading(false);
+      }
+    }
+
+    currentChartPoints = points;
+
+    // обновляем изменение в шапке относительно выбранного периода
+    if (points.length > 1) {
+      const first = points[0].p, last = points[points.length - 1].p;
+      const change = ((last - first) / first) * 100;
+      const isUp = change >= 0;
+      const changeEl = document.getElementById("detail-change");
+      changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(2) + "% за период";
+      changeEl.className = "detail-change " + (isUp ? "up" : "down");
+    }
+
+    drawDetailChart();
+  }
+
+  function drawDetailChart() {
+    const canvas = document.getElementById("detail-canvas");
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const total = currentChartPoints.length;
+    if (total < 2) return;
+
+    const visibleCount = Math.max(2, Math.round(total / zoomFactor));
+    const slice = currentChartPoints.slice(total - visibleCount);
+    const prices = slice.map(pt => pt.p);
+
+    const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const color = isUp ? "#2ecc71" : "#e74c3c";
+
+    const padTop = 24, padBottom = 24, padX = 4;
+    const chartH = h - padTop - padBottom;
+
+    // сетка + подписи цены
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--grid-line") || "rgba(0,0,0,0.06)";
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text-secondary") || "#999";
+    ctx.font = "11px -apple-system, sans-serif";
+    ctx.lineWidth = 1;
+    [0, 0.5, 1].forEach(f => {
+      const y = padTop + chartH * f;
+      ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(w - padX, y); ctx.stroke();
+      const val = max - range * f;
+      ctx.fillText(formatPrice(val), padX, y - 4);
+    });
+
+    const points = prices.map((p, i) => [
+      padX + (i / (prices.length - 1)) * (w - padX * 2),
+      padTop + chartH - ((p - min) / range) * chartH
+    ]);
+
+    // плавная кривая (сглаживание через среднюю точку)
+    function smoothPath(ctx, pts) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const midX = (pts[i][0] + pts[i + 1][0]) / 2;
+        const midY = (pts[i][1] + pts[i + 1][1]) / 2;
+        ctx.quadraticCurveTo(pts[i][0], pts[i][1], midX, midY);
+      }
+      ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+    }
+
+    // заливка
+    smoothPath(ctx, points);
+    ctx.lineTo(points[points.length - 1][0], h - padBottom);
+    ctx.lineTo(points[0][0], h - padBottom);
+    ctx.closePath();
+    const gradient = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
+    gradient.addColorStop(0, color + "40");
+    gradient.addColorStop(1, color + "00");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // линия
+    smoothPath(ctx, points);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // подписи времени по краям
+    const fmt = (ts) => {
+      const d = new Date(ts);
+      const tf = TIMEFRAMES.find(t => t.key === selectedTf);
+      if (tf.type === "live" || tf.days <= 1) return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+      if (tf.days <= 30) return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+      return d.toLocaleDateString("ru-RU", { month: "2-digit", year: "2-digit" });
+    };
+    ctx.fillText(fmt(slice[0].t), padX, h - 6);
+    const endLabel = fmt(slice[slice.length - 1].t);
+    const endWidth = ctx.measureText(endLabel).width;
+    ctx.fillText(endLabel, w - padX - endWidth, h - 6);
+  }
+
+  // ===== зум: пальцами (мобильные) и колесом мыши (десктоп) =====
+  const detailCanvas = document.getElementById("detail-canvas");
+  let pinchStartDist = null, pinchStartZoom = 1;
+
+  function touchDist(t1, t2) {
+    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+  }
+
+  detailCanvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      pinchStartZoom = zoomFactor;
+    }
+  }, { passive: true });
+
+  detailCanvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2 && pinchStartDist) {
+      e.preventDefault();
+      const d = touchDist(e.touches[0], e.touches[1]);
+      const ratio = d / pinchStartDist;
+      zoomFactor = Math.min(8, Math.max(1, pinchStartZoom * ratio));
+      drawDetailChart();
+    }
+  }, { passive: false });
+
+  detailCanvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    zoomFactor = Math.min(8, Math.max(1, zoomFactor - e.deltaY * 0.002));
+    drawDetailChart();
+  }, { passive: false });
+
+  // ===== поиск и навигация =====
   document.getElementById("search-input").addEventListener("input", (e) => {
     searchQuery = e.target.value.trim().toLowerCase();
     renderAll();
   });
 
-  // ===== навигация =====
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -551,7 +678,7 @@
     });
   });
 
-  // ===== начальная загрузка =====
+  // ===== запуск =====
   function showSkeletons() {
     const marketList = document.getElementById("market-list");
     marketList.innerHTML = "";
