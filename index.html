@@ -95,8 +95,10 @@
   .tf-btn.active { background: #2d7ff9; color: #fff; }
 
   .detail-chart-box { background: var(--card-bg); border-radius: 16px; padding: 16px 12px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px; position: relative; touch-action: pan-y; }
-  #detail-canvas { width: 100%; height: 260px; display: block; touch-action: none; }
+  #detail-canvas { width: 100%; height: 220px; display: block; touch-action: none; }
   .chart-hint { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 6px; min-height: 16px; }
+  .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-secondary); background: var(--card-bg); border-radius: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+  .chart-loading.visible { opacity: 1; pointer-events: all; }
   .zoom-hint { font-size: 11px; color: var(--text-secondary); text-align: center; margin: 6px 0 16px; }
 
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -185,7 +187,7 @@
 
   <div class="detail-chart-box">
     <canvas id="detail-canvas" width="600" height="260"></canvas>
-    <div id="crosshair-price" style="position:absolute; background:rgba(0,0,0,0.7); color:white; padding:4px 8px; border-radius:4px; font-size:13px; display:none; pointer-events:none;"></div>
+    <div class="chart-loading" id="chart-loading">Загрузка графика...</div>
   </div>
   <div class="chart-hint" id="chart-hint"></div>
   <div class="zoom-hint" id="zoom-hint">Сведите/разведите пальцы или крутите колесо мыши, чтобы приблизить график</div>
@@ -318,9 +320,6 @@
   let chartAnimHandle = null;
   let detailLastPrice = null;
 
-  let isDragging = false;
-  let crosshairX = 0;
-
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     document.getElementById("theme-toggle").innerHTML = theme === "dark" ? ICONS.sun : ICONS.moon;
@@ -420,7 +419,7 @@
       if (openCoinId) {
         updateDetailHeader(openCoinId);
         const tf = TIMEFRAMES.find(x => x.key === selectedTf);
-        loadAndDrawChart(openCoinId, selectedTf, false);
+        if (tf.type === "live") loadAndDrawChart(openCoinId, selectedTf, false);
       }
     } catch (e) { console.error("Ошибка загрузки рынка:", e); }
   }
@@ -574,27 +573,34 @@
     const hint = document.getElementById("chart-hint");
     hint.textContent = "";
 
-    const cacheKey = tfKey;
-    const cached = apiChartCache[coinId]?.[cacheKey];
-    let fullData;
-    if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
-      fullData = cached.data;
+    if (tf.type === "live") {
+      const windowMs = tf.minutes * 60 * 1000;
+      const now = Date.now();
+      points = (liveHistory[coinId] || []).filter(pt => now - pt.t <= windowMs);
+      if (points.length < 2) hint.textContent = t("accumulating");
     } else {
-      if (showLoader) setChartLoading(true);
-      try {
-        const days = tf.days;
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
-        const json = await res.json();
-        fullData = (json.prices || []).map(p => ({ t: p[0], p: p[1] }));
-        if (!apiChartCache[coinId]) apiChartCache[coinId] = {};
-        apiChartCache[coinId][cacheKey] = { data: fullData, fetchedAt: Date.now() };
-      } catch (e) {
-        console.error("Ошибка загрузки истории:", e);
-        fullData = [];
+      const cacheKey = tfKey;
+      const cached = apiChartCache[coinId]?.[cacheKey];
+      let fullData;
+      if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
+        fullData = cached.data;
+      } else {
+        if (showLoader) setChartLoading(true);
+        try {
+          const days = tf.days;
+          const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
+          const json = await res.json();
+          fullData = (json.prices || []).map(p => ({ t: p[0], p: p[1] }));
+          if (!apiChartCache[coinId]) apiChartCache[coinId] = {};
+          apiChartCache[coinId][cacheKey] = { data: fullData, fetchedAt: Date.now() };
+        } catch (e) {
+          console.error("Ошибка загрузки истории:", e);
+          fullData = [];
+        }
+        if (showLoader) setChartLoading(false);
       }
-      if (showLoader) setChartLoading(false);
+      points = fullData;
     }
-    points = fullData;
 
     if (points.length > 1) {
       const prices = points.map(p => p.p);
@@ -653,7 +659,7 @@
     const isUp = prices[prices.length - 1] >= prices[0];
     const color = isUp ? "#2ecc71" : "#e74c3c";
 
-    const padTop = 30, padBottom = 40, padX = 10;
+    const padTop = 30, padBottom = 30, padX = 10;
     const chartH = h - padTop - padBottom;
 
     const gridColor = getComputedStyle(document.documentElement).getPropertyValue("--grid-line") || "rgba(0,0,0,0.06)";
@@ -710,85 +716,28 @@
     ctx.stroke();
   }
 
-  // Интерактив + вибрация
   const detailCanvas = document.getElementById("detail-canvas");
-  const crosshairPrice = document.getElementById("crosshair-price");
-  let isDragging = false;
-  let lastVibrate = 0;
-
-  function showCrosshair(x, price) {
-    crosshairPrice.style.display = "block";
-    crosshairPrice.style.left = (x - 30) + "px";
-    crosshairPrice.style.top = "40px";
-    crosshairPrice.textContent = formatPrice(price);
-
-    // Вибрация
-    const now = Date.now();
-    if (now - lastVibrate > 80 && navigator.vibrate) {
-      navigator.vibrate(8);
-      lastVibrate = now;
-    }
-  }
-
-  function hideCrosshair() {
-    crosshairPrice.style.display = "none";
-  }
+  let pinchStartDist = null, pinchStartZoom = 1;
+  function touchDist(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); }
 
   detailCanvas.addEventListener("touchstart", (e) => {
-    if (e.touches.length === 1) {
-      isDragging = true;
-      const rect = detailCanvas.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const price = getPriceAtX(x);
-      showCrosshair(x, price);
-    }
-  });
+    if (e.touches.length === 2) { pinchStartDist = touchDist(e.touches[0], e.touches[1]); pinchStartZoom = zoomFactor; }
+  }, { passive: true });
 
   detailCanvas.addEventListener("touchmove", (e) => {
-    if (isDragging && e.touches.length === 1) {
+    if (e.touches.length === 2 && pinchStartDist) {
       e.preventDefault();
-      const rect = detailCanvas.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const price = getPriceAtX(x);
-      showCrosshair(x, price);
+      const d = touchDist(e.touches[0], e.touches[1]);
+      zoomFactor = Math.min(8, Math.max(1, pinchStartZoom * (d / pinchStartDist)));
+      drawDetailChart();
     }
-  });
+  }, { passive: false });
 
-  detailCanvas.addEventListener("touchend", () => {
-    isDragging = false;
-    hideCrosshair();
-  });
-
-  function getPriceAtX(x) {
-    if (displayChartPoints.length < 2) return 0;
-    const total = displayChartPoints.length;
-    const visibleCount = Math.max(2, Math.round(total / zoomFactor));
-    const slice = displayChartPoints.slice(total - visibleCount);
-    const idx = Math.floor((x / detailCanvas.clientWidth) * (slice.length - 1));
-    return slice[Math.max(0, Math.min(slice.length - 1, idx))].p;
-  }
-
-  detailCanvas.addEventListener("mousedown", (e) => {
-    isDragging = true;
-    const rect = detailCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const price = getPriceAtX(x);
-    showCrosshair(x, price);
-  });
-
-  detailCanvas.addEventListener("mousemove", (e) => {
-    if (isDragging) {
-      const rect = detailCanvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const price = getPriceAtX(x);
-      showCrosshair(x, price);
-    }
-  });
-
-  document.addEventListener("mouseup", () => {
-    isDragging = false;
-    hideCrosshair();
-  });
+  detailCanvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    zoomFactor = Math.min(8, Math.max(1, zoomFactor - e.deltaY * 0.002));
+    drawDetailChart();
+  }, { passive: false });
 
   document.getElementById("search-input").addEventListener("input", (e) => {
     searchQuery = e.target.value.trim().toLowerCase();
