@@ -375,7 +375,6 @@ function applyLanguage() {
   document.getElementById("donate-desc").textContent = t("donateDesc");
   document.getElementById("donate-copy").textContent = t("copy");
   document.getElementById("donate-open").textContent = t("openWallet");
-  buildTfRow();
   renderAll();
   if (openCoinId) { updateDetailHeader(openCoinId); loadAndDrawChart(openCoinId, selectedTf, false); }
 }
