@@ -59,8 +59,6 @@
   @keyframes flashUp { 0% { background: rgba(46,204,113,0.15); } 100% { background: transparent; } }
   @keyframes flashDown { 0% { background: rgba(231,76,60,0.15); } 100% { background: transparent; } }
 
-  canvas.spark { width: 70px; height: 34px; flex-shrink: 0; }
-
   .star-btn { background: none; border: none; cursor: pointer; margin-left: 8px; transition: transform 0.2s ease; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .star-btn:active { transform: scale(1.4); }
   .star-active { color: #f1c40f; } .star-inactive { color: #d3d5d8; }
@@ -91,8 +89,6 @@
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; }
   .detail-change { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 
-  .tf-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width: none; }
-  .tf-row::-webkit-scrollbar { display: none; }
   .tf-btn { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; border: none; background: var(--pill-bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, color 0.2s ease; }
   .tf-btn.active { background: #2d7ff9; color: #fff; }
 
@@ -203,8 +199,6 @@
   </div>
   <div class="detail-price" id="detail-price"></div>
   <div class="detail-change" id="detail-change"></div>
-
-  <div class="tf-row" id="tf-row"></div>
 
   <div class="detail-chart-box">
     <canvas id="detail-canvas" width="600" height="220"></canvas>
@@ -327,7 +321,6 @@ const MARKET_RETRIES = 2;        // повторные попытки при о�
 const CHART_RETRIES = 1;
 
 let coins = [];
-let sparkHistory = {};
 let apiChartCache = {};
 let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
 let searchQuery = "";
@@ -471,13 +464,6 @@ async function fetchMarket() {
     );
     coins = data;
 
-    data.forEach(c => {
-      if (!sparkHistory[c.id]) sparkHistory[c.id] = [];
-      const sArr = sparkHistory[c.id];
-      sArr.push(c.current_price);
-      if (sArr.length > 30) sArr.shift();
-    });
-
     renderAll();
     renderPopularCoins();
     if (openCoinId) {
@@ -512,19 +498,6 @@ function formatBig(n) {
   if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + (currentLang === "ru" ? " млрд" : "B");
   if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + (currentLang === "ru" ? " млн" : "M");
   return "$" + (n || 0).toLocaleString("en-US");
-}
-
-function drawSpark(canvas, prices, isUp) {
-  const ctx = canvas.getContext("2d");
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-  if (prices.length < 2) return;
-  const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
-  const color = isUp ? "#2ecc71" : "#e74c3c";
-  const points = prices.map((p, i) => [(i / (prices.length - 1)) * w, h - ((p - min) / range) * (h - 6) - 3]);
-  ctx.beginPath();
-  points.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
-  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
 }
 
 // Популярные монеты (без короны 👑) — инкрементальное обновление, без пересоздания <img> на каждый тик
@@ -600,7 +573,6 @@ function buildCardEntry(coin) {
       <div class="coin-price"></div>
       <div class="coin-change"></div>
     </div>
-    <canvas class="spark" width="140" height="68"></canvas>
     <button class="star-btn"></button>
   `;
   const entry = {
@@ -609,7 +581,6 @@ function buildCardEntry(coin) {
     symbolEl: root.querySelector(".coin-symbol"),
     priceEl: root.querySelector(".coin-price"),
     changeEl: root.querySelector(".coin-change"),
-    canvas: root.querySelector("canvas"),
     starBtn: root.querySelector(".star-btn"),
     coinId: coin.id,
     lastLocalPrice: null,
@@ -627,15 +598,13 @@ function buildCardEntry(coin) {
 }
 
 function updateCardEntry(entry, coin, prevPriceMap) {
-  const arr = sparkHistory[coin.id] || [coin.current_price];
-  const first = arr[0], last = arr[arr.length - 1];
-  const localChange = arr.length > 1 ? ((last - first) / first) * 100 : 0;
-  const isUp = localChange >= 0;
+  const change24h = coin.price_change_percentage_24h;
+  const isUp = (change24h || 0) >= 0;
 
   entry.nameEl.textContent = coin.name;
   entry.symbolEl.textContent = coin.symbol;
   entry.priceEl.textContent = formatPrice(coin.current_price);
-  entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(localChange).toFixed(2) + '%';
+  entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(change24h || 0).toFixed(2) + '%';
   entry.changeEl.className = "coin-change " + (isUp ? "up" : "down");
 
   const isFav = favorites.has(coin.id);
@@ -647,12 +616,6 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   if (prevPrice !== undefined && coin.current_price !== prevPrice) {
     void entry.root.offsetWidth; // форсируем перезапуск CSS-анимации
     entry.root.classList.add(coin.current_price > prevPrice ? "flash-up" : "flash-down");
-  }
-
-  // спарклайн перерисовываем только если цена реально изменилась
-  if (entry.lastLocalPrice !== coin.current_price) {
-    entry.lastLocalPrice = coin.current_price;
-    drawSpark(entry.canvas, arr, isUp);
   }
 }
 
@@ -733,28 +696,11 @@ function renderAll() {
 }
 
 // ===== экран деталей =====
-function buildTfRow() {
-  const row = document.getElementById("tf-row");
-  row.innerHTML = "";
-  TIMEFRAMES.forEach(tf => {
-    const btn = document.createElement("button");
-    btn.className = "tf-btn" + (tf.key === selectedTf ? " active" : "");
-    btn.textContent = TF_LABELS[currentLang][tf.key];
-    btn.addEventListener("click", () => {
-      selectedTf = tf.key;
-      hideCrosshair();
-      buildTfRow();
-      loadAndDrawChart(openCoinId, tf.key, true);
-    });
-    row.appendChild(btn);
-  });
-}
 
 function openDetail(coinId) {
   openCoinId = coinId;
   detailLastPrice = null;
   hideCrosshair();
-  buildTfRow();
   updateDetailHeader(coinId);
   loadAndDrawChart(coinId, selectedTf, true);
   document.getElementById("detail-screen").classList.add("visible");
@@ -777,6 +723,12 @@ function updateDetailHeader(coinId) {
   const priceEl = document.getElementById("detail-price");
   animateNumberText(priceEl, detailLastPrice, coin.current_price, 600, formatPrice);
   detailLastPrice = coin.current_price;
+
+  const change24h = coin.price_change_percentage_24h;
+  const isUp = (change24h || 0) >= 0;
+  const changeEl = document.getElementById("detail-change");
+  changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change24h || 0).toFixed(2) + "%";
+  changeEl.className = "detail-change " + (isUp ? "up" : "down");
 
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
@@ -831,12 +783,6 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
     const prices = points.map(p => p.p);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    const first = points[0].p, last = points[points.length - 1].p;
-    const change = ((last - first) / first) * 100;
-    const isUp = change >= 0;
-    const changeEl = document.getElementById("detail-change");
-    changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(2) + "% " + t("perPeriod");
-    changeEl.className = "detail-change " + (isUp ? "up" : "down");
     document.getElementById("stat-high").textContent = formatPrice(maxPrice);
     document.getElementById("stat-low").textContent = formatPrice(minPrice);
   }
