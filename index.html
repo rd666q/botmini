@@ -13,11 +13,11 @@
     --modal-overlay: rgba(0,0,0,0.4);
   }
   [data-theme="dark"] {
-    --bg: #000000; --card-bg: #0a0a0a; --text: #f5f5f5; --text-secondary: #888888;
-    --shadow: rgba(0,0,0,0.5); --nav-shadow: rgba(0,0,0,0.6);
-    --skeleton-base: #1a1a1a; --skeleton-shine: #252525;
-    --pill-bg: #1a1a1a; --grid-line: rgba(255,255,255,0.08);
-    --modal-overlay: rgba(0,0,0,0.75);
+    --bg: #111214; --card-bg: #1c1e21; --text: #f0f0f0; --text-secondary: #85898f;
+    --shadow: rgba(0,0,0,0.3); --nav-shadow: rgba(0,0,0,0.4);
+    --skeleton-base: #262830; --skeleton-shine: #32353d;
+    --pill-bg: #2a2c30; --grid-line: rgba(255,255,255,0.08);
+    --modal-overlay: rgba(0,0,0,0.6);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -61,10 +61,23 @@
 
   .star-btn { background: none; border: none; cursor: pointer; margin-left: 8px; transition: transform 0.2s ease; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .star-btn:active { transform: scale(1.4); }
-  .star-active { color: #f1c40f; } .star-inactive { color: #666666; }
+  .star-active { color: #2d7ff9; } .star-inactive { color: #666666; }
 
-  .detail-star-btn { width: 42px; height: 42px; margin-left: 12px; flex-shrink: 0; }
-  .detail-star-btn svg { width: 24px; height: 24px; }
+  .star-pill {
+    background: var(--card-bg);
+    border-radius: 999px;
+    padding: 8px;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--grid-line);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .star-pill:active { transform: scale(0.95); }
+
+  .detail-star-btn { width: 36px; height: 36px; flex-shrink: 0; }
+  .detail-star-btn svg { width: 22px; height: 22px; }
 
   .empty-state { text-align: center; color: var(--text-secondary); font-size: 14px; padding: 60px 20px; }
 
@@ -84,7 +97,7 @@
 
   .back-btn { background: var(--card-bg); border: none; border-radius: 12px; width: 38px; height: 38px; cursor: pointer; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 16px; color: var(--text); display: flex; align-items: center; justify-content: center; }
 
-  .detail-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; justify-content: space-between; }
+  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .detail-icon { width: 48px; height: 48px; border-radius: 50%; }
   .detail-name { font-size: 20px; font-weight: 700; }
   .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; }
@@ -201,7 +214,9 @@
         <div class="detail-symbol" id="detail-symbol"></div>
       </div>
     </div>
-    <button class="star-btn detail-star-btn" id="detail-star-btn"></button>
+    <div class="star-pill">
+      <button class="star-btn detail-star-btn" id="detail-star-btn"></button>
+    </div>
   </div>
   <div class="detail-price" id="detail-price"></div>
   <div class="detail-change" id="detail-change"></div>
@@ -718,26 +733,6 @@ function closeDetail() {
 }
 document.getElementById("back-btn").addEventListener("click", closeDetail);
 
-document.getElementById("detail-star-btn").addEventListener("click", () => {
-  if (!openCoinId) return;
-  if (favorites.has(openCoinId)) {
-    favorites.delete(openCoinId);
-  } else {
-    favorites.add(openCoinId);
-  }
-  localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
-  updateDetailStar();
-  renderAll();
-});
-
-function updateDetailStar() {
-  const btn = document.getElementById("detail-star-btn");
-  if (!btn || !openCoinId) return;
-  const isFav = favorites.has(openCoinId);
-  btn.className = "star-btn detail-star-btn " + (isFav ? "star-active" : "star-inactive");
-  btn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
-}
-
 function updateDetailHeader(coinId) {
   const coin = coins.find(c => c.id === coinId);
   if (!coin) return;
@@ -757,8 +752,6 @@ function updateDetailHeader(coinId) {
 
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
-
-  updateDetailStar();
 }
 
 function setChartLoading(state) {
