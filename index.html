@@ -95,7 +95,7 @@
   .tf-btn.active { background: #2d7ff9; color: #fff; }
 
   .detail-chart-box { background: var(--card-bg); border-radius: 16px; padding: 16px 12px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px; position: relative; touch-action: pan-y; }
-  #detail-canvas { width: 100%; height: 240px; display: block; touch-action: none; }
+  #detail-canvas { width: 100%; height: 220px; display: block; touch-action: none; }
   .chart-hint { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 6px; min-height: 16px; }
   .zoom-hint { font-size: 11px; color: var(--text-secondary); text-align: center; margin: 6px 0 16px; }
 
@@ -184,7 +184,7 @@
   <div class="tf-row" id="tf-row"></div>
 
   <div class="detail-chart-box">
-    <canvas id="detail-canvas" width="600" height="240"></canvas>
+    <canvas id="detail-canvas" width="600" height="220"></canvas>
   </div>
   <div class="chart-hint" id="chart-hint"></div>
   <div class="zoom-hint" id="zoom-hint">Сведите/разведите пальцы или крутите колесо мыши, чтобы приблизить график</div>
@@ -265,7 +265,19 @@
       copy: "Скопировать", copied: "Скопировано!", openWallet: "Открыть в кошельке",
       chartLoading: "Загрузка графика..."
     },
-    en: { /* ... */ }
+    en: {
+      market: "Market", favorites: "Favorites", love: "With love",
+      searchPlaceholder: "Search cryptocurrency...",
+      notFound: "Nothing found",
+      emptyFav: "Empty for now<br>Add coins from the Market tab",
+      marketCap: "Market Cap", volume24: "24h Volume", high24: "High", low24: "Low",
+      perPeriod: "for period",
+      accumulating: "Gathering data for this period — keep the app open a bit longer 🙂",
+      zoomHint: "Pinch to zoom or scroll with mouse wheel to zoom the chart",
+      donateTitle: "Support the author", donateDesc: "If you enjoyed the app, you can send some TON to the author at this address:",
+      copy: "Copy", copied: "Copied!", openWallet: "Open in wallet",
+      chartLoading: "Loading chart..."
+    }
   };
 
   const TF_LABELS = {
@@ -302,8 +314,8 @@
 
   let currentChartPoints = [];
   let displayChartPoints = [];
-  let lastDrawTime = 0;
-  const DRAW_THROTTLE = 16;
+  let chartAnimHandle = null;
+  let detailLastPrice = null;
 
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -525,6 +537,7 @@
   }
   function closeDetail() {
     openCoinId = null;
+    if (chartAnimHandle) cancelAnimationFrame(chartAnimHandle);
     document.getElementById("detail-screen").classList.remove("visible");
     document.getElementById("bottom-nav").style.display = "flex";
   }
@@ -598,11 +611,9 @@
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     const cssW = rect.width || canvas.clientWidth || 600;
-    const cssH = rect.height || canvas.clientHeight || 240;
-
+    const cssH = rect.height || canvas.clientHeight || 220;
     const targetW = Math.round(cssW * dpr);
     const targetH = Math.round(cssH * dpr);
-
     if (canvas.width !== targetW || canvas.height !== targetH) {
       canvas.width = targetW;
       canvas.height = targetH;
@@ -613,10 +624,6 @@
   }
 
   function drawDetailChart() {
-    const now = performance.now();
-    if (now - lastDrawTime < DRAW_THROTTLE) return;
-    lastDrawTime = now;
-
     const canvas = document.getElementById("detail-canvas");
     const { ctx, w, h } = prepareHiDPICanvas(canvas);
     ctx.clearRect(0, 0, w, h);
@@ -632,7 +639,7 @@
     const isUp = prices[prices.length - 1] >= prices[0];
     const color = isUp ? "#2ecc71" : "#e74c3c";
 
-    const padTop = 30, padBottom = 40, padX = 10;
+    const padTop = 30, padBottom = 30, padX = 10;
     const chartH = h - padTop - padBottom;
 
     const gridColor = getComputedStyle(document.documentElement).getPropertyValue("--grid-line") || "rgba(0,0,0,0.06)";
@@ -666,7 +673,6 @@
     ctx.lineTo(points[points.length - 1][0], h - padBottom);
     ctx.lineTo(points[0][0], h - padBottom);
     ctx.closePath();
-
     const gradient = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
     gradient.addColorStop(0, color + "50");
     gradient.addColorStop(1, color + "00");
@@ -690,7 +696,23 @@
     ctx.stroke();
   }
 
-  // Throttled wheel
+  const detailCanvas = document.getElementById("detail-canvas");
+  let pinchStartDist = null, pinchStartZoom = 1;
+  function touchDist(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); }
+
+  detailCanvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) { pinchStartDist = touchDist(e.touches[0], e.touches[1]); pinchStartZoom = zoomFactor; }
+  }, { passive: true });
+
+  detailCanvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2 && pinchStartDist) {
+      e.preventDefault();
+      const d = touchDist(e.touches[0], e.touches[1]);
+      zoomFactor = Math.min(8, Math.max(1, pinchStartZoom * (d / pinchStartDist)));
+      drawDetailChart();
+    }
+  }, { passive: false });
+
   detailCanvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     zoomFactor = Math.min(8, Math.max(1, zoomFactor - e.deltaY * 0.002));
