@@ -526,12 +526,81 @@
   }
 
   // ===== новости =====
+  // Берём RSS напрямую с сайтов и прогоняем через открытый CORS-прокси,
+  // чтобы не зависеть от общего (быстро исчерпываемого) лимита сторонних JSON-API.
+  const NEWS_FEEDS = [
+    "https://cointelegraph.com/rss",
+    "https://www.coindesk.com/arc/outboundfeeds/rss/"
+  ];
+
+  const NEWS_PROXIES = [
+    (url) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+    (url) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url)
+  ];
+
+  function extractImgFromHtml(html) {
+    if (!html) return "";
+    const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    return m ? m[1] : "";
+  }
+
+  function textOf(el, selector) {
+    const found = el.querySelector(selector);
+    return found ? found.textContent.trim() : "";
+  }
+
+  async function fetchXmlViaProxies(feedUrl) {
+    let lastErr;
+    for (const makeProxyUrl of NEWS_PROXIES) {
+      try {
+        const res = await fetch(makeProxyUrl(feedUrl));
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const text = await res.text();
+        const xml = new DOMParser().parseFromString(text, "text/xml");
+        if (xml.querySelector("parsererror")) throw new Error("XML parse error");
+        return xml;
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error("All proxies failed for " + feedUrl);
+  }
+
+  async function fetchOneFeed(feedUrl) {
+    const xml = await fetchXmlViaProxies(feedUrl);
+    const sourceName = textOf(xml, "channel > title") || new URL(feedUrl).hostname;
+    const items = Array.from(xml.querySelectorAll("item")).slice(0, 20);
+    return items.map(item => {
+      const title = textOf(item, "title");
+      const link = textOf(item, "link");
+      const pubDate = textOf(item, "pubDate");
+      const description = textOf(item, "description");
+      let img = "";
+      const mediaContent = item.getElementsByTagName("media:content")[0] || item.getElementsByTagName("media:thumbnail")[0];
+      if (mediaContent) img = mediaContent.getAttribute("url") || "";
+      if (!img) {
+        const enclosure = item.querySelector("enclosure");
+        if (enclosure) img = enclosure.getAttribute("url") || "";
+      }
+      if (!img) img = extractImgFromHtml(description);
+      return {
+        title,
+        url: link,
+        imageurl: img,
+        source_info: { name: sourceName },
+        published_on: Math.floor(new Date(pubDate).getTime() / 1000) || Math.floor(Date.now() / 1000)
+      };
+    });
+  }
+
   async function fetchNews(force) {
     if (newsCache && !force && Date.now() - newsFetchedAt < 5 * 60 * 1000) return newsCache;
     try {
-      const res = await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN");
-      const json = await res.json();
-      newsCache = (json.Data || []).slice(0, 25);
+      const results = await Promise.allSettled(NEWS_FEEDS.map(fetchOneFeed));
+      const merged = results
+        .filter(r => r.status === "fulfilled")
+        .flatMap(r => r.value)
+        .sort((a, b) => b.published_on - a.published_on);
+      if (merged.length === 0) throw new Error("All news feeds failed");
+      newsCache = merged.slice(0, 30);
       newsFetchedAt = Date.now();
     } catch (e) {
       console.error("Ошибка загрузки новостей:", e);
