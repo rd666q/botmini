@@ -22,22 +22,32 @@
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: box-shadow 0.3s ease;
   }
   .info { display: flex; flex-direction: column; gap: 4px; }
-  .label { font-size: 13px; color: #8b8f97; font-weight: 500; }
-  .price { font-size: 22px; font-weight: 700; color: #1c1c1e; }
+  .label { font-size: 13px; color: #8b8f97; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #2ecc71;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+  .price { font-size: 22px; font-weight: 700; color: #1c1c1e; transition: color 0.3s ease; }
   .change { font-size: 12px; font-weight: 600; }
   .up { color: #2ecc71; }
   .down { color: #e74c3c; }
   canvas { width: 130px; height: 50px; }
-  .loading { font-size: 13px; color: #aaa; text-align: center; padding: 20px; }
 </style>
 </head>
 <body>
 
   <div class="card" id="btc-card">
     <div class="info">
-      <div class="label">Bitcoin</div>
+      <div class="label"><span class="dot"></span>Bitcoin</div>
       <div class="price" id="btc-price">...</div>
       <div class="change" id="btc-change"></div>
     </div>
@@ -46,7 +56,7 @@
 
   <div class="card" id="ton-card">
     <div class="info">
-      <div class="label">TON</div>
+      <div class="label"><span class="dot"></span>TON</div>
       <div class="price" id="ton-price">...</div>
       <div class="change" id="ton-change"></div>
     </div>
@@ -59,29 +69,42 @@
     tg.ready();
     tg.expand();
 
-    async function loadCoin(coinId, priceElId, changeElId, canvasId) {
-      try {
-        const res = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=1`
-        );
-        const data = await res.json();
-        const prices = data.prices.map(p => p[1]);
+    const MAX_POINTS = 40; // сколько последних точек храним и показываем
+    const history = {
+      bitcoin: [],
+      "the-open-network": []
+    };
 
-        const first = prices[0];
-        const last = prices[prices.length - 1];
-        const change = ((last - first) / first) * 100;
+    async function fetchPrice(coinId) {
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`
+      );
+      const data = await res.json();
+      return data[coinId].usd;
+    }
+
+    async function updateCoin(coinId, priceElId, changeElId, canvasId) {
+      try {
+        const price = await fetchPrice(coinId);
+
+        const arr = history[coinId];
+        arr.push(price);
+        if (arr.length > MAX_POINTS) arr.shift();
+
+        const first = arr[0];
+        const last = arr[arr.length - 1];
+        const change = arr.length > 1 ? ((last - first) / first) * 100 : 0;
         const isUp = change >= 0;
 
         document.getElementById(priceElId).textContent =
           "$" + last.toLocaleString("en-US", { maximumFractionDigits: last < 10 ? 4 : 0 });
 
         const changeEl = document.getElementById(changeElId);
-        changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(2) + "%";
+        changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change).toFixed(3) + "%";
         changeEl.className = "change " + (isUp ? "up" : "down");
 
-        drawChart(canvasId, prices, isUp);
+        drawChart(canvasId, arr, isUp);
       } catch (e) {
-        document.getElementById(priceElId).textContent = "н/д";
         console.error(e);
       }
     }
@@ -93,6 +116,8 @@
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
+      if (prices.length < 2) return;
+
       const min = Math.min(...prices);
       const max = Math.max(...prices);
       const range = max - min || 1;
@@ -100,11 +125,10 @@
       const color = isUp ? "#2ecc71" : "#e74c3c";
       const points = prices.map((p, i) => {
         const x = (i / (prices.length - 1)) * w;
-        const y = h - ((p - min) / range) * h;
+        const y = h - ((p - min) / range) * (h - 10) - 5;
         return [x, y];
       });
 
-      // заливка под линией
       ctx.beginPath();
       ctx.moveTo(points[0][0], h);
       points.forEach(([x, y]) => ctx.lineTo(x, y));
@@ -116,7 +140,6 @@
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      // сама линия
       ctx.beginPath();
       points.forEach(([x, y], i) => {
         if (i === 0) ctx.moveTo(x, y);
@@ -127,14 +150,13 @@
       ctx.stroke();
     }
 
-    loadCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
-    loadCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
+    function updateAll() {
+      updateCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
+      updateCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
+    }
 
-    // автообновление каждые 15 секунд
-    setInterval(() => {
-      loadCoin("bitcoin", "btc-price", "btc-change", "btc-chart");
-      loadCoin("the-open-network", "ton-price", "ton-change", "ton-chart");
-    }, 15000);
+    updateAll();
+    setInterval(updateAll, 15000);
   </script>
 </body>
 </html>
