@@ -318,27 +318,50 @@ const TIMEFRAMES = [
   { key: "1y",  type: "api", days: 365 },
 ];
 
-const REFRESH_MS = 10000;
+// ---- настройки нагрузки и производительности ----
+const PER_PAGE = 150;            // сколько монет получаем за один запрос (хватает и для поиска)
+const VISIBLE_LIMIT = 50;        // сколько монет показываем по умолчанию во вкладке "Рынок"
+const REFRESH_BASE_MS = 9000;    // базовый интервал обновления цен
+const REFRESH_JITTER_MS = 3000;  // случайный разброс интервала — чтобы разные клиенты не долбили API в одну секунду
+const MARKET_RETRIES = 2;        // повторные попытки при ошибке/лимите запросов
+const CHART_RETRIES = 1;
 
 let coins = [];
 let sparkHistory = {};
 let apiChartCache = {};
 let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
 let searchQuery = "";
+let searchDebounceHandle = null;
 let currentTab = "market";
 let openCoinId = null;
 let selectedTf = "1d";
 let lastPrices = {};
 let currentNetworkFilter = "all";
+let isFetchingMarket = false;
+let pollTimeoutHandle = null;
+let chartRequestToken = 0;
 
 let currentChartPoints = [];
 let detailLastPrice = null;
 let lastCrosshairIndex = null;
+let themeColors = { text: "#999", bg: "#fff" };
 
+// реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
+const marketCardRegistry = new Map();
+const favCardRegistry = new Map();
+const popularCardRegistry = new Map();
+
+function computeThemeColors() {
+  const styles = getComputedStyle(document.documentElement);
+  themeColors.text = (styles.getPropertyValue("--text-secondary") || "#999").trim();
+  themeColors.bg = (styles.getPropertyValue("--card-bg") || "#ffffff").trim();
+}
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   document.getElementById("theme-toggle").innerHTML = theme === "dark" ? ICONS.sun : ICONS.moon;
   localStorage.setItem("theme", theme);
+  computeThemeColors();
+  if (openCoinId) drawDetailChart(lastCrosshairIndex);
 }
 applyTheme(localStorage.getItem("theme") || "light");
 document.getElementById("theme-toggle").addEventListener("click", () => {
@@ -394,6 +417,33 @@ function fetchWithTimeout(url, ms, options) {
   return fetch(url, { ...(options || {}), signal: controller.signal }).finally(() => clearTimeout(id));
 }
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Запрос с повторными попытками — важно, когда несколько пользователей одновременно
+// упираются в лимит запросов CoinGecko (HTTP 429): вместо "зависшего" экрана делаем
+// пару повторов с нарастающей паузой.
+async function fetchJsonWithRetry(url, timeoutMs, retries) {
+  let attempt = 0;
+  let delay = 1000;
+  while (true) {
+    try {
+      const res = await fetchWithTimeout(url, timeoutMs);
+      if (res.status === 429 && attempt < retries) {
+        const retryAfter = Number(res.headers.get("Retry-After"));
+        await sleep(retryAfter ? retryAfter * 1000 : delay);
+        attempt++; delay *= 2;
+        continue;
+      }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } catch (e) {
+      if (attempt >= retries) throw e;
+      await sleep(delay);
+      attempt++; delay *= 2;
+    }
+  }
+}
+
 function animateNumberText(el, fromVal, toVal, duration, formatFn) {
   if (fromVal === null || fromVal === undefined || fromVal === toVal) {
     el.textContent = formatFn(toVal);
@@ -411,9 +461,14 @@ function animateNumberText(el, fromVal, toVal, duration, formatFn) {
 }
 
 async function fetchMarket() {
+  if (isFetchingMarket) return; // предыдущий запрос ещё не завершился — не накладываем новый
+  if (document.hidden) return;  // приложение свернуто — не тратим запросы впустую
+  isFetchingMarket = true;
   try {
-    const res = await fetchWithTimeout("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h", 10000);
-    const data = await res.json();
+    const data = await fetchJsonWithRetry(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${PER_PAGE}&page=1&price_change_percentage=24h`,
+      10000, MARKET_RETRIES
+    );
     coins = data;
 
     data.forEach(c => {
@@ -428,8 +483,26 @@ async function fetchMarket() {
     if (openCoinId) {
       updateDetailHeader(openCoinId);
     }
-  } catch (e) { console.error("Ошибка загрузки рынка:", e); }
+  } catch (e) {
+    console.error("Ошибка загрузки рынка:", e);
+  } finally {
+    isFetchingMarket = false;
+  }
 }
+
+function scheduleNextPoll() {
+  if (pollTimeoutHandle) clearTimeout(pollTimeoutHandle);
+  const delay = REFRESH_BASE_MS + Math.random() * REFRESH_JITTER_MS;
+  pollTimeoutHandle = setTimeout(async () => {
+    await fetchMarket();
+    scheduleNextPoll();
+  }, delay);
+}
+
+// когда пользователь возвращается в приложение — сразу подтягиваем свежие цены
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) fetchMarket();
+});
 
 function formatPrice(p) {
   if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -454,76 +527,174 @@ function drawSpark(canvas, prices, isUp) {
   ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
 }
 
-// Популярные монеты (без короны 👑)
+// Популярные монеты (без короны 👑) — инкрементальное обновление, без пересоздания <img> на каждый тик
+function buildPopularCard(coin) {
+  const isUp = coin.price_change_percentage_24h >= 0;
+  const root = document.createElement("div");
+  root.style.cssText = "background: var(--card-bg); border-radius: 12px; padding: 10px; min-width: 110px; box-shadow: 0 2px 8px var(--shadow); cursor: pointer; text-align: center;";
+  root.innerHTML = `
+    <img src="${coin.image}" style="width: 32px; height: 32px; border-radius: 50%; margin-bottom: 6px;" loading="lazy" decoding="async">
+    <div style="font-weight: 600; font-size: 13px;">${coin.symbol.toUpperCase()}</div>
+    <div class="pop-price" style="font-size: 15px; font-weight: 700;"></div>
+    <div class="pop-change" style="font-size: 11px;"></div>
+  `;
+  root.addEventListener("click", () => openDetail(coin.id));
+  return {
+    root,
+    priceEl: root.querySelector(".pop-price"),
+    changeEl: root.querySelector(".pop-change"),
+  };
+}
+function updatePopularCard(entry, coin) {
+  const isUp = coin.price_change_percentage_24h >= 0;
+  entry.priceEl.textContent = formatPrice(coin.current_price);
+  entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(coin.price_change_percentage_24h || 0).toFixed(1) + '%';
+  entry.changeEl.className = "pop-change " + (isUp ? "up" : "down");
+}
 function renderPopularCoins() {
   const container = document.getElementById("popular-coins");
-  container.innerHTML = `<div style="display: flex; gap: 12px; overflow-x: auto; padding: 8px 0;">` +
-    coins.slice(0, 6).map(coin => {
-      const isUp = coin.price_change_percentage_24h >= 0;
-      return `
-        <div onclick="openDetail('${coin.id}')" style="background: var(--card-bg); border-radius: 12px; padding: 10px; min-width: 110px; box-shadow: 0 2px 8px var(--shadow); cursor: pointer; text-align: center;">
-          <img src="${coin.image}" style="width: 32px; height: 32px; border-radius: 50%; margin-bottom: 6px;" loading="lazy">
-          <div style="font-weight: 600; font-size: 13px;">${coin.symbol.toUpperCase()}</div>
-          <div style="font-size: 15px; font-weight: 700;">${formatPrice(coin.current_price)}</div>
-          <div class="${isUp ? 'up' : 'down'}" style="font-size: 11px;">${isUp ? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h || 0).toFixed(1)}%</div>
-        </div>
-      `;
-    }).join('') + `</div>`;
+  const top6 = coins.slice(0, 6);
+  const idsKey = top6.map(c => c.id).join(",");
+
+  if (container.dataset.ids !== idsKey) {
+    // состав топ-6 изменился — пересобираем один раз
+    popularCardRegistry.clear();
+    container.dataset.ids = idsKey;
+    container.innerHTML = "";
+    const inner = document.createElement("div");
+    inner.style.cssText = "display: flex; gap: 12px; overflow-x: auto; padding: 8px 0;";
+    const frag = document.createDocumentFragment();
+    top6.forEach(coin => {
+      const entry = buildPopularCard(coin);
+      popularCardRegistry.set(coin.id, entry);
+      updatePopularCard(entry, coin);
+      frag.appendChild(entry.root);
+    });
+    inner.appendChild(frag);
+    container.appendChild(inner);
+  } else {
+    top6.forEach(coin => {
+      const entry = popularCardRegistry.get(coin.id);
+      if (entry) updatePopularCard(entry, coin);
+    });
+  }
 }
 
-function buildCard(coin, prevPriceMap) {
+// ---- инкрементальный рендер списка монет ----
+// Вместо пересоздания всех карточек (картинки + canvas) на каждый опрос API,
+// держим карточки в реестре и точечно обновляем только то, что изменилось.
+// Это главная причина "зависаний" при частом обновлении цен на слабых телефонах.
+
+function buildCardEntry(coin) {
+  const root = document.createElement("div");
+  root.className = "coin-card";
+  root.innerHTML = `
+    <div class="coin-left">
+      <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" decoding="async">
+      <div class="coin-info">
+        <div class="coin-name"></div>
+        <div class="coin-symbol"></div>
+      </div>
+    </div>
+    <div class="coin-mid">
+      <div class="coin-price"></div>
+      <div class="coin-change"></div>
+    </div>
+    <canvas class="spark" width="140" height="68"></canvas>
+    <button class="star-btn"></button>
+  `;
+  const entry = {
+    root,
+    nameEl: root.querySelector(".coin-name"),
+    symbolEl: root.querySelector(".coin-symbol"),
+    priceEl: root.querySelector(".coin-price"),
+    changeEl: root.querySelector(".coin-change"),
+    canvas: root.querySelector("canvas"),
+    starBtn: root.querySelector(".star-btn"),
+    coinId: coin.id,
+    lastLocalPrice: null,
+  };
+
+  entry.starBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    favorites.has(entry.coinId) ? favorites.delete(entry.coinId) : favorites.add(entry.coinId);
+    localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
+    renderAll();
+  });
+  root.addEventListener("click", () => openDetail(entry.coinId));
+
+  return entry;
+}
+
+function updateCardEntry(entry, coin, prevPriceMap) {
   const arr = sparkHistory[coin.id] || [coin.current_price];
   const first = arr[0], last = arr[arr.length - 1];
   const localChange = arr.length > 1 ? ((last - first) / first) * 100 : 0;
   const isUp = localChange >= 0;
 
-  const prevPrice = prevPriceMap[coin.id];
-  let flashClass = "";
-  if (prevPrice !== undefined) {
-    if (coin.current_price > prevPrice) flashClass = "flash-up";
-    else if (coin.current_price < prevPrice) flashClass = "flash-down";
-  }
+  entry.nameEl.textContent = coin.name;
+  entry.symbolEl.textContent = coin.symbol;
+  entry.priceEl.textContent = formatPrice(coin.current_price);
+  entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(localChange).toFixed(2) + '%';
+  entry.changeEl.className = "coin-change " + (isUp ? "up" : "down");
 
   const isFav = favorites.has(coin.id);
-  const card = document.createElement("div");
-  card.className = "coin-card " + flashClass;
-  card.innerHTML = `
-    <div class="coin-left">
-      <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" decoding="async">
-      <div class="coin-info">
-        <div class="coin-name">${coin.name}</div>
-        <div class="coin-symbol">${coin.symbol}</div>
-      </div>
-    </div>
-    <div class="coin-mid">
-      <div class="coin-price">${formatPrice(coin.current_price)}</div>
-      <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(localChange).toFixed(2)}%</div>
-    </div>
-    <canvas class="spark" width="140" height="68"></canvas>
-    <button class="star-btn ${isFav ? 'star-active' : 'star-inactive'}" data-id="${coin.id}"></button>
-  `;
-  const canvas = card.querySelector("canvas");
-  requestAnimationFrame(() => drawSpark(canvas, arr, isUp));
+  entry.starBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
+  entry.starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
 
-  const starBtn = card.querySelector(".star-btn");
-  starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
-  starBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const id = e.currentTarget.dataset.id;
-    favorites.has(id) ? favorites.delete(id) : favorites.add(id);
-    localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
-    renderAll();
-  });
+  const prevPrice = prevPriceMap[coin.id];
+  entry.root.classList.remove("flash-up", "flash-down");
+  if (prevPrice !== undefined && coin.current_price !== prevPrice) {
+    void entry.root.offsetWidth; // форсируем перезапуск CSS-анимации
+    entry.root.classList.add(coin.current_price > prevPrice ? "flash-up" : "flash-down");
+  }
 
-  card.addEventListener("click", () => openDetail(coin.id));
-  return card;
+  // спарклайн перерисовываем только если цена реально изменилась
+  if (entry.lastLocalPrice !== coin.current_price) {
+    entry.lastLocalPrice = coin.current_price;
+    drawSpark(entry.canvas, arr, isUp);
+  }
 }
 
-function renderAll() {
-  const prevPriceMap = lastPrices;
-  lastPrices = {};
-  coins.forEach(c => lastPrices[c.id] = c.current_price);
+function reconcileList(container, registry, list, prevPriceMap, emptyText) {
+  if (list.length === 0) {
+    registry.forEach(entry => entry.root.remove());
+    registry.clear();
+    container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+    return;
+  }
+  const emptyState = container.querySelector(".empty-state");
+  if (emptyState) emptyState.remove();
 
+  const seen = new Set();
+  let prevEl = null;
+
+  list.forEach(coin => {
+    seen.add(coin.id);
+    let entry = registry.get(coin.id);
+    if (!entry) {
+      entry = buildCardEntry(coin);
+      registry.set(coin.id, entry);
+    }
+    updateCardEntry(entry, coin, prevPriceMap);
+
+    const expectedPrev = prevEl ? prevEl.nextSibling : container.firstChild;
+    if (expectedPrev !== entry.root) {
+      container.insertBefore(entry.root, expectedPrev);
+    }
+    prevEl = entry.root;
+  });
+
+  registry.forEach((entry, id) => {
+    if (!seen.has(id)) {
+      entry.root.remove();
+      registry.delete(id);
+    }
+  });
+}
+
+function getVisibleMarketCoins() {
+  const q = searchQuery;
   const networkFilterFn = (c) => {
     if (currentNetworkFilter === "all") return true;
     const sym = (c.symbol || "").toLowerCase();
@@ -535,20 +706,30 @@ function renderAll() {
     return true;
   };
 
-  const marketList = document.getElementById("market-list");
-  marketList.innerHTML = "";
-  let filtered = coins.filter(c =>
-    (c.name.toLowerCase().includes(searchQuery) || c.symbol.toLowerCase().includes(searchQuery)) &&
+  let list = coins.filter(c =>
+    (c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)) &&
     networkFilterFn(c)
   );
-  if (filtered.length === 0) marketList.innerHTML = `<div class="empty-state">${t("notFound")}</div>`;
-  filtered.forEach(coin => marketList.appendChild(buildCard(coin, prevPriceMap)));
+
+  // По умолчанию (без поиска и без фильтра сети) показываем только верхушку списка —
+  // остальные монеты не рендерятся и не грузят приложение, но находятся через поиск.
+  if (q === "" && currentNetworkFilter === "all") {
+    list = list.slice(0, VISIBLE_LIMIT);
+  }
+  return list;
+}
+
+function renderAll() {
+  const prevPriceMap = lastPrices;
+  lastPrices = {};
+  coins.forEach(c => lastPrices[c.id] = c.current_price);
+
+  const marketList = document.getElementById("market-list");
+  reconcileList(marketList, marketCardRegistry, getVisibleMarketCoins(), prevPriceMap, t("notFound"));
 
   const favList = document.getElementById("favorites-list");
-  favList.innerHTML = "";
   const favCoins = coins.filter(c => favorites.has(c.id));
-  if (favCoins.length === 0) favList.innerHTML = `<div class="empty-state">${t("emptyFav")}</div>`;
-  favCoins.forEach(coin => favList.appendChild(buildCard(coin, prevPriceMap)));
+  reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"));
 }
 
 // ===== экран деталей =====
@@ -606,6 +787,8 @@ function setChartLoading(state) {
 }
 
 async function loadAndDrawChart(coinId, tfKey, showLoader) {
+  const myToken = ++chartRequestToken; // защита от гонки: если пользователь быстро тыкает по таймфреймам,
+                                        // старый ответ не должен перезаписать новый график
   const tf = TIMEFRAMES.find(x => x.key === tfKey);
   let points = [];
   const hint = document.getElementById("chart-hint");
@@ -620,8 +803,10 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
     if (showLoader) setChartLoading(true);
     try {
       const days = tf.type === "api-window" ? 1 : tf.days;
-      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
-      const json = await res.json();
+      const json = await fetchJsonWithRetry(
+        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`,
+        10000, CHART_RETRIES
+      );
       fullData = (json.prices || []).map(p => ({ t: p[0], p: p[1] }));
       if (!apiChartCache[coinId]) apiChartCache[coinId] = {};
       apiChartCache[coinId][cacheKey] = { data: fullData, fetchedAt: Date.now() };
@@ -631,6 +816,8 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
     }
     if (showLoader) setChartLoading(false);
   }
+
+  if (myToken !== chartRequestToken) return; // пришёл ответ на устаревший запрос — игнорируем
 
   if (tf.type === "api-window" && fullData.length) {
     const reference = fullData[fullData.length - 1].t;
@@ -693,8 +880,8 @@ function drawDetailChart(crosshairIndex) {
   const padTop = 30, padBottom = 14, padX = 8;
   const chartH = h - padTop - padBottom;
 
-  const textColor = (getComputedStyle(document.documentElement).getPropertyValue("--text-secondary") || "#999").trim();
-  const bgColor = (getComputedStyle(document.documentElement).getPropertyValue("--card-bg") || "#ffffff").trim();
+  const textColor = themeColors.text;
+  const bgColor = themeColors.bg;
 
   const xy = points.map((pt, i) => [
     padX + (i / (prices.length - 1)) * (w - padX * 2),
@@ -819,16 +1006,30 @@ function updateCrosshairAtX(clientX) {
 
 const detailCanvas = document.getElementById("detail-canvas");
 let isPointerActive = false;
+let crosshairRAFPending = false;
+let pendingClientX = null;
+
+// touchmove/mousemove могут стрелять чаще, чем экран успевает перерисовываться —
+// собираем события в один кадр через requestAnimationFrame, чтобы жест был плавным
+function scheduleCrosshairUpdate(clientX) {
+  pendingClientX = clientX;
+  if (crosshairRAFPending) return;
+  crosshairRAFPending = true;
+  requestAnimationFrame(() => {
+    crosshairRAFPending = false;
+    updateCrosshairAtX(pendingClientX);
+  });
+}
 
 detailCanvas.addEventListener("touchstart", (e) => {
   isPointerActive = true;
-  updateCrosshairAtX(e.touches[0].clientX);
+  scheduleCrosshairUpdate(e.touches[0].clientX);
 }, { passive: true });
 
 detailCanvas.addEventListener("touchmove", (e) => {
   if (!isPointerActive) return;
   e.preventDefault();
-  updateCrosshairAtX(e.touches[0].clientX);
+  scheduleCrosshairUpdate(e.touches[0].clientX);
 }, { passive: false });
 
 detailCanvas.addEventListener("touchend", () => {
@@ -839,11 +1040,11 @@ detailCanvas.addEventListener("touchend", () => {
 
 detailCanvas.addEventListener("mousedown", (e) => {
   isPointerActive = true;
-  updateCrosshairAtX(e.clientX);
+  scheduleCrosshairUpdate(e.clientX);
 });
 detailCanvas.addEventListener("mousemove", (e) => {
   if (!isPointerActive) return;
-  updateCrosshairAtX(e.clientX);
+  scheduleCrosshairUpdate(e.clientX);
 });
 window.addEventListener("mouseup", () => {
   if (!isPointerActive) return;
@@ -860,8 +1061,12 @@ detailCanvas.addEventListener("mouseleave", () => {
 
 // Поиск + фильтры
 document.getElementById("search-input").addEventListener("input", (e) => {
-  searchQuery = e.target.value.trim().toLowerCase();
-  renderAll();
+  const value = e.target.value.trim().toLowerCase();
+  if (searchDebounceHandle) clearTimeout(searchDebounceHandle);
+  searchDebounceHandle = setTimeout(() => {
+    searchQuery = value;
+    renderAll();
+  }, 150);
 });
 
 document.getElementById("network-filters").addEventListener("click", (e) => {
@@ -899,7 +1104,7 @@ function showSkeletons() {
 showSkeletons();
 applyLanguage();
 fetchMarket();
-setInterval(fetchMarket, REFRESH_MS);
+scheduleNextPoll();
 </script>
 </body>
 </html>
