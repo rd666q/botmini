@@ -55,6 +55,20 @@
   .coin-change { font-size: 11px; font-weight: 600; margin-top: 2px; }
   .up { color: #2ecc71; } .down { color: #e74c3c; }
 
+  .coin-sparkline {
+    width: 64px;
+    height: 28px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+  .coin-sparkline canvas {
+    width: 100%;
+    height: 100%;
+    image-rendering: crisp-edges;
+  }
+
   .flash-up { animation: flashUp 0.6s ease; } .flash-down { animation: flashDown 0.6s ease; }
   @keyframes flashUp { 0% { background: rgba(46,204,113,0.15); } 100% { background: transparent; } }
   @keyframes flashDown { 0% { background: rgba(231,76,60,0.15); } 100% { background: transparent; } }
@@ -212,6 +226,16 @@
       <button class="tf-btn" data-network="sol">SOL</button>
       <button class="tf-btn" data-network="btc">BTC</button>
       <button class="tf-btn" data-network="trc20">TRC20</button>
+    </div>
+
+    <div id="last-updated" style="font-size:11px; color:#888; margin-bottom:8px; padding-left:4px; transition: opacity 0.3s;"></div>
+
+    <!-- Сортировка -->
+    <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px;" id="sort-filters">
+      <button class="tf-btn active" data-sort="market_cap">По капитализации</button>
+      <button class="tf-btn" data-sort="change_desc">По росту 24ч</button>
+      <button class="tf-btn" data-sort="change_asc">По падению 24ч</button>
+      <button class="tf-btn" data-sort="volume">По объёму</button>
     </div>
 
     <div id="market-list"></div>
@@ -409,11 +433,23 @@ let currentChartPoints = [];
 let detailLastPrice = null;
 let lastCrosshairIndex = null;
 let themeColors = { text: "#999", bg: "#fff" };
+let lastUpdated = Date.now();
+let currentSort = localStorage.getItem("sort_mode") || "market_cap";
 
 // реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
 const marketCardRegistry = new Map();
 const favCardRegistry = new Map();
 const popularCardRegistry = new Map();
+
+function getAvatarColor(symbol) {
+  // Простой детерминированный цвет по символу
+  let hash = 0;
+  for (let i = 0; i < symbol.length; i++) {
+    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+}
 
 function computeThemeColors() {
   const styles = getComputedStyle(document.documentElement);
@@ -529,13 +565,14 @@ async function fetchMarket() {
   isFetchingMarket = true;
   try {
     const data = await fetchJsonWithRetry(
-      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${PER_PAGE}&page=1&price_change_percentage=24h`,
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${PER_PAGE}&page=1&price_change_percentage=24h&sparkline=true`,
       10000, MARKET_RETRIES
     );
     coins = data;
 
     renderAll();
     renderPopularCoins();
+    updateLastUpdated();
     if (openCoinId) {
       updateDetailHeader(openCoinId);
     }
@@ -544,6 +581,20 @@ async function fetchMarket() {
   } finally {
     isFetchingMarket = false;
   }
+}
+
+function updateLastUpdated() {
+  lastUpdated = Date.now();
+  const el = document.getElementById("last-updated");
+  if (!el) return;
+
+  const diff = Math.floor((Date.now() - lastUpdated) / 1000);
+  let text = "только что";
+  if (diff > 60) text = Math.floor(diff / 60) + " мин назад";
+  else if (diff > 10) text = diff + " сек назад";
+
+  el.textContent = "Обновлено " + text;
+  el.style.opacity = "1";
 }
 
 function scheduleNextPoll() {
@@ -623,6 +674,40 @@ function renderPopularCoins() {
   }
 }
 
+function drawMiniSparkline(canvas, prices, isPositive) {
+  if (!canvas || !prices || prices.length < 2) return;
+  const ctx = canvas.getContext("2d", { alpha: true });
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+
+  ctx.strokeStyle = isPositive ? "#2ecc71" : "#e74c3c";
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+  for (let i = 0; i < prices.length; i++) {
+    const x = (i / (prices.length - 1)) * w;
+    const y = h - ((prices[i] - min) / range) * (h - 4) - 2;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Точка на конце (текущая цена)
+  const lastX = w;
+  const lastY = h - ((prices[prices.length - 1] - min) / range) * (h - 4) - 2;
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fill();
+}
+
 // ---- инкрементальный рендер списка монет ----
 // Вместо пересоздания всех карточек (картинки + canvas) на каждый опрос API,
 // держим карточки в реестре и точечно обновляем только то, что изменилось.
@@ -643,6 +728,7 @@ function buildCardEntry(coin) {
       <div class="coin-price"></div>
       <div class="coin-change"></div>
     </div>
+    <div class="coin-sparkline"><canvas width="64" height="28"></canvas></div>
     <button class="star-btn"></button>
   `;
   const entry = {
@@ -652,8 +738,19 @@ function buildCardEntry(coin) {
     priceEl: root.querySelector(".coin-price"),
     changeEl: root.querySelector(".coin-change"),
     starBtn: root.querySelector(".star-btn"),
+    sparklineCanvas: root.querySelector(".coin-sparkline canvas"),
     coinId: coin.id,
     lastLocalPrice: null,
+  };
+
+  // Иконка с fallback на букву
+  const iconImg = root.querySelector(".coin-icon");
+  iconImg.onerror = () => {
+    iconImg.style.display = "none";
+    const fallback = document.createElement("div");
+    fallback.style.cssText = `width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white;background:${getAvatarColor(coin.symbol)};flex-shrink:0;`;
+    fallback.textContent = coin.symbol.slice(0, 1).toUpperCase();
+    iconImg.parentNode.insertBefore(fallback, iconImg);
   };
 
   entry.starBtn.addEventListener("click", (e) => {
@@ -680,6 +777,11 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   const isFav = favorites.has(coin.id);
   entry.starBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
   entry.starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
+
+  // Мини-спарклайн (последние данные из sparkline_in_7d)
+  if (entry.sparklineCanvas && coin.sparkline_in_7d && coin.sparkline_in_7d.price && coin.sparkline_in_7d.price.length > 2) {
+    drawMiniSparkline(entry.sparklineCanvas, coin.sparkline_in_7d.price, isUp);
+  }
 
   const prevPrice = prevPriceMap[coin.id];
   entry.root.classList.remove("flash-up", "flash-down");
@@ -743,6 +845,17 @@ function getVisibleMarketCoins() {
     (c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)) &&
     networkFilterFn(c)
   );
+
+  // Сортировка
+  if (currentSort === "change_desc") {
+    list.sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
+  } else if (currentSort === "change_asc") {
+    list.sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0));
+  } else if (currentSort === "volume") {
+    list.sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+  } else {
+    list.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+  }
 
   // По умолчанию (без поиска и без фильтра сети) показываем только верхушку списка —
   // остальные монеты не рендерятся и не грузят приложение, но находятся через поиск.
@@ -1137,6 +1250,16 @@ document.getElementById("network-filters").addEventListener("click", (e) => {
   }
 });
 
+document.getElementById("sort-filters").addEventListener("click", (e) => {
+  if (e.target.tagName === "BUTTON") {
+    document.querySelectorAll("#sort-filters button").forEach(b => b.classList.remove("active"));
+    e.target.classList.add("active");
+    currentSort = e.target.dataset.sort;
+    localStorage.setItem("sort_mode", currentSort);
+    renderAll();
+  }
+});
+
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -1164,6 +1287,22 @@ showSkeletons();
 applyLanguage();
 fetchMarket();
 scheduleNextPoll();
+
+// === Pull-to-refresh (простой) ===
+let pullStartY = 0;
+const marketSectionForPull = document.getElementById("section-market");
+if (marketSectionForPull) {
+  marketSectionForPull.addEventListener("touchstart", (e) => {
+    if (window.scrollY < 10) pullStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  marketSectionForPull.addEventListener("touchend", (e) => {
+    if (pullStartY && (e.changedTouches[0].clientY - pullStartY > 75) && !isFetchingMarket) {
+      fetchMarket();
+    }
+    pullStartY = 0;
+  }, { passive: true });
+}
 </script>
 </body>
 </html>
