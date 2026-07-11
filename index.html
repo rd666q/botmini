@@ -186,6 +186,15 @@
     transition: background 0.3s ease, color 0.3s ease;
   }
 
+  .timeframe-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 30; display: none; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s ease; }
   .modal-overlay.visible { display: flex; }
   .modal-box { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp 0.25s ease; }
@@ -296,6 +305,9 @@
     </div>
   </div>
 
+  <!-- Timeframe селектор -->
+  <div class="timeframe-selector" id="timeframe-selector"></div>
+
   <div class="detail-chart-box">
     <canvas id="detail-canvas" width="600" height="220"></canvas>
     <div class="crosshair-tooltip" id="crosshair-tooltip"></div>
@@ -370,7 +382,7 @@ const I18N = {
     market: "Рынок", favorites: "Избранное", love: "С любовью",
     searchPlaceholder: "Найти криптовалюту...",
     notFound: "Ничего не найдено",
-    emptyFav: "Пока пусто<br>Добавьте монеты со вкладки «Рынок»",
+    emptyFav: "Пока ничего нет",
     marketCap: "Рыночная капитализация", volume24: "Объём за 24ч", high24: "Максимум за период", low24: "Минимум за период",
     perPeriod: "за период",
     donateTitle: "Поддержать автора", donateDesc: "Если приложение понравилось — можно отправить немного TON автору по адресу:",
@@ -484,7 +496,11 @@ function applyLanguage() {
   document.getElementById("donate-copy").textContent = t("copy");
   document.getElementById("donate-open").textContent = t("openWallet");
   renderAll();
-  if (openCoinId) { updateDetailHeader(openCoinId); loadAndDrawChart(openCoinId, selectedTf, false); }
+  if (openCoinId) {
+    updateDetailHeader(openCoinId);
+    renderTimeframeSelector();
+    loadAndDrawChart(openCoinId, selectedTf, false);
+  }
 }
 document.getElementById("lang-btn").addEventListener("click", () => {
   currentLang = currentLang === "ru" ? "en" : "ru";
@@ -800,11 +816,28 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   }
 }
 
-function reconcileList(container, registry, list, prevPriceMap, emptyText) {
+function reconcileList(container, registry, list, prevPriceMap, emptyText, isFavorites = false) {
   if (list.length === 0) {
     registry.forEach(entry => entry.root.remove());
     registry.clear();
-    container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+
+    let html = `<div class="empty-state">`;
+    if (isFavorites) {
+      html += `
+        <div style="font-size:42px; margin-bottom:16px;">⭐</div>
+        <div style="font-size:17px; font-weight:700; margin-bottom:8px;">${t("emptyFav")}</div>
+        <div style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; max-width:220px; margin-left:auto; margin-right:auto;">
+          Добавляй монеты из вкладки «Рынок», чтобы отслеживать их здесь
+        </div>
+        <button onclick="switchToMarketTab()" style="background:#2d7ff9; color:white; border:none; padding:10px 24px; border-radius:999px; font-size:14px; font-weight:600;">
+          Перейти в Рынок
+        </button>
+      `;
+    } else {
+      html += emptyText;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
     return;
   }
   const emptyState = container.querySelector(".empty-state");
@@ -884,7 +917,7 @@ function renderAll() {
 
   const favList = document.getElementById("favorites-list");
   const favCoins = coins.filter(c => favorites.has(c.id));
-  reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"));
+  reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"), true);
 }
 
 // ===== экран деталей =====
@@ -894,6 +927,7 @@ function openDetail(coinId) {
   detailLastPrice = null;
   hideCrosshair();
   updateDetailHeader(coinId);
+  renderTimeframeSelector();
   loadAndDrawChart(coinId, selectedTf, true);
   document.getElementById("detail-screen").classList.add("visible");
   document.getElementById("bottom-nav").style.display = "none";
@@ -904,6 +938,36 @@ function closeDetail() {
   document.getElementById("bottom-nav").style.display = "flex";
 }
 document.getElementById("back-btn").addEventListener("click", closeDetail);
+
+function renderTimeframeSelector() {
+  const container = document.getElementById("timeframe-selector");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  TIMEFRAMES.forEach(tf => {
+    const btn = document.createElement("button");
+    btn.className = `tf-btn ${tf.key === selectedTf ? "active" : ""}`;
+    btn.textContent = TF_LABELS[currentLang][tf.key] || tf.key;
+    btn.dataset.tf = tf.key;
+
+    btn.addEventListener("click", () => {
+      if (selectedTf === tf.key) return;
+
+      selectedTf = tf.key;
+
+      // Обновляем активный класс
+      container.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      if (openCoinId) {
+        loadAndDrawChart(openCoinId, selectedTf, true);
+      }
+    });
+
+    container.appendChild(btn);
+  });
+}
 
 function updateDetailHeader(coinId) {
   const coin = coins.find(c => c.id === coinId);
@@ -1282,6 +1346,18 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 // Запуск
+function switchToMarketTab() {
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector('.nav-btn[data-tab="market"]').classList.add("active");
+
+  document.getElementById("section-market").classList.add("visible");
+  document.getElementById("section-favorites").classList.remove("visible");
+  document.getElementById("section-love").classList.remove("visible");
+
+  currentTab = "market";
+  document.getElementById("page-title").textContent = "CryptoFood";
+}
+
 function showSkeletons() {
   const marketList = document.getElementById("market-list");
   marketList.innerHTML = "";
