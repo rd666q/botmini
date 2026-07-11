@@ -87,7 +87,6 @@
   .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; }
 
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; }
-  .detail-change { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 
   .tf-btn { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; border: none; background: var(--pill-bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, color 0.2s ease; }
   .tf-btn.active { background: #2d7ff9; color: #fff; }
@@ -259,7 +258,6 @@
     </div>
   </div>
   <div class="detail-price" id="detail-price"></div>
-  <div class="detail-change" id="detail-change"></div>
 
   <!-- === КРАСИВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА (точно в то место, что ты обвел) === -->
   <div id="perf-card" class="perf-card">
@@ -798,9 +796,6 @@ function updateDetailHeader(coinId) {
 
   const change24h = coin.price_change_percentage_24h;
   const isUp = (change24h || 0) >= 0;
-  const changeEl = document.getElementById("detail-change");
-  changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change24h || 0).toFixed(2) + "%";
-  changeEl.className = "detail-change " + (isUp ? "up" : "down");
 
   // === НОВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА ===
   const perfPercent = document.getElementById("perf-percent");
