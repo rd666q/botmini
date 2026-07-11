@@ -191,14 +191,11 @@
 <div id="detail-screen">
   <button class="back-btn" id="back-btn"></button>
   <div class="detail-header">
-    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-      <img class="detail-icon" id="detail-icon" src="" alt="">
-      <div style="min-width: 0; flex: 1;">
-        <div class="detail-name" id="detail-name"></div>
-        <div class="detail-symbol" id="detail-symbol"></div>
-      </div>
+    <img class="detail-icon" id="detail-icon" src="" alt="">
+    <div>
+      <div class="detail-name" id="detail-name"></div>
+      <div class="detail-symbol" id="detail-symbol"></div>
     </div>
-    <button class="star-btn" id="detail-star-btn" style="width: 44px; height: 44px; margin-left: 8px; flex-shrink: 0;"></button>
   </div>
   <div class="detail-price" id="detail-price"></div>
   <div class="detail-change" id="detail-change"></div>
@@ -258,8 +255,6 @@ const ICONS = {
   starOutline: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Outline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Filled: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
-  star24Outline: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
-  star24Filled: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`,
   search: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>`,
   moon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.7A8.5 8.5 0 019.3 3.5 9 9 0 1020.5 14.7z"/></svg>`,
@@ -717,24 +712,6 @@ function closeDetail() {
 }
 document.getElementById("back-btn").addEventListener("click", closeDetail);
 
-// Звёздочка в детальном экране — добавление в избранное прямо из карточки монеты
-const detailStarBtn = document.getElementById("detail-star-btn");
-detailStarBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  if (!openCoinId) return;
-  if (favorites.has(openCoinId)) {
-    favorites.delete(openCoinId);
-  } else {
-    favorites.add(openCoinId);
-  }
-  localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
-  // обновляем иконку сразу
-  const isFav = favorites.has(openCoinId);
-  detailStarBtn.innerHTML = isFav ? ICONS.star24Filled : ICONS.star24Outline;
-  detailStarBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
-  renderAll(); // обновляем списки на вкладках Рынок и Избранное
-});
-
 function updateDetailHeader(coinId) {
   const coin = coins.find(c => c.id === coinId);
   if (!coin) return;
@@ -754,12 +731,6 @@ function updateDetailHeader(coinId) {
 
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
-
-  // Инициализация звёздочки избранного в шапке детального экрана
-  const starBtn = document.getElementById("detail-star-btn");
-  const isFav = favorites.has(coinId);
-  starBtn.innerHTML = isFav ? ICONS.star24Filled : ICONS.star24Outline;
-  starBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
 }
 
 function setChartLoading(state) {
