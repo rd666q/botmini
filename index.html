@@ -111,6 +111,67 @@
   .stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
   .stat-value { font-size: 15px; font-weight: 700; }
 
+  /* === Новая карточка 24h Change + Star (в стиле примера) === */
+  .perf-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px var(--shadow);
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .perf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .perf-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .star-btn-large {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    margin: -6px;
+    transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaaaaa;
+  }
+  .star-btn-large:active { transform: scale(1.35); }
+  .star-btn-large svg { width: 26px; height: 26px; }
+  .star-btn-large.active { color: #2d7ff9; }
+
+  .perf-body {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+  }
+  .perf-percent {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    transition: color 0.3s ease;
+  }
+  .perf-pill {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    white-space: nowrap;
+    align-self: flex-end;
+    margin-bottom: 4px;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
   .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 30; display: none; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s ease; }
   .modal-overlay.visible { display: flex; }
   .modal-box { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp 0.25s ease; }
@@ -199,6 +260,18 @@
   </div>
   <div class="detail-price" id="detail-price"></div>
   <div class="detail-change" id="detail-change"></div>
+
+  <!-- === КРАСИВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА (точно в то место, что ты обвел) === -->
+  <div id="perf-card" class="perf-card">
+    <div class="perf-header">
+      <span class="perf-label">24ч изменение</span>
+      <button id="detail-fav-star" class="star-btn-large" aria-label="Добавить в избранное"></button>
+    </div>
+    <div class="perf-body">
+      <div id="perf-percent" class="perf-percent">—</div>
+      <div id="perf-pill" class="perf-pill">—</div>
+    </div>
+  </div>
 
   <div class="detail-chart-box">
     <canvas id="detail-canvas" width="600" height="220"></canvas>
@@ -728,6 +801,52 @@ function updateDetailHeader(coinId) {
   const changeEl = document.getElementById("detail-change");
   changeEl.textContent = (isUp ? "▲ " : "▼ ") + Math.abs(change24h || 0).toFixed(2) + "%";
   changeEl.className = "detail-change " + (isUp ? "up" : "down");
+
+  // === НОВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА ===
+  const perfPercent = document.getElementById("perf-percent");
+  const perfPill = document.getElementById("perf-pill");
+  const starBtn = document.getElementById("detail-fav-star");
+
+  if (perfPercent && perfPill) {
+    const sign = isUp ? "+" : "";
+    perfPercent.textContent = sign + Math.abs(change24h || 0).toFixed(2) + "%";
+    perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
+
+    perfPill.textContent = isUp ? "▲ Рост" : "▼ Падение";
+    perfPill.style.background = isUp 
+      ? "rgba(46,204,113,0.15)" 
+      : "rgba(231,76,60,0.15)";
+    perfPill.style.color = isUp ? "#2ecc71" : "#e74c3c";
+  }
+
+  if (starBtn) {
+    const isFav = favorites.has(coinId);
+    starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
+    starBtn.classList.toggle("active", isFav);
+
+    // обработчик клика (переопределяем каждый раз, чтобы coinId был свежий)
+    starBtn.onclick = () => {
+      if (favorites.has(coinId)) {
+        favorites.delete(coinId);
+      } else {
+        favorites.add(coinId);
+      }
+      localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
+
+      // обновляем иконку сразу
+      const nowFav = favorites.has(coinId);
+      starBtn.innerHTML = nowFav ? ICONS.star18Filled : ICONS.star18Outline;
+      starBtn.classList.toggle("active", nowFav);
+
+      // обновляем все списки (рынок + избранное)
+      renderAll();
+
+      // haptic feedback
+      if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === "function") {
+        tg.HapticFeedback.impactOccurred("light");
+      }
+    };
+  }
 
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
