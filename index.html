@@ -64,9 +64,10 @@
     align-items: center;
   }
   .coin-sparkline canvas {
-    width: 100%;
-    height: 100%;
+    width: 64px;
+    height: 28px;
     image-rendering: crisp-edges;
+    display: block;
   }
 
   .flash-up { animation: flashUp 0.6s ease; } .flash-down { animation: flashDown 0.6s ease; }
@@ -676,34 +677,42 @@ function renderPopularCoins() {
 
 function drawMiniSparkline(canvas, prices, isPositive) {
   if (!canvas || !prices || prices.length < 2) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const displayW = 64;
+  const displayH = 28;
+
+  // Высокое разрешение для retina-экранов
+  canvas.width = displayW * dpr;
+  canvas.height = displayH * dpr;
+
   const ctx = canvas.getContext("2d", { alpha: true });
-  const w = canvas.width;
-  const h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
+  ctx.scale(dpr, dpr);           // масштабируем контекст обратно к логическим координатам
+  ctx.clearRect(0, 0, displayW, displayH);
 
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const range = max - min || 1;
 
   ctx.strokeStyle = isPositive ? "#2ecc71" : "#e74c3c";
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 1.6;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
 
   ctx.beginPath();
   for (let i = 0; i < prices.length; i++) {
-    const x = (i / (prices.length - 1)) * w;
-    const y = h - ((prices[i] - min) / range) * (h - 4) - 2;
+    const x = (i / (prices.length - 1)) * displayW;
+    const y = displayH - ((prices[i] - min) / range) * (displayH - 4) - 2;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.stroke();
 
   // Точка на конце (текущая цена)
-  const lastX = w;
-  const lastY = h - ((prices[prices.length - 1] - min) / range) * (h - 4) - 2;
+  const lastX = displayW;
+  const lastY = displayH - ((prices[prices.length - 1] - min) / range) * (displayH - 4) - 2;
   ctx.beginPath();
-  ctx.arc(lastX, lastY, 2.2, 0, Math.PI * 2);
+  ctx.arc(lastX, lastY, 2, 0, Math.PI * 2);
   ctx.fillStyle = ctx.strokeStyle;
   ctx.fill();
 }
@@ -728,7 +737,7 @@ function buildCardEntry(coin) {
       <div class="coin-price"></div>
       <div class="coin-change"></div>
     </div>
-    <div class="coin-sparkline"><canvas width="64" height="28"></canvas></div>
+    <div class="coin-sparkline"><canvas></canvas></div>
     <button class="star-btn"></button>
   `;
   const entry = {
