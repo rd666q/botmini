@@ -421,6 +421,12 @@ const I18N = {
     high24: "Максимум за период",
     low24: "Минимум за период",
     perPeriod: "за период",
+    period_1h: "за 1 час",
+    period_1d: "за 24 часа",
+    period_1w: "за 7 дней",
+    period_1mo: "за 30 дней",
+    period_6mo: "за 6 месяцев",
+    period_1y: "за 1 год",
     donateTitle: "Поддержать автора",
     donateDesc: "Если приложение понравилось — можно отправить немного TON автору по адресу:",
     copy: "Скопировать",
@@ -440,6 +446,12 @@ const I18N = {
     high24: "High",
     low24: "Low",
     perPeriod: "for period",
+    period_1h: "for 1 hour",
+    period_1d: "for 24 hours",
+    period_1w: "for 7 days",
+    period_1mo: "for 30 days",
+    period_6mo: "for 6 months",
+    period_1y: "for 1 year",
     donateTitle: "Support the author",
     donateDesc: "If you enjoyed the app, you can send some TON to the author at this address:",
     copy: "Copy",
@@ -559,6 +571,12 @@ function applyLanguage() {
     updateDetailHeader(openCoinId);
     renderTimeframeSelector();
     loadAndDrawChart(openCoinId, selectedTf, false);
+    // Обновляем карточку изменения за период (чтобы лейбл поменялся на нужный язык)
+    setTimeout(() => {
+      if (typeof updatePerfCardFromChart === "function") {
+        updatePerfCardFromChart();
+      }
+    }, 50);
   }
 }
 document.getElementById("lang-btn").addEventListener("click", () => {
@@ -1270,15 +1288,8 @@ function updatePerfCardFromChart() {
   const isUp = change >= 0;
 
   // Динамический лейбл в зависимости от выбранного таймфрейма
-  const tfLabels = {
-    "1h": "за 1 час",
-    "1d": "за 24 часа",
-    "1w": "за 7 дней",
-    "1mo": "за 30 дней",
-    "6mo": "за 6 месяцев",
-    "1y": "за 1 год"
-  };
-  perfLabel.textContent = tfLabels[selectedTf] || "за период";
+  const labelKey = "period_" + selectedTf;
+  perfLabel.textContent = t(labelKey) || t("perPeriod");
 
   perfPercent.textContent = (isUp ? "+" : "") + change.toFixed(2) + "%";
   perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
