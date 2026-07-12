@@ -234,7 +234,7 @@
 
     <!-- Фильтр по сетям -->
     <div style="display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px;" id="network-filters">
-      <button class="tf-btn active" data-network="all">Все</button>
+      <button class="tf-btn active" data-network="all" data-i18n="networkAll">Все</button>
       <button class="tf-btn" data-network="ton">TON</button>
       <button class="tf-btn" data-network="sol">SOL</button>
       <button class="tf-btn" data-network="btc">BTC</button>
@@ -245,10 +245,10 @@
 
     <!-- Сортировка -->
     <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px;" id="sort-filters">
-      <button class="tf-btn active" data-sort="market_cap">По капитализации</button>
-      <button class="tf-btn" data-sort="change_desc">По росту 24ч</button>
-      <button class="tf-btn" data-sort="change_asc">По падению 24ч</button>
-      <button class="tf-btn" data-sort="volume">По объёму</button>
+      <button class="tf-btn active" data-sort="market_cap" data-i18n="sortMarketCap">По капитализации</button>
+      <button class="tf-btn" data-sort="change_desc" data-i18n="sortChangeDesc">По росту 24ч</button>
+      <button class="tf-btn" data-sort="change_asc" data-i18n="sortChangeAsc">По падению 24ч</button>
+      <button class="tf-btn" data-sort="volume" data-i18n="sortVolume">По объёму</button>
     </div>
 
     <div id="market-list"></div>
@@ -257,7 +257,7 @@
   <div class="section" id="section-favorites">
     <!-- Portfolio Summary -->
     <div id="portfolio-summary" style="display:none; background:var(--card-bg); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
-      <div id="portfolio-summary-label" style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Стоимость портфеля</div>
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Стоимость портфеля</div>
       <div id="portfolio-total" style="font-size:26px; font-weight:800; margin-bottom:4px;">$0</div>
       <div id="portfolio-change" style="font-size:14px; font-weight:600;"></div>
     </div>
@@ -268,12 +268,12 @@
   <!-- Вкладка "Мой портфель" -->
   <div class="section" id="section-portfolio">
     <div id="portfolio-page-summary" style="background:var(--card-bg); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
-      <div id="portfolio-page-total-label" style="font-size:13px; color:var(--text-secondary);">Общая стоимость</div>
+      <div style="font-size:13px; color:var(--text-secondary);">Общая стоимость</div>
       <div id="portfolio-page-total" style="font-size:28px; font-weight:800; margin:6px 0;"></div>
       <div id="portfolio-page-change" style="font-size:15px; font-weight:600;"></div>
     </div>
 
-    <div id="portfolio-holdings-title" style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
+    <div style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
     <div id="portfolio-holdings-list"></div>
   </div>
 </div>
@@ -447,7 +447,12 @@ const I18N = {
     updatedPrefix: "Обновлено ",
     portfolioTotalLabel: "Общая стоимость",
     myAssets: "Мои активы",
-    portfolioValueLabel: "Стоимость портфеля"
+    portfolioValueLabel: "Стоимость портфеля",
+    networkAll: "Все",
+    sortMarketCap: "По капитализации",
+    sortChangeDesc: "По росту 24ч",
+    sortChangeAsc: "По падению 24ч",
+    sortVolume: "По объёму"
   },
   en: {
     market: "Market",
@@ -487,7 +492,12 @@ const I18N = {
     updatedPrefix: "Updated ",
     portfolioTotalLabel: "Total portfolio value",
     myAssets: "My assets",
-    portfolioValueLabel: "Portfolio value"
+    portfolioValueLabel: "Portfolio value",
+    networkAll: "All",
+    sortMarketCap: "By market cap",
+    sortChangeDesc: "By 24h growth",
+    sortChangeAsc: "By 24h decline",
+    sortVolume: "By volume"
   }
 };
 
@@ -588,6 +598,12 @@ function applyLanguage() {
     renderPortfolioPage();
   }
   document.querySelectorAll(".nav-label").forEach(el => el.textContent = t(el.dataset.i18n));
+
+  // Обновляем язык у фильтров сортировки и сетей
+  document.querySelectorAll("#sort-filters button[data-i18n], #network-filters button[data-i18n]").forEach(btn => {
+    btn.textContent = t(btn.dataset.i18n);
+  });
+
   document.getElementById("label-marketcap").textContent = t("marketCap");
   document.getElementById("label-volume").textContent = t("volume24");
   document.getElementById("label-high").textContent = t("high24");
@@ -825,10 +841,6 @@ function updatePortfolioSummary() {
 
   summaryEl.style.display = "block";
 
-  // Обновляем лейбл под текущий язык
-  const summaryLabel = document.getElementById("portfolio-summary-label");
-  if (summaryLabel) summaryLabel.textContent = t("portfolioValueLabel");
-
   const { totalValue, change, changePercent } = getPortfolio24hChange();
 
   document.getElementById("portfolio-total").textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -850,13 +862,6 @@ function renderPortfolioPage() {
   const listEl = document.getElementById("portfolio-holdings-list");
 
   if (!totalEl || !changeEl || !listEl) return;
-
-  // Обновляем статические лейблы под текущий язык
-  const totalLabel = document.getElementById("portfolio-page-total-label");
-  if (totalLabel) totalLabel.textContent = t("portfolioTotalLabel");
-
-  const holdingsTitle = document.getElementById("portfolio-holdings-title");
-  if (holdingsTitle) holdingsTitle.textContent = t("myAssets");
 
   const { totalValue, change, changePercent } = getPortfolio24hChange();
 
