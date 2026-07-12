@@ -257,7 +257,7 @@
   <div class="section" id="section-favorites">
     <!-- Portfolio Summary -->
     <div id="portfolio-summary" style="display:none; background:var(--card-bg); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Стоимость портфеля</div>
+      <div id="portfolio-summary-label" style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Стоимость портфеля</div>
       <div id="portfolio-total" style="font-size:26px; font-weight:800; margin-bottom:4px;">$0</div>
       <div id="portfolio-change" style="font-size:14px; font-weight:600;"></div>
     </div>
@@ -268,12 +268,12 @@
   <!-- Вкладка "Мой портфель" -->
   <div class="section" id="section-portfolio">
     <div id="portfolio-page-summary" style="background:var(--card-bg); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
-      <div style="font-size:13px; color:var(--text-secondary);">Общая стоимость</div>
+      <div id="portfolio-page-total-label" style="font-size:13px; color:var(--text-secondary);">Общая стоимость</div>
       <div id="portfolio-page-total" style="font-size:28px; font-weight:800; margin:6px 0;"></div>
       <div id="portfolio-page-change" style="font-size:15px; font-weight:600;"></div>
     </div>
 
-    <div style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
+    <div id="portfolio-holdings-title" style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
     <div id="portfolio-holdings-list"></div>
   </div>
 </div>
@@ -432,7 +432,22 @@ const I18N = {
     copy: "Скопировать",
     copied: "Скопировано!",
     openWallet: "Открыть в кошельке",
-    chartLoading: "Загрузка графика..."
+    chartLoading: "Загрузка графика...",
+    editHolding: "Изменить",
+    deletePosition: "Удалить позицию",
+    save: "Сохранить",
+    amount: "Количество",
+    portfolioEmpty: "Портфель пуст.",
+    portfolioEmptyDesc: "Добавляй монеты через вкладку «Избранное».",
+    favoritesEmptyDesc: "Добавляй монеты из вкладки «Рынок», чтобы отслеживать их здесь",
+    goToMarket: "Перейти в Рынок",
+    updatedJustNow: "только что",
+    updatedMinAgo: "мин назад",
+    updatedSecAgo: "сек назад",
+    updatedPrefix: "Обновлено ",
+    portfolioTotalLabel: "Общая стоимость",
+    myAssets: "Мои активы",
+    portfolioValueLabel: "Стоимость портфеля"
   },
   en: {
     market: "Market",
@@ -457,7 +472,22 @@ const I18N = {
     copy: "Copy",
     copied: "Copied!",
     openWallet: "Open in wallet",
-    chartLoading: "Loading chart..."
+    chartLoading: "Loading chart...",
+    editHolding: "Edit",
+    deletePosition: "Delete position",
+    save: "Save",
+    amount: "Amount",
+    portfolioEmpty: "Portfolio is empty.",
+    portfolioEmptyDesc: "Add coins from the Favorites tab.",
+    favoritesEmptyDesc: "Add coins from the Market tab to track them here",
+    goToMarket: "Go to Market",
+    updatedJustNow: "just now",
+    updatedMinAgo: "min ago",
+    updatedSecAgo: "sec ago",
+    updatedPrefix: "Updated ",
+    portfolioTotalLabel: "Total portfolio value",
+    myAssets: "My assets",
+    portfolioValueLabel: "Portfolio value"
   }
 };
 
@@ -795,6 +825,10 @@ function updatePortfolioSummary() {
 
   summaryEl.style.display = "block";
 
+  // Обновляем лейбл под текущий язык
+  const summaryLabel = document.getElementById("portfolio-summary-label");
+  if (summaryLabel) summaryLabel.textContent = t("portfolioValueLabel");
+
   const { totalValue, change, changePercent } = getPortfolio24hChange();
 
   document.getElementById("portfolio-total").textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -816,6 +850,13 @@ function renderPortfolioPage() {
   const listEl = document.getElementById("portfolio-holdings-list");
 
   if (!totalEl || !changeEl || !listEl) return;
+
+  // Обновляем статические лейблы под текущий язык
+  const totalLabel = document.getElementById("portfolio-page-total-label");
+  if (totalLabel) totalLabel.textContent = t("portfolioTotalLabel");
+
+  const holdingsTitle = document.getElementById("portfolio-holdings-title");
+  if (holdingsTitle) holdingsTitle.textContent = t("myAssets");
 
   const { totalValue, change, changePercent } = getPortfolio24hChange();
 
