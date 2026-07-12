@@ -289,7 +289,7 @@
   </button>
   <button class="nav-btn" data-tab="portfolio">
     <span class="icon" id="nav-icon-portfolio"></span>
-    <span class="nav-label" data-i18n="portfolio">Портфель</span>
+    <span class="nav-label" data-i18n="portfolio">Мой портфель</span>
   </button>
 </div>
 
@@ -410,25 +410,41 @@ document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
 
 const I18N = {
   ru: {
-    market: "Рынок", favorites: "Избранное", love: "С любовью",
+    market: "Рынок",
+    favorites: "Избранное",
+    portfolio: "Мой портфель",
     searchPlaceholder: "Найти криптовалюту...",
     notFound: "Ничего не найдено",
     emptyFav: "Пока ничего нет",
-    marketCap: "Рыночная капитализация", volume24: "Объём за 24ч", high24: "Максимум за период", low24: "Минимум за период",
+    marketCap: "Рыночная капитализация",
+    volume24: "Объём за 24ч",
+    high24: "Максимум за период",
+    low24: "Минимум за период",
     perPeriod: "за период",
-    donateTitle: "Поддержать автора", donateDesc: "Если приложение понравилось — можно отправить немного TON автору по адресу:",
-    copy: "Скопировать", copied: "Скопировано!", openWallet: "Открыть в кошельке",
+    donateTitle: "Поддержать автора",
+    donateDesc: "Если приложение понравилось — можно отправить немного TON автору по адресу:",
+    copy: "Скопировать",
+    copied: "Скопировано!",
+    openWallet: "Открыть в кошельке",
     chartLoading: "Загрузка графика..."
   },
   en: {
-    market: "Market", favorites: "Favorites", love: "With love",
+    market: "Market",
+    favorites: "Favorites",
+    portfolio: "My Portfolio",
     searchPlaceholder: "Search cryptocurrency...",
     notFound: "Nothing found",
     emptyFav: "Empty for now<br>Add coins from the Market tab",
-    marketCap: "Market Cap", volume24: "24h Volume", high24: "High", low24: "Low",
+    marketCap: "Market Cap",
+    volume24: "24h Volume",
+    high24: "High",
+    low24: "Low",
     perPeriod: "for period",
-    donateTitle: "Support the author", donateDesc: "If you enjoyed the app, you can send some TON to the author at this address:",
-    copy: "Copy", copied: "Copied!", openWallet: "Open in wallet",
+    donateTitle: "Support the author",
+    donateDesc: "If you enjoyed the app, you can send some TON to the author at this address:",
+    copy: "Copy",
+    copied: "Copied!",
+    openWallet: "Open in wallet",
     chartLoading: "Loading chart..."
   }
 };
@@ -526,7 +542,7 @@ function applyLanguage() {
   } else if (currentTab === "favorites") {
     document.getElementById("page-title").textContent = t("favorites");
   } else if (currentTab === "portfolio") {
-    document.getElementById("page-title").textContent = "Мой портфель";
+    document.getElementById("page-title").textContent = t("portfolio");
     renderPortfolioPage();
   }
   document.querySelectorAll(".nav-label").forEach(el => el.textContent = t(el.dataset.i18n));
