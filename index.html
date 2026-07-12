@@ -273,7 +273,7 @@
       <div id="portfolio-page-change" style="font-size:15px; font-weight:600;"></div>
     </div>
 
-    <div style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
+    <div style="margin-bottom:12px; font-weight:600; padding-left:4px;" data-i18n="myAssets">Мои активы</div>
     <div id="portfolio-holdings-list"></div>
   </div>
 </div>
@@ -322,25 +322,25 @@
   <div class="detail-chart-box">
     <canvas id="detail-canvas" width="600" height="220"></canvas>
     <div class="crosshair-tooltip" id="crosshair-tooltip"></div>
-    <div class="chart-loading" id="chart-loading">Загрузка графика...</div>
+    <div class="chart-loading" id="chart-loading" data-i18n="chartLoading">Загрузка графика...</div>
   </div>
   <div class="chart-hint" id="chart-hint"></div>
 
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-label" id="label-marketcap">Рыночная капитализация</div>
+      <div class="stat-label" id="label-marketcap" data-i18n="marketCap">Рыночная капитализация</div>
       <div class="stat-value" id="stat-marketcap">—</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" id="label-volume">Объём за 24ч</div>
+      <div class="stat-label" id="label-volume" data-i18n="volume24">Объём за 24ч</div>
       <div class="stat-value" id="stat-volume">—</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" id="label-high">Максимум за период</div>
+      <div class="stat-label" id="label-high" data-i18n="high24">Максимум за период</div>
       <div class="stat-value" id="stat-high">—</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" id="label-low">Минимум за период</div>
+      <div class="stat-label" id="label-low" data-i18n="low24">Минимум за период</div>
       <div class="stat-value" id="stat-low">—</div>
     </div>
   </div>
@@ -350,16 +350,16 @@
 <div class="modal-overlay" id="portfolio-modal-overlay">
   <div class="modal-box" style="position:relative">
     <button class="modal-close-x" id="portfolio-modal-close">✕</button>
-    <div class="modal-title" id="portfolio-modal-title">Редактировать позицию</div>
+    <div class="modal-title" id="portfolio-modal-title" data-i18n="editHolding">Редактировать позицию</div>
     
     <div style="margin: 16px 0;">
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Количество</div>
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;" data-i18n="amount">Количество</div>
       <input type="number" id="portfolio-modal-amount" step="any" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
     </div>
 
     <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="portfolio-modal-delete">Удалить позицию</button>
-      <button class="modal-btn modal-btn-primary" id="portfolio-modal-save">Сохранить</button>
+      <button class="modal-btn modal-btn-secondary" id="portfolio-modal-delete" data-i18n="deletePosition">Удалить позицию</button>
+      <button class="modal-btn modal-btn-primary" id="portfolio-modal-save" data-i18n="save">Сохранить</button>
     </div>
   </div>
 </div>
@@ -452,7 +452,9 @@ const I18N = {
     sortMarketCap: "По капитализации",
     sortChangeDesc: "По росту 24ч",
     sortChangeAsc: "По падению 24ч",
-    sortVolume: "По объёму"
+    sortVolume: "По объёму",
+    growth: "Рост",
+    decline: "Падение"
   },
   en: {
     market: "Market",
@@ -497,7 +499,9 @@ const I18N = {
     sortMarketCap: "By market cap",
     sortChangeDesc: "By 24h growth",
     sortChangeAsc: "By 24h decline",
-    sortVolume: "By volume"
+    sortVolume: "By volume",
+    growth: "Growth",
+    decline: "Decline"
   }
 };
 
@@ -589,21 +593,27 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 function applyLanguage() {
   document.getElementById("lang-btn").textContent = currentLang.toUpperCase();
   document.getElementById("search-input").placeholder = t("searchPlaceholder");
-  if (currentTab === "market") {
-    document.getElementById("page-title").textContent = "CryptoFood";
-  } else if (currentTab === "favorites") {
-    document.getElementById("page-title").textContent = t("favorites");
-  } else if (currentTab === "portfolio") {
-    document.getElementById("page-title").textContent = t("portfolio");
-    renderPortfolioPage();
-  }
-  document.querySelectorAll(".nav-label").forEach(el => el.textContent = t(el.dataset.i18n));
 
-  // Обновляем язык у фильтров сортировки и сетей
-  document.querySelectorAll("#sort-filters button[data-i18n], #network-filters button[data-i18n]").forEach(btn => {
-    btn.textContent = t(btn.dataset.i18n);
+  // Update page title based on current tab
+  const pageTitleEl = document.getElementById("page-title");
+  if (currentTab === "market") {
+    pageTitleEl.textContent = "CryptoFood";
+  } else if (currentTab === "favorites") {
+    pageTitleEl.textContent = t("favorites");
+  } else if (currentTab === "portfolio") {
+    pageTitleEl.textContent = t("portfolio");
+  }
+
+  // === GENERAL i18n: update ALL elements with data-i18n attribute ===
+  // This makes language switch work everywhere possible without hardcoding updates
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (key && I18N[currentLang] && I18N[currentLang][key]) {
+      el.textContent = t(key);
+    }
   });
 
+  // Legacy specific updates (kept for safety, general above covers most now)
   document.getElementById("label-marketcap").textContent = t("marketCap");
   document.getElementById("label-volume").textContent = t("volume24");
   document.getElementById("label-high").textContent = t("high24");
@@ -612,12 +622,12 @@ function applyLanguage() {
   document.getElementById("donate-desc").textContent = t("donateDesc");
   document.getElementById("donate-copy").textContent = t("copy");
   document.getElementById("donate-open").textContent = t("openWallet");
+
   renderAll();
   if (openCoinId) {
     updateDetailHeader(openCoinId);
     renderTimeframeSelector();
     loadAndDrawChart(openCoinId, selectedTf, false);
-    // Обновляем карточку изменения за период (чтобы лейбл поменялся на нужный язык)
     setTimeout(() => {
       if (typeof updatePerfCardFromChart === "function") {
         updatePerfCardFromChart();
@@ -729,11 +739,16 @@ function updateLastUpdated() {
   if (!el) return;
 
   const diff = Math.floor((Date.now() - lastUpdated) / 1000);
-  let text = "только что";
-  if (diff > 60) text = Math.floor(diff / 60) + " мин назад";
-  else if (diff > 10) text = diff + " сек назад";
+  let text;
+  if (diff < 10) {
+    text = t("updatedJustNow");
+  } else if (diff < 60) {
+    text = diff + " " + t("updatedSecAgo");
+  } else {
+    text = Math.floor(diff / 60) + " " + t("updatedMinAgo");
+  }
 
-  el.textContent = "Обновлено " + text;
+  el.textContent = t("updatedPrefix") + text;
   el.style.opacity = "1";
 }
 
@@ -877,7 +892,7 @@ function renderPortfolioPage() {
   const holdings = Object.entries(portfolio).filter(([_, amt]) => amt > 0);
 
   if (holdings.length === 0) {
-    listEl.innerHTML = `<div class="empty-state" style="padding:40px 20px;">Портфель пуст.<br>Добавляй монеты через вкладку «Избранное».</div>`;
+    listEl.innerHTML = `<div class="empty-state" style="padding:40px 20px;">${t("portfolioEmpty")}<br>${t("portfolioEmptyDesc")}</div>`;
     return;
   }
 
@@ -903,7 +918,7 @@ function renderPortfolioPage() {
         <div style="font-size:12px; color:${coin.price_change_percentage_24h >= 0 ? '#2ecc71' : '#e74c3c'}">
           ${coin.price_change_percentage_24h >= 0 ? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h || 0).toFixed(2)}%
         </div>
-        <button class="edit-holding-btn" style="font-size:11px; padding:2px 8px; border-radius:6px; background:var(--pill-bg); border:none; color:#888; margin-top:2px;">Изменить</button>
+        <button class="edit-holding-btn" style="font-size:11px; padding:2px 8px; border-radius:6px; background:var(--pill-bg); border:none; color:#888; margin-top:2px;">${t("editHolding")}</button>
       </div>
     `;
 
@@ -1153,10 +1168,10 @@ function reconcileList(container, registry, list, prevPriceMap, emptyText, isFav
         <div style="font-size:42px; margin-bottom:16px;">⭐</div>
         <div style="font-size:17px; font-weight:700; margin-bottom:8px;">${t("emptyFav")}</div>
         <div style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; max-width:220px; margin-left:auto; margin-right:auto;">
-          Добавляй монеты из вкладки «Рынок», чтобы отслеживать их здесь
+          ${t("favoritesEmptyDesc")}
         </div>
         <button onclick="switchToMarketTab()" style="background:#2d7ff9; color:white; border:none; padding:10px 24px; border-radius:999px; font-size:14px; font-weight:600;">
-          Перейти в Рынок
+          ${t("goToMarket")}
         </button>
       `;
     } else {
@@ -1340,7 +1355,7 @@ function updatePerfCardFromChart() {
   perfPercent.textContent = (isUp ? "+" : "") + change.toFixed(2) + "%";
   perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
 
-  perfPill.textContent = isUp ? "▲ Рост" : "▼ Падение";
+  perfPill.textContent = isUp ? `▲ ${t("growth")}` : `▼ ${t("decline")}`;
   perfPill.style.background = isUp 
     ? "rgba(46,204,113,0.15)" 
     : "rgba(231,76,60,0.15)";
@@ -1665,7 +1680,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     } else if (currentTab === "favorites") {
       document.getElementById("page-title").textContent = t("favorites");
     } else if (currentTab === "portfolio") {
-      document.getElementById("page-title").textContent = "Мой портфель";
+      document.getElementById("page-title").textContent = t("portfolio");
       renderPortfolioPage();
     }
   });
