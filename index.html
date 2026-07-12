@@ -296,8 +296,7 @@
   <!-- === КРАСИВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА (точно в то место, что ты обвел) === -->
   <div id="perf-card" class="perf-card">
     <div class="perf-header">
-      <span class="perf-label">24ч изменение</span>
-      <button id="detail-fav-star" class="star-btn-large" aria-label="Добавить в избранное"></button>
+      <span class="perf-label" id="perf-label">Изменение за период</span>
     </div>
     <div class="perf-body">
       <div id="perf-percent" class="perf-percent">—</div>
@@ -983,54 +982,42 @@ function updateDetailHeader(coinId) {
   const change24h = coin.price_change_percentage_24h;
   const isUp = (change24h || 0) >= 0;
 
-  // === НОВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА ===
-  const perfPercent = document.getElementById("perf-percent");
-  const perfPill = document.getElementById("perf-pill");
-  const starBtn = document.getElementById("detail-fav-star");
-
-  if (perfPercent && perfPill) {
-    const sign = isUp ? "+" : "";
-    perfPercent.textContent = sign + Math.abs(change24h || 0).toFixed(2) + "%";
-    perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
-
-    perfPill.textContent = isUp ? "▲ Рост" : "▼ Падение";
-    perfPill.style.background = isUp 
-      ? "rgba(46,204,113,0.15)" 
-      : "rgba(231,76,60,0.15)";
-    perfPill.style.color = isUp ? "#2ecc71" : "#e74c3c";
-  }
-
-  if (starBtn) {
-    const isFav = favorites.has(coinId);
-    starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
-    starBtn.classList.toggle("active", isFav);
-
-    // обработчик клика (переопределяем каждый раз, чтобы coinId был свежий)
-    starBtn.onclick = () => {
-      if (favorites.has(coinId)) {
-        favorites.delete(coinId);
-      } else {
-        favorites.add(coinId);
-      }
-      localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
-
-      // обновляем иконку сразу
-      const nowFav = favorites.has(coinId);
-      starBtn.innerHTML = nowFav ? ICONS.star18Filled : ICONS.star18Outline;
-      starBtn.classList.toggle("active", nowFav);
-
-      // обновляем все списки (рынок + избранное)
-      renderAll();
-
-      // haptic feedback
-      if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === "function") {
-        tg.HapticFeedback.impactOccurred("light");
-      }
-    };
-  }
-
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
+}
+
+function updatePerfCardFromChart() {
+  const perfLabel = document.getElementById("perf-label");
+  const perfPercent = document.getElementById("perf-percent");
+  const perfPill = document.getElementById("perf-pill");
+
+  if (!perfPercent || !perfPill || !perfLabel || currentChartPoints.length < 2) return;
+
+  const firstPrice = currentChartPoints[0].p;
+  const lastPrice = currentChartPoints[currentChartPoints.length - 1].p;
+  const change = ((lastPrice - firstPrice) / firstPrice) * 100;
+
+  const isUp = change >= 0;
+
+  // Динамический лейбл в зависимости от выбранного таймфрейма
+  const tfLabels = {
+    "1h": "за 1 час",
+    "1d": "за 24 часа",
+    "1w": "за 7 дней",
+    "1mo": "за 30 дней",
+    "6mo": "за 6 месяцев",
+    "1y": "за 1 год"
+  };
+  perfLabel.textContent = tfLabels[selectedTf] || "за период";
+
+  perfPercent.textContent = (isUp ? "+" : "") + change.toFixed(2) + "%";
+  perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
+
+  perfPill.textContent = isUp ? "▲ Рост" : "▼ Падение";
+  perfPill.style.background = isUp 
+    ? "rgba(46,204,113,0.15)" 
+    : "rgba(231,76,60,0.15)";
+  perfPill.style.color = isUp ? "#2ecc71" : "#e74c3c";
 }
 
 function setChartLoading(state) {
@@ -1089,6 +1076,9 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
   currentChartPoints = points;
   hideCrosshair();
   drawDetailChart();
+
+  // Обновляем карточку изменения за текущий период
+  updatePerfCardFromChart();
 }
 
 function prepareHiDPICanvas(canvas) {
