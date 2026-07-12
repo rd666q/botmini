@@ -252,6 +252,13 @@
   </div>
 
   <div class="section" id="section-favorites">
+    <!-- Portfolio Summary -->
+    <div id="portfolio-summary" style="display:none; background:var(--card-bg); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Стоимость портфеля</div>
+      <div id="portfolio-total" style="font-size:26px; font-weight:800; margin-bottom:4px;">$0</div>
+      <div id="portfolio-change" style="font-size:14px; font-weight:600;"></div>
+    </div>
+
     <div id="favorites-list"></div>
   </div>
 
@@ -448,6 +455,9 @@ let themeColors = { text: "#999", bg: "#fff" };
 let lastUpdated = Date.now();
 let currentSort = localStorage.getItem("sort_mode") || "market_cap";
 
+// === Портфолио (минимальная версия) ===
+let portfolio = JSON.parse(localStorage.getItem("portfolio") || "{}");
+
 // реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
 const marketCardRegistry = new Map();
 const favCardRegistry = new Map();
@@ -611,6 +621,76 @@ function updateLastUpdated() {
 
   el.textContent = "Обновлено " + text;
   el.style.opacity = "1";
+}
+
+// === Функции портфолио ===
+function savePortfolio() {
+  localStorage.setItem("portfolio", JSON.stringify(portfolio));
+}
+
+function getPortfolioTotalValue() {
+  let total = 0;
+  for (const [coinId, amount] of Object.entries(portfolio)) {
+    const coin = coins.find(c => c.id === coinId);
+    if (coin && amount > 0) {
+      total += coin.current_price * amount;
+    }
+  }
+  return total;
+}
+
+function getPortfolio24hChange() {
+  let totalValue = 0;
+  let totalValueBefore = 0;
+
+  for (const [coinId, amount] of Object.entries(portfolio)) {
+    const coin = coins.find(c => c.id === coinId);
+    if (coin && amount > 0) {
+      const currentValue = coin.current_price * amount;
+      const change24h = coin.price_change_percentage_24h || 0;
+      const valueBefore = currentValue / (1 + change24h / 100);
+
+      totalValue += currentValue;
+      totalValueBefore += valueBefore;
+    }
+  }
+
+  const change = totalValue - totalValueBefore;
+  const changePercent = totalValueBefore > 0 ? (change / totalValueBefore) * 100 : 0;
+
+  return { change, changePercent, totalValue: totalValue };
+}
+
+function setHolding(coinId, amount) {
+  if (amount <= 0) {
+    delete portfolio[coinId];
+  } else {
+    portfolio[coinId] = amount;
+  }
+  savePortfolio();
+}
+
+function updatePortfolioSummary() {
+  const summaryEl = document.getElementById("portfolio-summary");
+  if (!summaryEl) return;
+
+  const hasHoldings = Object.keys(portfolio).length > 0 && Object.values(portfolio).some(v => v > 0);
+
+  if (!hasHoldings) {
+    summaryEl.style.display = "none";
+    return;
+  }
+
+  summaryEl.style.display = "block";
+
+  const { totalValue, change, changePercent } = getPortfolio24hChange();
+
+  document.getElementById("portfolio-total").textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
+
+  const changeEl = document.getElementById("portfolio-change");
+  const isUp = change >= 0;
+  changeEl.textContent = `${isUp ? "▲" : "▼"} $${Math.abs(change).toFixed(2)} (${isUp ? "+" : ""}${changePercent.toFixed(2)}%)`;
+  changeEl.style.color = isUp ? "#2ecc71" : "#e74c3c";
 }
 
 function scheduleNextPoll() {
@@ -783,7 +863,22 @@ function buildCardEntry(coin) {
     localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
     renderAll();
   });
-  root.addEventListener("click", () => openDetail(entry.coinId));
+  root.addEventListener("click", (e) => {
+    if (currentTab === "favorites") {
+      // Редактируем количество в портфолио
+      const currentAmount = portfolio[entry.coinId] || 0;
+      const newAmountStr = prompt(`Сколько ${coin.symbol.toUpperCase()} у тебя в портфеле?`, currentAmount || "");
+      if (newAmountStr !== null) {
+        const newAmount = parseFloat(newAmountStr);
+        if (!isNaN(newAmount)) {
+          setHolding(entry.coinId, newAmount);
+          renderAll();
+        }
+      }
+    } else {
+      openDetail(entry.coinId);
+    }
+  });
 
   return entry;
 }
@@ -805,6 +900,15 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   // Мини-спарклайн (последние данные из sparkline_in_7d)
   if (entry.sparklineCanvas && coin.sparkline_in_7d && coin.sparkline_in_7d.price && coin.sparkline_in_7d.price.length > 2) {
     drawMiniSparkline(entry.sparklineCanvas, coin.sparkline_in_7d.price, isUp);
+  }
+
+  // === Портфолио: показываем holdings ===
+  if (entry.starBtn) {
+    const amount = portfolio[coin.id] || 0;
+    if (amount > 0) {
+      entry.starBtn.style.marginLeft = "4px";
+      entry.starBtn.title = `В портфеле: ${amount}`;
+    }
   }
 
   const prevPrice = prevPriceMap[coin.id];
@@ -917,6 +1021,9 @@ function renderAll() {
   const favList = document.getElementById("favorites-list");
   const favCoins = coins.filter(c => favorites.has(c.id));
   reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"), true);
+
+  // Обновляем summary портфолио
+  updatePortfolioSummary();
 }
 
 // ===== экран деталей =====
