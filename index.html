@@ -262,14 +262,16 @@
     <div id="favorites-list"></div>
   </div>
 
-  <!-- Вкладка "С любовью" -->
-  <div class="section" id="section-love">
-    <div class="empty-state" style="padding-top: 120px;">
-      <div style="font-size: 48px; margin-bottom: 20px;">❤️</div>
-      <div style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Бот создан с любовью</div>
-      <div style="font-size: 15px; color: var(--text-secondary);">от Filatov</div>
-      <div style="margin-top: 40px; font-size: 13px; opacity: 0.7;">Спасибо, что используешь CryptoFood!</div>
+  <!-- Вкладка "Мой портфель" -->
+  <div class="section" id="section-portfolio">
+    <div id="portfolio-page-summary" style="background:var(--card-bg); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
+      <div style="font-size:13px; color:var(--text-secondary);">Общая стоимость</div>
+      <div id="portfolio-page-total" style="font-size:28px; font-weight:800; margin:6px 0;"></div>
+      <div id="portfolio-page-change" style="font-size:15px; font-weight:600;"></div>
     </div>
+
+    <div style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
+    <div id="portfolio-holdings-list"></div>
   </div>
 </div>
 
@@ -282,9 +284,9 @@
     <span class="icon" id="nav-icon-fav"></span>
     <span class="nav-label" data-i18n="favorites">Избранное</span>
   </button>
-  <button class="nav-btn" data-tab="love">
-    <span class="icon" id="nav-icon-love">❤️</span>
-    <span class="nav-label" data-i18n="love">С любовью</span>
+  <button class="nav-btn" data-tab="portfolio">
+    <span class="icon" id="nav-icon-portfolio">💼</span>
+    <span class="nav-label" data-i18n="portfolio">Портфель</span>
   </button>
 </div>
 
@@ -494,7 +496,13 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 function applyLanguage() {
   document.getElementById("lang-btn").textContent = currentLang.toUpperCase();
   document.getElementById("search-input").placeholder = t("searchPlaceholder");
-  document.getElementById("page-title").textContent = currentTab === "market" ? "CryptoFood" : currentTab === "favorites" ? t("favorites") : t("love");
+  if (currentTab === "market") {
+    document.getElementById("page-title").textContent = "CryptoFood";
+  } else if (currentTab === "favorites") {
+    document.getElementById("page-title").textContent = t("favorites");
+  } else if (currentTab === "portfolio") {
+    document.getElementById("page-title").textContent = "Мой портфель";
+  }
   document.querySelectorAll(".nav-label").forEach(el => el.textContent = t(el.dataset.i18n));
   document.getElementById("label-marketcap").textContent = t("marketCap");
   document.getElementById("label-volume").textContent = t("volume24");
@@ -693,6 +701,58 @@ function updatePortfolioSummary() {
   changeEl.style.color = isUp ? "#2ecc71" : "#e74c3c";
 }
 
+function renderPortfolioPage() {
+  const totalEl = document.getElementById("portfolio-page-total");
+  const changeEl = document.getElementById("portfolio-page-change");
+  const listEl = document.getElementById("portfolio-holdings-list");
+
+  if (!totalEl || !changeEl || !listEl) return;
+
+  const { totalValue, change, changePercent } = getPortfolio24hChange();
+
+  totalEl.textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
+
+  const isUp = change >= 0;
+  changeEl.textContent = `${isUp ? "▲" : "▼"} $${Math.abs(change).toFixed(2)} (${isUp ? "+" : ""}${changePercent.toFixed(2)}%)`;
+  changeEl.style.color = isUp ? "#2ecc71" : "#e74c3c";
+
+  // Список активов в портфеле
+  listEl.innerHTML = "";
+
+  const holdings = Object.entries(portfolio).filter(([_, amt]) => amt > 0);
+
+  if (holdings.length === 0) {
+    listEl.innerHTML = `<div class="empty-state" style="padding:40px 20px;">Портфель пуст.<br>Добавляй монеты через вкладку «Избранное».</div>`;
+    return;
+  }
+
+  holdings.forEach(([coinId, amount]) => {
+    const coin = coins.find(c => c.id === coinId);
+    if (!coin) return;
+
+    const value = amount * coin.current_price;
+    const item = document.createElement("div");
+    item.className = "coin-card";
+    item.style.marginBottom = "8px";
+    item.innerHTML = `
+      <div class="coin-left">
+        <img class="coin-icon" src="${coin.image}" style="width:34px;height:34px;" onerror="this.style.display='none'">
+        <div>
+          <div style="font-weight:600;">${coin.name}</div>
+          <div style="font-size:12px; color:#888;">${amount} ${coin.symbol.toUpperCase()}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-weight:700;">$${value.toFixed(2)}</div>
+        <div style="font-size:12px; color:${coin.price_change_percentage_24h >= 0 ? '#2ecc71' : '#e74c3c'}">
+          ${coin.price_change_percentage_24h >= 0 ? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h || 0).toFixed(2)}%
+        </div>
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
 function scheduleNextPoll() {
   if (pollTimeoutHandle) clearTimeout(pollTimeoutHandle);
   const delay = REFRESH_BASE_MS + Math.random() * REFRESH_JITTER_MS;
@@ -826,6 +886,7 @@ function buildCardEntry(coin) {
       <div class="coin-info">
         <div class="coin-name"></div>
         <div class="coin-symbol"></div>
+        <div class="holdings-info" style="font-size:12px; color:#888; margin-top:2px; display:none;"></div>
       </div>
     </div>
     <div class="coin-mid">
@@ -839,6 +900,7 @@ function buildCardEntry(coin) {
     root,
     nameEl: root.querySelector(".coin-name"),
     symbolEl: root.querySelector(".coin-symbol"),
+    holdingsInfoEl: root.querySelector(".holdings-info"),
     priceEl: root.querySelector(".coin-price"),
     changeEl: root.querySelector(".coin-change"),
     starBtn: root.querySelector(".star-btn"),
@@ -902,12 +964,15 @@ function updateCardEntry(entry, coin, prevPriceMap) {
     drawMiniSparkline(entry.sparklineCanvas, coin.sparkline_in_7d.price, isUp);
   }
 
-  // === Портфолио: показываем holdings ===
-  if (entry.starBtn) {
+  // === Портфолио: показываем holdings в строке ===
+  if (entry.holdingsInfoEl) {
     const amount = portfolio[coin.id] || 0;
     if (amount > 0) {
-      entry.starBtn.style.marginLeft = "4px";
-      entry.starBtn.title = `В портфеле: ${amount}`;
+      const holdingsValue = amount * coin.current_price;
+      entry.holdingsInfoEl.innerHTML = `${amount} ${coin.symbol.toUpperCase()} <span style="color:#666;">•</span> $${holdingsValue.toFixed(2)}`;
+      entry.holdingsInfoEl.style.display = "block";
+    } else {
+      entry.holdingsInfoEl.style.display = "none";
     }
   }
 
@@ -1024,6 +1089,10 @@ function renderAll() {
 
   // Обновляем summary портфолио
   updatePortfolioSummary();
+
+  if (currentTab === "portfolio") {
+    renderPortfolioPage();
+  }
 }
 
 // ===== экран деталей =====
@@ -1435,10 +1504,19 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentTab = btn.dataset.tab;
+
     document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
     document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
-    document.getElementById("section-love").classList.toggle("visible", currentTab === "love");
-    document.getElementById("page-title").textContent = currentTab === "market" ? "CryptoFood" : currentTab === "favorites" ? t("favorites") : t("love");
+    document.getElementById("section-portfolio").classList.toggle("visible", currentTab === "portfolio");
+
+    if (currentTab === "market") {
+      document.getElementById("page-title").textContent = "CryptoFood";
+    } else if (currentTab === "favorites") {
+      document.getElementById("page-title").textContent = t("favorites");
+    } else if (currentTab === "portfolio") {
+      document.getElementById("page-title").textContent = "Мой портфель";
+      renderPortfolioPage();
+    }
   });
 });
 
