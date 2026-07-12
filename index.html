@@ -212,7 +212,10 @@
 
 <div id="app">
   <div class="top-bar">
-    <div class="tab-title" id="page-title">CryptoFood</div>
+    <div>
+      <div class="tab-title" id="page-title">CryptoFood</div>
+      <div style="font-size:10px; color:#666; margin-top:-4px; letter-spacing:0.5px;">Powered by Filatov</div>
+    </div>
     <div class="top-actions">
       <button class="icon-btn donate-btn" id="donate-btn"></button>
       <button class="icon-btn lang-btn" id="lang-btn">RU</button>
@@ -272,6 +275,14 @@
 
     <div style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
     <div id="portfolio-holdings-list"></div>
+
+    <!-- Простой PnL график -->
+    <div style="margin-top:24px;">
+      <div style="font-weight:600; padding-left:4px; margin-bottom:8px;">Изменение стоимости портфеля</div>
+      <div style="background:var(--card-bg); border-radius:16px; padding:16px; box-shadow:0 2px 8px var(--shadow);">
+        <canvas id="portfolio-pnl-chart" width="600" height="140" style="width:100%; height:140px;"></canvas>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -339,6 +350,24 @@
     <div class="stat-card">
       <div class="stat-label" id="label-low">Минимум за период</div>
       <div class="stat-value" id="stat-low">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка редактирования портфеля -->
+<div class="modal-overlay" id="portfolio-modal-overlay">
+  <div class="modal-box" style="position:relative">
+    <button class="modal-close-x" id="portfolio-modal-close">✕</button>
+    <div class="modal-title" id="portfolio-modal-title">Редактировать позицию</div>
+    
+    <div style="margin: 16px 0;">
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Количество</div>
+      <input type="number" id="portfolio-modal-amount" step="any" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" id="portfolio-modal-delete">Удалить позицию</button>
+      <button class="modal-btn modal-btn-primary" id="portfolio-modal-save">Сохранить</button>
     </div>
   </div>
 </div>
@@ -459,6 +488,8 @@ let currentSort = localStorage.getItem("sort_mode") || "market_cap";
 
 // === Портфолио (минимальная версия) ===
 let portfolio = JSON.parse(localStorage.getItem("portfolio") || "{}");
+let editingPortfolioCoinId = null;
+let portfolioHistory = JSON.parse(localStorage.getItem("portfolio_history") || "[]"); // последние значения totalValue
 
 // реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
 const marketCardRegistry = new Map();
@@ -502,6 +533,7 @@ function applyLanguage() {
     document.getElementById("page-title").textContent = t("favorites");
   } else if (currentTab === "portfolio") {
     document.getElementById("page-title").textContent = "Мой портфель";
+    renderPortfolioPage();
   }
   document.querySelectorAll(".nav-label").forEach(el => el.textContent = t(el.dataset.i18n));
   document.getElementById("label-marketcap").textContent = t("marketCap");
@@ -678,6 +710,50 @@ function setHolding(coinId, amount) {
   savePortfolio();
 }
 
+// === Модалка портфолио ===
+const portfolioModalOverlay = document.getElementById("portfolio-modal-overlay");
+const portfolioModalAmount = document.getElementById("portfolio-modal-amount");
+const portfolioModalSave = document.getElementById("portfolio-modal-save");
+const portfolioModalDelete = document.getElementById("portfolio-modal-delete");
+const portfolioModalClose = document.getElementById("portfolio-modal-close");
+
+function openPortfolioModal(coinId) {
+  const coin = coins.find(c => c.id === coinId);
+  if (!coin) return;
+
+  editingPortfolioCoinId = coinId;
+  document.getElementById("portfolio-modal-title").textContent = `${coin.name} (${coin.symbol.toUpperCase()})`;
+  portfolioModalAmount.value = portfolio[coinId] || "";
+
+  portfolioModalOverlay.classList.add("visible");
+  setTimeout(() => portfolioModalAmount.focus(), 100);
+}
+
+function closePortfolioModal() {
+  portfolioModalOverlay.classList.remove("visible");
+  editingPortfolioCoinId = null;
+}
+
+portfolioModalSave.addEventListener("click", () => {
+  if (!editingPortfolioCoinId) return;
+  const amount = parseFloat(portfolioModalAmount.value);
+  setHolding(editingPortfolioCoinId, isNaN(amount) ? 0 : amount);
+  closePortfolioModal();
+  renderAll();
+});
+
+portfolioModalDelete.addEventListener("click", () => {
+  if (!editingPortfolioCoinId) return;
+  setHolding(editingPortfolioCoinId, 0);
+  closePortfolioModal();
+  renderAll();
+});
+
+portfolioModalClose.addEventListener("click", closePortfolioModal);
+portfolioModalOverlay.addEventListener("click", (e) => {
+  if (e.target === portfolioModalOverlay) closePortfolioModal();
+});
+
 function updatePortfolioSummary() {
   const summaryEl = document.getElementById("portfolio-summary");
   if (!summaryEl) return;
@@ -699,6 +775,38 @@ function updatePortfolioSummary() {
   const isUp = change >= 0;
   changeEl.textContent = `${isUp ? "▲" : "▼"} $${Math.abs(change).toFixed(2)} (${isUp ? "+" : ""}${changePercent.toFixed(2)}%)`;
   changeEl.style.color = isUp ? "#2ecc71" : "#e74c3c";
+
+  // Сохраняем историю для графика PnL
+  portfolioHistory.push(totalValue);
+  if (portfolioHistory.length > 30) portfolioHistory.shift(); // храним последние 30 точек
+  localStorage.setItem("portfolio_history", JSON.stringify(portfolioHistory));
+}
+
+function drawPortfolioPnlChart() {
+  const canvas = document.getElementById("portfolio-pnl-chart");
+  if (!canvas || portfolioHistory.length < 2) return;
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const min = Math.min(...portfolioHistory);
+  const max = Math.max(...portfolioHistory);
+  const range = max - min || 1;
+
+  ctx.strokeStyle = "#2d7ff9";
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = "round";
+
+  ctx.beginPath();
+  portfolioHistory.forEach((val, i) => {
+    const x = (i / (portfolioHistory.length - 1)) * w;
+    const y = h - ((val - min) / range) * (h - 10) - 5;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
 }
 
 function renderPortfolioPage() {
@@ -751,6 +859,9 @@ function renderPortfolioPage() {
     `;
     listEl.appendChild(item);
   });
+
+  // Рисуем PnL график
+  setTimeout(drawPortfolioPnlChart, 50);
 }
 
 function scheduleNextPoll() {
@@ -927,16 +1038,7 @@ function buildCardEntry(coin) {
   });
   root.addEventListener("click", (e) => {
     if (currentTab === "favorites") {
-      // Редактируем количество в портфолио
-      const currentAmount = portfolio[entry.coinId] || 0;
-      const newAmountStr = prompt(`Сколько ${coin.symbol.toUpperCase()} у тебя в портфеле?`, currentAmount || "");
-      if (newAmountStr !== null) {
-        const newAmount = parseFloat(newAmountStr);
-        if (!isNaN(newAmount)) {
-          setHolding(entry.coinId, newAmount);
-          renderAll();
-        }
-      }
+      openPortfolioModal(entry.coinId);
     } else {
       openDetail(entry.coinId);
     }
@@ -1092,6 +1194,8 @@ function renderAll() {
 
   if (currentTab === "portfolio") {
     renderPortfolioPage();
+  } else {
+    drawPortfolioPnlChart();
   }
 }
 
