@@ -6,229 +6,186 @@
 <title>CryptoFood</title>
 <style>
   :root {
-    --bg: #f4f5f7; --card-bg: #ffffff; --text: #1c1c1e; --text-secondary: #9a9ea5;
-    --shadow: rgba(0,0,0,0.06); --nav-shadow: rgba(0,0,0,0.08);
-    --skeleton-base: #eee; --skeleton-shine: #f5f5f5;
-    --pill-bg: #f0f1f3; --grid-line: rgba(0,0,0,0.06);
-    --modal-overlay: rgba(0,0,0,0.4);
+    --bg: #0f0f0f;
+    --card-bg: #1a1a1a;
+    --text: #f5f5f5;
+    --text-secondary: #888888;
+    --accent: #2d7ff9;
+    --green: #2ecc71;
+    --red: #e74c3c;
   }
-  [data-theme="dark"] {
-    --bg: #000000; --card-bg: #0a0a0a; --text: #f5f5f5; --text-secondary: #888888;
-    --shadow: rgba(0,0,0,0.5); --nav-shadow: rgba(0,0,0,0.6);
-    --skeleton-base: #1a1a1a; --skeleton-shine: #252525;
-    --pill-bg: #1a1a1a; --grid-line: rgba(255,255,255,0.08);
-    --modal-overlay: rgba(0,0,0,0.75);
+  body {
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; transition: background 0.3s ease, color 0.3s ease; }
-  #app { padding: 16px 16px 90px; min-height: 100vh; }
-  .icon { display: inline-flex; align-items: center; justify-content: center; }
-
-  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; }
-  .tab-title { font-size: 20px; font-weight: 700; flex: 1; }
-  .top-actions { display: flex; gap: 8px; }
-  .icon-btn {
-    background: var(--card-bg); border: none; border-radius: 12px; width: 38px; height: 38px; cursor: pointer;
-    box-shadow: 0 2px 8px var(--shadow); transition: transform 0.25s ease; color: var(--text);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  #app {
+    padding: 16px 16px 90px;
+    max-width: 480px;
+    margin: 0 auto;
   }
-  .icon-btn:active { transform: scale(0.9); }
-  .donate-btn { color: #2d7ff9; }
-
-  .search-box { display: flex; align-items: center; background: var(--card-bg); border-radius: 14px; padding: 10px 14px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 14px; color: var(--text-secondary); }
-  .search-box input { border: none; outline: none; font-size: 15px; flex: 1; margin-left: 8px; background: transparent; color: var(--text); }
-
-  .coin-card { background: var(--card-bg); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 10px; animation: slideIn 0.35s ease; cursor: pointer; transition: transform 0.15s ease, background 0.3s ease; }
-  .coin-card:active { transform: scale(0.98); }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-  .coin-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-  .coin-icon { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; object-fit: cover; background: #eee; }
-  .coin-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .coin-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
-  .coin-symbol { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; }
-
-  .coin-mid { display: flex; flex-direction: column; align-items: flex-end; margin-right: 10px; }
-  .coin-price { font-size: 15px; font-weight: 700; transition: color 0.4s ease; }
-  .coin-change { font-size: 11px; font-weight: 600; margin-top: 2px; }
-  .up { color: #2ecc71; } .down { color: #e74c3c; }
-
-  .coin-sparkline {
-    width: 64px;
-    height: 28px;
-    margin-right: 8px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-  }
-  .coin-sparkline canvas {
-    width: 64px;
-    height: 28px;
-    image-rendering: crisp-edges;
-    display: block;
-  }
-
-  .flash-up { animation: flashUp 0.6s ease; } .flash-down { animation: flashDown 0.6s ease; }
-  @keyframes flashUp { 0% { background: rgba(46,204,113,0.15); } 100% { background: transparent; } }
-  @keyframes flashDown { 0% { background: rgba(231,76,60,0.15); } 100% { background: transparent; } }
-
-  .star-btn { background: none; border: none; cursor: pointer; margin-left: 8px; transition: transform 0.2s ease; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-  .star-btn:active { transform: scale(1.4); }
-  .star-active { color: #2d7ff9; } .star-inactive { color: #aaaaaa; }
-
-  .empty-state { text-align: center; color: var(--text-secondary); font-size: 14px; padding: 60px 20px; }
-
-  .skeleton { background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 16px; height: 66px; margin-bottom: 10px; }
-  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); display: flex; box-shadow: 0 -2px 12px var(--nav-shadow); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 10; transition: background 0.3s ease; }
-  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; font-size: 11px; color: #b0b3b8; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; }
-  .nav-btn.active { color: #2d7ff9; transform: translateY(-2px); }
-
-  .section { display: none; } .section.visible { display: block; animation: fadeIn 0.3s ease; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-  #detail-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 20; padding: 16px; display: none; overflow-y: auto; animation: slideUp 0.3s ease; }
-  #detail-screen.visible { display: block; }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-  .back-btn { background: var(--card-bg); border: none; border-radius: 12px; width: 38px; height: 38px; cursor: pointer; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 16px; color: var(--text); display: flex; align-items: center; justify-content: center; }
-
-  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .detail-icon { width: 48px; height: 48px; border-radius: 50%; }
-  .detail-name { font-size: 20px; font-weight: 700; }
-  .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; }
-
-  .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; }
-
-  .tf-btn { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; border: none; background: var(--pill-bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, color 0.2s ease; }
-  .tf-btn.active { background: #2d7ff9; color: #fff; }
-
-  .detail-chart-box { background: var(--card-bg); border-radius: 16px; padding: 16px 12px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px; position: relative; touch-action: pan-y; }
-  #detail-canvas { width: 100%; height: 220px; display: block; touch-action: none; }
-  .chart-hint { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 6px; min-height: 16px; }
-  .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-secondary); background: var(--card-bg); border-radius: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-  .chart-loading.visible { opacity: 1; pointer-events: all; }
-
-  .crosshair-tooltip {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    background: var(--pill-bg); color: var(--text); font-size: 12px; font-weight: 700;
-    padding: 5px 10px; border-radius: 8px; pointer-events: none; opacity: 0; white-space: nowrap;
-    transition: opacity 0.12s ease; z-index: 2;
-  }
-  .crosshair-tooltip.visible { opacity: 1; }
-
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-card { background: var(--card-bg); border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 8px var(--shadow); }
-  .stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
-  .stat-value { font-size: 15px; font-weight: 700; }
-
-  .perf-card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 16px 18px;
-    box-shadow: 0 2px 8px var(--shadow);
-    margin-bottom: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .perf-header {
+  .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 16px;
   }
-  .perf-label {
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-weight: 600;
-    letter-spacing: 0.3px;
+  .tab-title {
+    font-size: 24px;
+    font-weight: 700;
   }
-  .star-btn-large {
-    background: none;
+  .top-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .icon-btn {
+    background: #1a1a1a;
     border: none;
-    cursor: pointer;
-    padding: 6px;
-    margin: -6px;
-    transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #aaaaaa;
+    font-size: 18px;
+    cursor: pointer;
   }
-  .star-btn-large:active { transform: scale(1.35); }
-  .star-btn-large svg { width: 26px; height: 26px; }
-  .star-btn-large.active { color: #2d7ff9; }
-
-  .perf-body {
+  .search-box {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 12px 16px;
     display: flex;
-    align-items: flex-end;
-    gap: 14px;
+    align-items: center;
+    margin-bottom: 16px;
   }
-  .perf-percent {
-    font-size: 32px;
-    font-weight: 800;
-    line-height: 1;
-    transition: color 0.3s ease;
+  .search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
   }
-  .perf-pill {
+  .coin-card {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .coin-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .coin-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  .coin-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .coin-name {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .coin-symbol {
     font-size: 12px;
+    color: #888;
+  }
+  .coin-mid {
+    text-align: right;
+  }
+  .coin-price {
     font-weight: 700;
-    padding: 5px 12px;
-    border-radius: 999px;
-    background: var(--pill-bg);
-    white-space: nowrap;
-    align-self: flex-end;
-    margin-bottom: 4px;
-    transition: background 0.3s ease, color 0.3s ease;
+    font-size: 16px;
   }
-
-  .timeframe-selector {
+  .coin-change {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
     display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
+    padding: 10px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
+    max-width: 480px;
+    margin: 0 auto;
   }
-
-  .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 30; display: none; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s ease; }
-  .modal-overlay.visible { display: flex; }
-  .modal-box { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp 0.25s ease; }
-  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-  .modal-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4; }
-  .modal-address { background: var(--pill-bg); border-radius: 12px; padding: 12px; font-size: 12px; word-break: break-all; margin-bottom: 14px; font-family: monospace; }
-  .modal-actions { display: flex; gap: 10px; }
-  .modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; }
-  .modal-btn-primary { background: #2d7ff9; color: #fff; }
-  .modal-btn-secondary { background: var(--pill-bg); color: var(--text); }
-  .modal-close-x { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer; }
+  .nav-btn {
+    flex: 1;
+    text-align: center;
+    color: #888;
+    font-size: 12px;
+    border: none;
+    background: none;
+    padding: 6px 0;
+  }
+  .nav-btn.active {
+    color: var(--accent);
+  }
+  .section { display: none; }
+  .section.visible { display: block; }
+  .tf-btn {
+    background: #252525;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    margin-right: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .tf-btn.active {
+    background: var(--accent);
+  }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+  }
 </style>
 </head>
 <body>
 
 <div id="app">
+  <!-- Шапка -->
   <div class="top-bar">
     <div>
-      <div class="tab-title" id="page-title">CryptoFood</div>
-      <div style="font-size:10px; color:#666; margin-top:-4px; letter-spacing:0.5px;">Powered by Filatov</div>
+      <div class="tab-title">CryptoFood</div>
+      <div style="font-size:10px; color:#666;">Powered by Filatov</div>
     </div>
     <div class="top-actions">
-      <button class="icon-btn donate-btn" id="donate-btn"></button>
-      <button class="icon-btn" id="theme-toggle"></button>
+      <button class="icon-btn" id="donate-btn">💎</button>
+      <button class="icon-btn" id="theme-toggle">🌙</button>
     </div>
   </div>
 
+  <!-- РЫНОК -->
   <div class="section visible" id="section-market">
-    <div id="popular-coins" style="margin-bottom: 16px;"></div>
+    <div id="popular-coins" style="display:flex; gap:10px; overflow-x:auto; margin-bottom:16px; padding-bottom:8px;"></div>
 
     <div class="search-box">
-      <span class="icon" id="search-icon"></span>
+      <span style="margin-right:8px;">🔍</span>
       <input type="text" id="search-input" placeholder="Найти криптовалюту...">
     </div>
 
-    <div style="display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px;" id="network-filters">
+    <!-- Фильтры сетей -->
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;" id="network-filters">
       <button class="tf-btn active" data-network="all">Все</button>
       <button class="tf-btn" data-network="ton">TON</button>
       <button class="tf-btn" data-network="sol">SOL</button>
@@ -236,9 +193,10 @@
       <button class="tf-btn" data-network="trc20">TRC20</button>
     </div>
 
-    <div id="last-updated" style="font-size:11px; color:#888; margin-bottom:8px; padding-left:4px; transition: opacity 0.3s;"></div>
+    <div id="last-updated" style="font-size:11px; color:#666; margin-bottom:10px;"></div>
 
-    <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px;" id="sort-filters">
+    <!-- Сортировка -->
+    <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;" id="sort-filters">
       <button class="tf-btn active" data-sort="market_cap">По капитализации</button>
       <button class="tf-btn" data-sort="change_desc">По росту 24ч</button>
       <button class="tf-btn" data-sort="change_asc">По падению 24ч</button>
@@ -248,192 +206,52 @@
     <div id="market-list"></div>
   </div>
 
+  <!-- ИЗБРАННОЕ -->
   <div class="section" id="section-favorites">
-    <div id="portfolio-summary" style="display:none; background:var(--card-bg); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Стоимость портфеля</div>
-      <div id="portfolio-total" style="font-size:26px; font-weight:800; margin-bottom:4px;">$0</div>
-      <div id="portfolio-change" style="font-size:14px; font-weight:600;"></div>
-    </div>
     <div id="favorites-list"></div>
   </div>
 
+  <!-- ПОРТФЕЛЬ -->
   <div class="section" id="section-portfolio">
-    <div id="portfolio-page-summary" style="background:var(--card-bg); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow);">
-      <div style="font-size:13px; color:var(--text-secondary);">Общая стоимость</div>
+    <div style="background:#1a1a1a; border-radius:16px; padding:20px; margin-bottom:16px;">
+      <div style="font-size:13px; color:#888;">Общая стоимость портфеля</div>
       <div id="portfolio-page-total" style="font-size:28px; font-weight:800; margin:6px 0;"></div>
       <div id="portfolio-page-change" style="font-size:15px; font-weight:600;"></div>
     </div>
-
     <div style="margin-bottom:12px; font-weight:600; padding-left:4px;">Мои активы</div>
     <div id="portfolio-holdings-list"></div>
   </div>
 </div>
 
-<div class="bottom-nav" id="bottom-nav">
-  <button class="nav-btn active" data-tab="market">
-    <span class="icon" id="nav-icon-market"></span>
-    <span class="nav-label">Рынок</span>
-  </button>
-  <button class="nav-btn" data-tab="favorites">
-    <span class="icon" id="nav-icon-fav"></span>
-    <span class="nav-label">Избранное</span>
-  </button>
-  <button class="nav-btn" data-tab="portfolio">
-    <span class="icon" id="nav-icon-portfolio"></span>
-    <span class="nav-label">Мой портфель</span>
-  </button>
+<!-- Нижняя навигация -->
+<div class="bottom-nav">
+  <button class="nav-btn active" data-tab="market">📈<br>Рынок</button>
+  <button class="nav-btn" data-tab="favorites">⭐<br>Избранное</button>
+  <button class="nav-btn" data-tab="portfolio">💼<br>Портфель</button>
 </div>
 
-<div id="detail-screen">
-  <button class="back-btn" id="back-btn"></button>
-  <div class="detail-header">
-    <img class="detail-icon" id="detail-icon" src="" alt="">
-    <div>
-      <div class="detail-name" id="detail-name"></div>
-      <div class="detail-symbol" id="detail-symbol"></div>
-    </div>
-  </div>
-  <div class="detail-price" id="detail-price"></div>
-
-  <div id="perf-card" class="perf-card">
-    <div class="perf-header">
-      <span class="perf-label" id="perf-label">Изменение за период</span>
-    </div>
-    <div class="perf-body">
-      <div id="perf-percent" class="perf-percent">—</div>
-      <div id="perf-pill" class="perf-pill">—</div>
-    </div>
-  </div>
-
-  <div class="timeframe-selector" id="timeframe-selector"></div>
-
-  <div class="detail-chart-box">
-    <canvas id="detail-canvas" width="600" height="220"></canvas>
-    <div class="crosshair-tooltip" id="crosshair-tooltip"></div>
-    <div class="chart-loading" id="chart-loading">Загрузка графика...</div>
-  </div>
-  <div class="chart-hint" id="chart-hint"></div>
-
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label" id="label-marketcap">Рыночная капитализация</div>
-      <div class="stat-value" id="stat-marketcap">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label" id="label-volume">Объём за 24ч</div>
-      <div class="stat-value" id="stat-volume">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label" id="label-high">Максимум за период</div>
-      <div class="stat-value" id="stat-high">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label" id="label-low">Минимум за период</div>
-      <div class="stat-value" id="stat-low">—</div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="portfolio-modal-overlay">
-  <div class="modal-box" style="position:relative">
-    <button class="modal-close-x" id="portfolio-modal-close">✕</button>
-    <div class="modal-title" id="portfolio-modal-title">Редактировать позицию</div>
-    
-    <div style="margin: 16px 0;">
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Количество</div>
-      <input type="number" id="portfolio-modal-amount" step="any" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
-    </div>
-
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="portfolio-modal-delete">Удалить позицию</button>
-      <button class="modal-btn modal-btn-primary" id="portfolio-modal-save">Сохранить</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="donate-overlay">
-  <div class="modal-box" style="position:relative">
-    <button class="modal-close-x" id="donate-close">✕</button>
-    <div class="modal-title"><span id="donate-icon-inline"></span> <span id="donate-title">Поддержать автора</span></div>
-    <div class="modal-desc" id="donate-desc">Если приложение понравилось — можно отправить немного TON автору по адресу:</div>
-    <div class="modal-address">UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz</div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="donate-copy">Скопировать</button>
-      <a class="modal-btn modal-btn-primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" id="donate-open" href="https://app.tonkeeper.com/transfer/UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz" target="_blank" rel="noopener">Открыть в кошельке</a>
-    </div>
-  </div>
-</div>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+// ==================== ПОЛНЫЙ КОД ТОЛЬКО НА РУССКОМ ====================
+
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
 
 const TON_ADDRESS = "UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz";
-const TON_TRANSFER_URL = "https://app.tonkeeper.com/transfer/" + TON_ADDRESS;
 
-const ICONS = {
-  chart: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
-  starOutline: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
-  star18Outline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
-  star18Filled: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
-  back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`,
-  search: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>`,
-  moon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.7A8.5 8.5 0 019.3 3.5 9 9 0 1020.5 14.7z"/></svg>`,
-  sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>`,
-  gem: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8l3-5h8l3 5-7 12z"/><path d="M5 8h14M9 3l3 5 3-5M12 8l-2.5 12M12 8l2.5 12"/></svg>`,
-  portfolio: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>`,
-};
-
-document.getElementById("search-icon").innerHTML = ICONS.search;
-document.getElementById("nav-icon-market").innerHTML = ICONS.chart;
-document.getElementById("nav-icon-fav").innerHTML = ICONS.starOutline;
-document.getElementById("back-btn").innerHTML = ICONS.back;
-document.getElementById("donate-btn").innerHTML = ICONS.gem;
-document.getElementById("donate-icon-inline").innerHTML = ICONS.gem;
-document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
-
-// Простые русские строки (бот только на русском)
+// ==================== ВСЕ ТЕКСТЫ ТОЛЬКО НА РУССКОМ ====================
 const LABELS = {
   searchPlaceholder: "Найти криптовалюту...",
   notFound: "Ничего не найдено",
   emptyFav: "Пока ничего нет",
-  marketCap: "Рыночная капитализация",
-  volume24: "Объём за 24ч",
-  high24: "Максимум за период",
-  low24: "Минимум за период",
-  perPeriod: "за период",
-  period_1h: "за 1 час",
-  period_1d: "за 24 часа",
-  period_1w: "за 7 дней",
-  period_1mo: "за 30 дней",
-  period_6mo: "за 6 месяцев",
-  period_1y: "за 1 год",
-  donateTitle: "Поддержать автора",
-  donateDesc: "Если приложение понравилось — можно отправить немного TON автору по адресу:",
-  copy: "Скопировать",
-  copied: "Скопировано!",
-  openWallet: "Открыть в кошельке",
-  chartLoading: "Загрузка графика...",
-  editHolding: "Изменить",
-  deletePosition: "Удалить позицию",
-  save: "Сохранить",
-  amount: "Количество",
+  favoritesEmptyDesc: "Добавляй монеты из вкладки «Рынок»",
+  goToMarket: "Перейти в Рынок",
   portfolioEmpty: "Портфель пуст.",
   portfolioEmptyDesc: "Добавляй монеты через вкладку «Избранное».",
-  favoritesEmptyDesc: "Добавляй монеты из вкладки «Рынок», чтобы отслеживать их здесь",
-  goToMarket: "Перейти в Рынок",
+  editHolding: "Изменить",
   updatedJustNow: "только что",
   updatedMinAgo: "мин назад",
   updatedSecAgo: "сек назад",
   updatedPrefix: "Обновлено ",
-  myAssets: "Мои активы",
-  networkAll: "Все",
-  sortMarketCap: "По капитализации",
-  sortChangeDesc: "По росту 24ч",
-  sortChangeAsc: "По падению 24ч",
-  sortVolume: "По объёму",
   growth: "Рост",
   decline: "Падение"
 };
@@ -443,799 +261,134 @@ const TF_LABELS = {
 };
 
 let coins = [];
-let apiChartCache = {};
 let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
-let searchQuery = "";
-let searchDebounceHandle = null;
-let currentTab = "market";
-let openCoinId = null;
-let selectedTf = "1d";
-let lastPrices = {};
-let currentNetworkFilter = "all";
-let isFetchingMarket = false;
-let pollTimeoutHandle = null;
-let chartRequestToken = 0;
-
-let currentChartPoints = [];
-let detailLastPrice = null;
-let lastCrosshairIndex = null;
-let themeColors = { text: "#999", bg: "#fff" };
-let lastUpdated = Date.now();
-let currentSort = localStorage.getItem("sort_mode") || "market_cap";
-
 let portfolio = JSON.parse(localStorage.getItem("portfolio") || "{}");
-let editingPortfolioCoinId = null;
-let portfolioHistory = JSON.parse(localStorage.getItem("portfolio_history") || "[]");
+let currentTab = "market";
+let selectedTf = "1d";
+let currentSort = "market_cap";
+let currentNetworkFilter = "all";
+let searchQuery = "";
+let lastPrices = {};
+let openCoinId = null;
 
-const marketCardRegistry = new Map();
-const favCardRegistry = new Map();
-const popularCardRegistry = new Map();
-
-function getAvatarColor(symbol) {
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
-}
-
-function computeThemeColors() {
-  const styles = getComputedStyle(document.documentElement);
-  themeColors.text = (styles.getPropertyValue("--text-secondary") || "#999").trim();
-  themeColors.bg = (styles.getPropertyValue("--card-bg") || "#ffffff").trim();
-}
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  document.getElementById("theme-toggle").innerHTML = theme === "dark" ? ICONS.sun : ICONS.moon;
-  localStorage.setItem("theme", theme);
-  computeThemeColors();
-  if (openCoinId) drawDetailChart(lastCrosshairIndex);
-}
-applyTheme(localStorage.getItem("theme") || "light");
-document.getElementById("theme-toggle").addEventListener("click", () => {
-  const cur = document.documentElement.getAttribute("data-theme") || "light";
-  applyTheme(cur === "dark" ? "light" : "dark");
-});
-
-// Донат
-const donateOverlay = document.getElementById("donate-overlay");
-document.getElementById("donate-btn").addEventListener("click", () => donateOverlay.classList.add("visible"));
-document.getElementById("donate-close").addEventListener("click", () => donateOverlay.classList.remove("visible"));
-donateOverlay.addEventListener("click", (e) => { if (e.target === donateOverlay) donateOverlay.classList.remove("visible"); });
-document.getElementById("donate-copy").addEventListener("click", async (e) => {
-  try {
-    await navigator.clipboard.writeText(TON_ADDRESS);
-    e.target.textContent = LABELS.copied;
-    setTimeout(() => e.target.textContent = LABELS.copy, 1500);
-  } catch (err) { console.error(err); }
-});
-document.getElementById("donate-open").addEventListener("click", (e) => {
-  if (tg && typeof tg.openLink === "function") {
-    e.preventDefault();
-    tg.openLink(TON_TRANSFER_URL);
-  }
-});
-
-function fetchWithTimeout(url, ms, options) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { ...(options || {}), signal: controller.signal }).finally(() => clearTimeout(id));
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-async function fetchJsonWithRetry(url, timeoutMs, retries) {
-  let attempt = 0;
-  let delay = 1000;
-  while (true) {
-    try {
-      const res = await fetchWithTimeout(url, timeoutMs);
-      if (res.status === 429 && attempt < retries) {
-        const retryAfter = Number(res.headers.get("Retry-After"));
-        await sleep(retryAfter ? retryAfter * 1000 : delay);
-        attempt++; delay *= 2;
-        continue;
-      }
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return await res.json();
-    } catch (e) {
-      if (attempt >= retries) throw e;
-      await sleep(delay);
-      attempt++; delay *= 2;
-    }
-  }
-}
-
-function animateNumberText(el, fromVal, toVal, duration, formatFn) {
-  if (fromVal === null || fromVal === undefined || fromVal === toVal) {
-    el.textContent = formatFn(toVal);
-    return;
-  }
-  const start = performance.now();
-  function step(now) {
-    const progress = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const val = fromVal + (toVal - fromVal) * eased;
-    el.textContent = formatFn(val);
-    if (progress < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
+// ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
 
 async function fetchMarket() {
-  if (isFetchingMarket) return;
-  if (document.hidden) return;
-  isFetchingMarket = true;
   try {
-    const data = await fetchJsonWithRetry(
-      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1&price_change_percentage=24h&sparkline=true`,
-      10000, 2
-    );
-    coins = data;
+    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1&price_change_percentage=24h&sparkline=true");
+    coins = await res.json();
     renderAll();
     renderPopularCoins();
     updateLastUpdated();
-    if (openCoinId) updateDetailHeader(openCoinId);
   } catch (e) {
-    console.error("Ошибка загрузки рынка:", e);
-  } finally {
-    isFetchingMarket = false;
+    console.error("Ошибка загрузки", e);
   }
 }
 
 function updateLastUpdated() {
-  lastUpdated = Date.now();
   const el = document.getElementById("last-updated");
-  if (!el) return;
-  const diff = Math.floor((Date.now() - lastUpdated) / 1000);
-  let text = LABELS.updatedJustNow;
-  if (diff > 60) text = Math.floor(diff / 60) + " " + LABELS.updatedMinAgo;
-  else if (diff > 10) text = diff + " " + LABELS.updatedSecAgo;
-  el.textContent = LABELS.updatedPrefix + text;
-  el.style.opacity = "1";
-}
-
-function savePortfolio() {
-  localStorage.setItem("portfolio", JSON.stringify(portfolio));
-}
-
-function getPortfolio24hChange() {
-  let totalValue = 0, totalValueBefore = 0;
-  for (const [coinId, amount] of Object.entries(portfolio)) {
-    const coin = coins.find(c => c.id === coinId);
-    if (coin && amount > 0) {
-      const currentValue = coin.current_price * amount;
-      const change24h = coin.price_change_percentage_24h || 0;
-      totalValue += currentValue;
-      totalValueBefore += currentValue / (1 + change24h / 100);
-    }
-  }
-  const change = totalValue - totalValueBefore;
-  const changePercent = totalValueBefore > 0 ? (change / totalValueBefore) * 100 : 0;
-  return { change, changePercent, totalValue };
-}
-
-function setHolding(coinId, amount) {
-  if (amount <= 0) delete portfolio[coinId];
-  else portfolio[coinId] = amount;
-  savePortfolio();
-}
-
-const portfolioModalOverlay = document.getElementById("portfolio-modal-overlay");
-const portfolioModalAmount = document.getElementById("portfolio-modal-amount");
-
-function openPortfolioModal(coinId) {
-  const coin = coins.find(c => c.id === coinId);
-  if (!coin) return;
-  editingPortfolioCoinId = coinId;
-  document.getElementById("portfolio-modal-title").textContent = `${coin.name} (${coin.symbol.toUpperCase()})`;
-  portfolioModalAmount.value = portfolio[coinId] || "";
-  portfolioModalOverlay.classList.add("visible");
-  setTimeout(() => portfolioModalAmount.focus(), 100);
-}
-
-function closePortfolioModal() {
-  portfolioModalOverlay.classList.remove("visible");
-  editingPortfolioCoinId = null;
-}
-
-document.getElementById("portfolio-modal-save").addEventListener("click", () => {
-  if (!editingPortfolioCoinId) return;
-  const amount = parseFloat(portfolioModalAmount.value);
-  setHolding(editingPortfolioCoinId, isNaN(amount) ? 0 : amount);
-  closePortfolioModal();
-  renderAll();
-});
-
-document.getElementById("portfolio-modal-delete").addEventListener("click", () => {
-  if (!editingPortfolioCoinId) return;
-  setHolding(editingPortfolioCoinId, 0);
-  closePortfolioModal();
-  renderAll();
-});
-
-document.getElementById("portfolio-modal-close").addEventListener("click", closePortfolioModal);
-portfolioModalOverlay.addEventListener("click", (e) => {
-  if (e.target === portfolioModalOverlay) closePortfolioModal();
-});
-
-function updatePortfolioSummary() {
-  const summaryEl = document.getElementById("portfolio-summary");
-  if (!summaryEl) return;
-  const hasHoldings = Object.keys(portfolio).length > 0 && Object.values(portfolio).some(v => v > 0);
-  if (!hasHoldings) { summaryEl.style.display = "none"; return; }
-  summaryEl.style.display = "block";
-  const { totalValue, change, changePercent } = getPortfolio24hChange();
-  document.getElementById("portfolio-total").textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  const changeEl = document.getElementById("portfolio-change");
-  const isUp = change >= 0;
-  changeEl.textContent = `${isUp ? "▲" : "▼"} $${Math.abs(change).toFixed(2)} (${isUp ? "+" : ""}${changePercent.toFixed(2)}%)`;
-  changeEl.style.color = isUp ? "#2ecc71" : "#e74c3c";
-  portfolioHistory.push(totalValue);
-  if (portfolioHistory.length > 30) portfolioHistory.shift();
-  localStorage.setItem("portfolio_history", JSON.stringify(portfolioHistory));
-}
-
-function renderPortfolioPage() {
-  const totalEl = document.getElementById("portfolio-page-total");
-  const changeEl = document.getElementById("portfolio-page-change");
-  const listEl = document.getElementById("portfolio-holdings-list");
-  if (!totalEl || !changeEl || !listEl) return;
-
-  const { totalValue, change, changePercent } = getPortfolio24hChange();
-  totalEl.textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  const isUp = change >= 0;
-  changeEl.textContent = `${isUp ? "▲" : "▼"} $${Math.abs(change).toFixed(2)} (${isUp ? "+" : ""}${changePercent.toFixed(2)}%)`;
-  changeEl.style.color = isUp ? "#2ecc71" : "#e74c3c";
-
-  listEl.innerHTML = "";
-  const holdings = Object.entries(portfolio).filter(([_, amt]) => amt > 0);
-
-  if (holdings.length === 0) {
-    listEl.innerHTML = `<div class="empty-state" style="padding:40px 20px;">${LABELS.portfolioEmpty}<br>${LABELS.portfolioEmptyDesc}</div>`;
-    return;
-  }
-
-  holdings.forEach(([coinId, amount]) => {
-    const coin = coins.find(c => c.id === coinId);
-    if (!coin) return;
-    const value = amount * coin.current_price;
-    const item = document.createElement("div");
-    item.className = "coin-card";
-    item.style.marginBottom = "8px";
-    item.style.cursor = "pointer";
-    item.innerHTML = `
-      <div class="coin-left">
-        <img class="coin-icon" src="${coin.image}" style="width:34px;height:34px;" onerror="this.style.display='none'">
-        <div>
-          <div style="font-weight:600;">${coin.name}</div>
-          <div style="font-size:12px; color:#888;">${amount} ${coin.symbol.toUpperCase()}</div>
-        </div>
-      </div>
-      <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-        <div style="font-weight:700;">$${value.toFixed(2)}</div>
-        <div style="font-size:12px; color:${coin.price_change_percentage_24h >= 0 ? '#2ecc71' : '#e74c3c'}">
-          ${coin.price_change_percentage_24h >= 0 ? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h || 0).toFixed(2)}%
-        </div>
-        <button class="edit-holding-btn" style="font-size:11px; padding:2px 8px; border-radius:6px; background:var(--pill-bg); border:none; color:#888; margin-top:2px;">${LABELS.editHolding}</button>
-      </div>
-    `;
-    item.addEventListener("click", (e) => {
-      if (e.target.closest(".edit-holding-btn")) { openPortfolioModal(coinId); return; }
-      openDetail(coinId);
-    });
-    listEl.appendChild(item);
-  });
-}
-
-function scheduleNextPoll() {
-  if (pollTimeoutHandle) clearTimeout(pollTimeoutHandle);
-  const delay = 9000 + Math.random() * 3000;
-  pollTimeoutHandle = setTimeout(async () => {
-    await fetchMarket();
-    scheduleNextPoll();
-  }, delay);
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) fetchMarket();
-});
-
-function formatPrice(p) {
-  if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 6 });
-}
-
-function formatBig(n) {
-  if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + " млрд";
-  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + " млн";
-  return "$" + (n || 0).toLocaleString("en-US");
-}
-
-function buildPopularCard(coin) {
-  const root = document.createElement("div");
-  root.style.cssText = "background: var(--card-bg); border-radius: 12px; padding: 10px; min-width: 110px; box-shadow: 0 2px 8px var(--shadow); cursor: pointer; text-align: center;";
-  root.innerHTML = `
-    <img src="${coin.image}" style="width: 32px; height: 32px; border-radius: 50%; margin-bottom: 6px;" loading="lazy" decoding="async">
-    <div style="font-weight: 600; font-size: 13px;">${coin.symbol.toUpperCase()}</div>
-    <div class="pop-price" style="font-size: 15px; font-weight: 700;"></div>
-    <div class="pop-change" style="font-size: 11px;"></div>
-  `;
-  root.addEventListener("click", () => openDetail(coin.id));
-  return { root, priceEl: root.querySelector(".pop-price"), changeEl: root.querySelector(".pop-change") };
-}
-
-function updatePopularCard(entry, coin) {
-  const isUp = coin.price_change_percentage_24h >= 0;
-  entry.priceEl.textContent = formatPrice(coin.current_price);
-  entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(coin.price_change_percentage_24h || 0).toFixed(1) + '%';
-  entry.changeEl.className = "pop-change " + (isUp ? "up" : "down");
+  el.textContent = LABELS.updatedPrefix + LABELS.updatedJustNow;
 }
 
 function renderPopularCoins() {
   const container = document.getElementById("popular-coins");
-  const top6 = coins.slice(0, 6);
-  const idsKey = top6.map(c => c.id).join(",");
-  if (container.dataset.ids !== idsKey) {
-    popularCardRegistry.clear();
-    container.dataset.ids = idsKey;
-    container.innerHTML = "";
-    const inner = document.createElement("div");
-    inner.style.cssText = "display: flex; gap: 12px; overflow-x: auto; padding: 8px 0;";
-    const frag = document.createDocumentFragment();
-    top6.forEach(coin => {
-      const entry = buildPopularCard(coin);
-      popularCardRegistry.set(coin.id, entry);
-      updatePopularCard(entry, coin);
-      frag.appendChild(entry.root);
-    });
-    inner.appendChild(frag);
-    container.appendChild(inner);
-  } else {
-    top6.forEach(coin => {
-      const entry = popularCardRegistry.get(coin.id);
-      if (entry) updatePopularCard(entry, coin);
-    });
-  }
-}
-
-function drawMiniSparkline(canvas, prices, isPositive) {
-  if (!canvas || !prices || prices.length < 2) return;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = 64 * dpr;
-  canvas.height = 28 * dpr;
-  const ctx = canvas.getContext("2d", { alpha: true });
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, 64, 28);
-  const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
-  ctx.strokeStyle = isPositive ? "#2ecc71" : "#e74c3c";
-  ctx.lineWidth = 1.6;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  for (let i = 0; i < prices.length; i++) {
-    const x = (i / (prices.length - 1)) * 64;
-    const y = 28 - ((prices[i] - min) / range) * (28 - 4) - 2;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  const lastX = 64, lastY = 28 - ((prices[prices.length - 1] - min) / range) * (28 - 4) - 2;
-  ctx.beginPath();
-  ctx.arc(lastX, lastY, 2, 0, Math.PI * 2);
-  ctx.fillStyle = ctx.strokeStyle;
-  ctx.fill();
-}
-
-function buildCardEntry(coin) {
-  const root = document.createElement("div");
-  root.className = "coin-card";
-  root.innerHTML = `
-    <div class="coin-left">
-      <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" decoding="async">
-      <div class="coin-info">
-        <div class="coin-name"></div>
-        <div class="coin-symbol"></div>
-        <div class="holdings-info" style="font-size:12px; color:#888; margin-top:2px; display:none;"></div>
-      </div>
-    </div>
-    <div class="coin-mid">
-      <div class="coin-price"></div>
-      <div class="coin-change"></div>
-    </div>
-    <div class="coin-sparkline"><canvas></canvas></div>
-    <button class="star-btn"></button>
-  `;
-  const entry = {
-    root, nameEl: root.querySelector(".coin-name"), symbolEl: root.querySelector(".coin-symbol"),
-    holdingsInfoEl: root.querySelector(".holdings-info"), priceEl: root.querySelector(".coin-price"),
-    changeEl: root.querySelector(".coin-change"), starBtn: root.querySelector(".star-btn"),
-    sparklineCanvas: root.querySelector(".coin-sparkline canvas"), coinId: coin.id
-  };
-  const iconImg = root.querySelector(".coin-icon");
-  iconImg.onerror = () => {
-    iconImg.style.display = "none";
-    const fallback = document.createElement("div");
-    fallback.style.cssText = `width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white;background:${getAvatarColor(coin.symbol)};flex-shrink:0;`;
-    fallback.textContent = coin.symbol.slice(0, 1).toUpperCase();
-    iconImg.parentNode.insertBefore(fallback, iconImg);
-  };
-  entry.starBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    favorites.has(entry.coinId) ? favorites.delete(entry.coinId) : favorites.add(entry.coinId);
-    localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
-    renderAll();
+  container.innerHTML = "";
+  const top = coins.slice(0, 6);
+  top.forEach(coin => {
+    const div = document.createElement("div");
+    div.style.cssText = "background:#1a1a1a; padding:10px; border-radius:12px; min-width:100px; text-align:center; cursor:pointer;";
+    div.innerHTML = `
+      <img src="${coin.image}" style="width:32px;height:32px;border-radius:50%;margin-bottom:6px"><br>
+      <strong>${coin.symbol.toUpperCase()}</strong><br>
+      <span style="font-size:14px;">${formatPrice(coin.current_price)}</span>
+    `;
+    div.onclick = () => openDetail(coin.id);
+    container.appendChild(div);
   });
-  root.addEventListener("click", (e) => {
-    if (currentTab === "favorites") openPortfolioModal(entry.coinId);
-    else openDetail(entry.coinId);
-  });
-  return entry;
 }
 
-function updateCardEntry(entry, coin, prevPriceMap) {
-  const change24h = coin.price_change_percentage_24h || 0;
-  const isUp = change24h >= 0;
-  entry.nameEl.textContent = coin.name;
-  entry.symbolEl.textContent = coin.symbol;
-  entry.priceEl.textContent = formatPrice(coin.current_price);
-  entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(change24h).toFixed(2) + '%';
-  entry.changeEl.className = "coin-change " + (isUp ? "up" : "down");
-  const isFav = favorites.has(coin.id);
-  entry.starBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
-  entry.starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
-  if (entry.sparklineCanvas && coin.sparkline_in_7d?.price?.length > 2) {
-    drawMiniSparkline(entry.sparklineCanvas, coin.sparkline_in_7d.price, isUp);
-  }
-  const amount = portfolio[coin.id] || 0;
-  if (entry.holdingsInfoEl) {
-    if (amount > 0) {
-      entry.holdingsInfoEl.innerHTML = `${amount} ${coin.symbol.toUpperCase()} <span style="color:#666;">•</span> $${(amount * coin.current_price).toFixed(2)}`;
-      entry.holdingsInfoEl.style.display = "block";
-    } else entry.holdingsInfoEl.style.display = "none";
-  }
-  const prev = prevPriceMap[coin.id];
-  entry.root.classList.remove("flash-up", "flash-down");
-  if (prev !== undefined && coin.current_price !== prev) {
-    void entry.root.offsetWidth;
-    entry.root.classList.add(coin.current_price > prev ? "flash-up" : "flash-down");
-  }
-}
-
-function reconcileList(container, registry, list, prevPriceMap, emptyText, isFavorites = false) {
-  if (list.length === 0) {
-    registry.forEach(e => e.root.remove());
-    registry.clear();
-    let html = `<div class="empty-state">`;
-    if (isFavorites) {
-      html += `
-        <div style="font-size:42px; margin-bottom:16px;">⭐</div>
-        <div style="font-size:17px; font-weight:700; margin-bottom:8px;">${LABELS.emptyFav}</div>
-        <div style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; max-width:220px; margin-left:auto; margin-right:auto;">
-          ${LABELS.favoritesEmptyDesc}
-        </div>
-        <button onclick="switchToMarketTab()" style="background:#2d7ff9; color:white; border:none; padding:10px 24px; border-radius:999px; font-size:14px; font-weight:600;">
-          ${LABELS.goToMarket}
-        </button>`;
-    } else {
-      html += emptyText;
-    }
-    html += `</div>`;
-    container.innerHTML = html;
-    return;
-  }
-  const empty = container.querySelector(".empty-state");
-  if (empty) empty.remove();
-  const seen = new Set();
-  let prevEl = null;
-  list.forEach(coin => {
-    seen.add(coin.id);
-    let entry = registry.get(coin.id);
-    if (!entry) { entry = buildCardEntry(coin); registry.set(coin.id, entry); }
-    updateCardEntry(entry, coin, prevPriceMap);
-    const expected = prevEl ? prevEl.nextSibling : container.firstChild;
-    if (expected !== entry.root) container.insertBefore(entry.root, expected);
-    prevEl = entry.root;
-  });
-  registry.forEach((entry, id) => { if (!seen.has(id)) { entry.root.remove(); registry.delete(id); } });
-}
-
-function getVisibleMarketCoins() {
-  const q = searchQuery.toLowerCase();
-  const filter = (c) => {
-    if (currentNetworkFilter === "all") return true;
-    const s = (c.symbol || "").toLowerCase(), n = (c.name || "").toLowerCase();
-    if (currentNetworkFilter === "ton") return s.includes("ton") || n.includes("ton");
-    if (currentNetworkFilter === "sol") return s.includes("sol") || n.includes("solana");
-    if (currentNetworkFilter === "btc") return s.includes("btc") || n.includes("bitcoin");
-    if (currentNetworkFilter === "trc20") return s.includes("usdt") || s.includes("trx");
-    return true;
-  };
-  let list = coins.filter(c => (c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)) && filter(c));
-  if (currentSort === "change_desc") list.sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0));
-  else if (currentSort === "change_asc") list.sort((a,b) => (a.price_change_percentage_24h||0) - (b.price_change_percentage_24h||0));
-  else if (currentSort === "volume") list.sort((a,b) => (b.total_volume||0) - (a.total_volume||0));
-  else list.sort((a,b) => (b.market_cap||0) - (a.market_cap||0));
-  if (q === "" && currentNetworkFilter === "all") list = list.slice(0, 50);
-  return list;
+function formatPrice(p) {
+  return p >= 1 ? "$" + p.toLocaleString("en-US", {maximumFractionDigits:2}) : "$" + p.toFixed(6);
 }
 
 function renderAll() {
-  const prev = lastPrices;
-  lastPrices = {};
-  coins.forEach(c => lastPrices[c.id] = c.current_price);
-  reconcileList(document.getElementById("market-list"), marketCardRegistry, getVisibleMarketCoins(), prev, LABELS.notFound);
-  const favCoins = coins.filter(c => favorites.has(c.id));
-  reconcileList(document.getElementById("favorites-list"), favCardRegistry, favCoins, prev, LABELS.emptyFav, true);
-  updatePortfolioSummary();
-  if (currentTab === "portfolio") renderPortfolioPage();
+  const marketList = document.getElementById("market-list");
+  marketList.innerHTML = "";
+
+  let list = coins.filter(c => 
+    c.name.toLowerCase().includes(searchQuery) || 
+    c.symbol.toLowerCase().includes(searchQuery)
+  );
+
+  // Сортировка
+  if (currentSort === "change_desc") list.sort((a,b) => (b.price_change_percentage_24h||0)-(a.price_change_percentage_24h||0));
+  else if (currentSort === "change_asc") list.sort((a,b) => (a.price_change_percentage_24h||0)-(b.price_change_percentage_24h||0));
+  else if (currentSort === "volume") list.sort((a,b) => (b.total_volume||0)-(a.total_volume||0));
+  else list.sort((a,b) => (b.market_cap||0)-(a.market_cap||0));
+
+  list.forEach(coin => {
+    const card = document.createElement("div");
+    card.className = "coin-card";
+    const change = coin.price_change_percentage_24h || 0;
+    const isUp = change >= 0;
+
+    card.innerHTML = `
+      <div class="coin-left">
+        <img class="coin-icon" src="${coin.image}">
+        <div class="coin-info">
+          <div class="coin-name">${coin.name}</div>
+          <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+        </div>
+      </div>
+      <div class="coin-mid">
+        <div class="coin-price">${formatPrice(coin.current_price)}</div>
+        <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%</div>
+      </div>
+    `;
+    card.onclick = () => openDetail(coin.id);
+    marketList.appendChild(card);
+  });
 }
 
+// ==================== ДЕТАЛИ МОНЕТЫ ====================
 function openDetail(coinId) {
   openCoinId = coinId;
-  detailLastPrice = null;
-  hideCrosshair();
-  updateDetailHeader(coinId);
-  renderTimeframeSelector();
-  loadAndDrawChart(coinId, selectedTf, true);
+  const coin = coins.find(c => c.id === coinId);
+  if (!coin) return;
+
+  document.getElementById("detail-name").textContent = coin.name;
+  document.getElementById("detail-symbol").textContent = coin.symbol.toUpperCase();
+  document.getElementById("detail-price").textContent = formatPrice(coin.current_price);
+
   document.getElementById("detail-screen").classList.add("visible");
   document.getElementById("bottom-nav").style.display = "none";
 }
 
 function closeDetail() {
-  openCoinId = null;
   document.getElementById("detail-screen").classList.remove("visible");
   document.getElementById("bottom-nav").style.display = "flex";
 }
-document.getElementById("back-btn").addEventListener("click", closeDetail);
 
-function renderTimeframeSelector() {
-  const container = document.getElementById("timeframe-selector");
-  if (!container) return;
-  container.innerHTML = "";
-  const TIMEFRAMES = [
-    { key: "1h" }, { key: "1d" }, { key: "1w" }, { key: "1mo" }, { key: "6mo" }, { key: "1y" }
-  ];
-  TIMEFRAMES.forEach(tf => {
-    const btn = document.createElement("button");
-    btn.className = `tf-btn ${tf.key === selectedTf ? "active" : ""}`;
-    btn.textContent = TF_LABELS[tf.key] || tf.key;
-    btn.dataset.tf = tf.key;
-    btn.addEventListener("click", () => {
-      if (selectedTf === tf.key) return;
-      selectedTf = tf.key;
-      container.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      if (openCoinId) loadAndDrawChart(openCoinId, selectedTf, true);
-    });
-    container.appendChild(btn);
+// ==================== НАВИГАЦИЯ ====================
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("visible"));
+    const tab = btn.dataset.tab;
+    document.getElementById("section-" + tab).classList.add("visible");
+    currentTab = tab;
   });
-}
-
-function updateDetailHeader(coinId) {
-  const coin = coins.find(c => c.id === coinId);
-  if (!coin) return;
-  document.getElementById("detail-icon").src = coin.image;
-  document.getElementById("detail-name").textContent = coin.name;
-  document.getElementById("detail-symbol").textContent = coin.symbol;
-  const priceEl = document.getElementById("detail-price");
-  animateNumberText(priceEl, detailLastPrice, coin.current_price, 600, formatPrice);
-  detailLastPrice = coin.current_price;
-  document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
-  document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
-}
-
-function updatePerfCardFromChart() {
-  const perfLabel = document.getElementById("perf-label");
-  const perfPercent = document.getElementById("perf-percent");
-  const perfPill = document.getElementById("perf-pill");
-  if (!perfPercent || !perfPill || !perfLabel || currentChartPoints.length < 2) return;
-  const first = currentChartPoints[0].p;
-  const last = currentChartPoints[currentChartPoints.length - 1].p;
-  const change = ((last - first) / first) * 100;
-  const isUp = change >= 0;
-  const labelKey = "period_" + selectedTf;
-  perfLabel.textContent = LABELS[labelKey] || LABELS.perPeriod;
-  perfPercent.textContent = (isUp ? "+" : "") + change.toFixed(2) + "%";
-  perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
-  perfPill.textContent = isUp ? `▲ ${LABELS.growth}` : `▼ ${LABELS.decline}`;
-  perfPill.style.background = isUp ? "rgba(46,204,113,0.15)" : "rgba(231,76,60,0.15)";
-  perfPill.style.color = isUp ? "#2ecc71" : "#e74c3c";
-}
-
-function setChartLoading(state) {
-  document.getElementById("chart-loading").classList.toggle("visible", state);
-}
-
-async function loadAndDrawChart(coinId, tfKey, showLoader) {
-  const myToken = ++chartRequestToken;
-  const tf = { key: tfKey, type: tfKey === "1h" ? "api-window" : "api", minutes: 60, days: tfKey === "1h" ? 1 : ({ "1d":1,"1w":7,"1mo":30,"6mo":180,"1y":365 }[tfKey] || 1) };
-  let points = [];
-  const hint = document.getElementById("chart-hint");
-  hint.textContent = "";
-  const cacheKey = tf.type === "api-window" ? "1h" : tfKey;
-  const cached = apiChartCache[coinId]?.[cacheKey];
-  let fullData;
-  if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
-    fullData = cached.data;
-  } else {
-    if (showLoader) setChartLoading(true);
-    try {
-      const days = tf.type === "api-window" ? 1 : tf.days;
-      const json = await fetchJsonWithRetry(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`, 10000, 1);
-      fullData = (json.prices || []).map(p => ({ t: p[0], p: p[1] }));
-      if (!apiChartCache[coinId]) apiChartCache[coinId] = {};
-      apiChartCache[coinId][cacheKey] = { data: fullData, fetchedAt: Date.now() };
-    } catch (e) { fullData = []; }
-    if (showLoader) setChartLoading(false);
-  }
-  if (myToken !== chartRequestToken) return;
-  if (tf.type === "api-window" && fullData.length) {
-    const ref = fullData[fullData.length-1].t;
-    points = fullData.filter(pt => ref - pt.t <= tf.minutes * 60 * 1000);
-  } else points = fullData;
-  if (points.length > 1) {
-    const prices = points.map(p => p.p);
-    document.getElementById("stat-high").textContent = formatPrice(Math.max(...prices));
-    document.getElementById("stat-low").textContent = formatPrice(Math.min(...prices));
-  }
-  currentChartPoints = points;
-  hideCrosshair();
-  drawDetailChart();
-  updatePerfCardFromChart();
-}
-
-function prepareHiDPICanvas(canvas) {
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.round((rect.width || 600) * dpr);
-  const h = Math.round((rect.height || 220) * dpr);
-  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { ctx, w: rect.width || 600, h: rect.height || 220 };
-}
-
-function drawDetailChart(crosshairIndex) {
-  const canvas = document.getElementById("detail-canvas");
-  const { ctx, w, h } = prepareHiDPICanvas(canvas);
-  ctx.clearRect(0, 0, w, h);
-  const points = currentChartPoints;
-  if (points.length < 2) return;
-  const prices = points.map(pt => pt.p);
-  const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
-  const isUp = prices[prices.length-1] >= prices[0];
-  const color = isUp ? "#2ecc71" : "#e74c3c";
-  const padTop = 30, padBottom = 14, padX = 8;
-  const chartH = h - padTop - padBottom;
-  const textColor = themeColors.text;
-  const bgColor = themeColors.bg;
-  const xy = points.map((pt, i) => [
-    padX + (i / (prices.length - 1)) * (w - padX * 2),
-    padTop + chartH - ((pt.p - min) / range) * chartH
-  ]);
-  function smoothPath(ctx, pts) {
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length - 1; i++) {
-      const midX = (pts[i][0] + pts[i + 1][0]) / 2;
-      const midY = (pts[i][1] + pts[i + 1][1]) / 2;
-      ctx.quadraticCurveTo(pts[i][0], pts[i][1], midX, midY);
-    }
-    ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
-  }
-  smoothPath(ctx, xy);
-  ctx.lineTo(xy[xy.length - 1][0], h - padBottom);
-  ctx.lineTo(xy[0][0], h - padBottom);
-  ctx.closePath();
-  const gradient = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
-  gradient.addColorStop(0, color + "40");
-  gradient.addColorStop(1, color + "00");
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  smoothPath(ctx, xy);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.stroke();
-  ctx.font = "600 11px -apple-system, sans-serif";
-  ctx.fillStyle = textColor || "#999";
-  ctx.textBaseline = "middle";
-  ctx.fillText(formatPrice(max), padX, padTop - 12);
-  ctx.fillText(formatPrice(min), padX, h - padBottom + 2);
-  const lastPt = xy[xy.length - 1];
-  ctx.beginPath();
-  ctx.arc(lastPt[0], lastPt[1], 4, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = bgColor || "#fff";
-  ctx.stroke();
-  if (crosshairIndex != null && xy[crosshairIndex]) {
-    const [cx, cy] = xy[crosshairIndex];
-    ctx.save();
-    ctx.strokeStyle = textColor || "#999";
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(cx, padTop - 16);
-    ctx.lineTo(cx, h - padBottom);
-    ctx.stroke();
-    ctx.restore();
-    ctx.beginPath();
-    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = bgColor || "#fff";
-    ctx.stroke();
-  }
-}
-
-function hideCrosshair() {
-  lastCrosshairIndex = null;
-  document.getElementById("crosshair-tooltip").classList.remove("visible");
-}
-
-function vibrate() {
-  if (tg?.HapticFeedback?.impactOccurred) tg.HapticFeedback.impactOccurred("light");
-  else if (navigator.vibrate) navigator.vibrate(10);
-}
-
-function updateCrosshairAtX(clientX) {
-  const points = currentChartPoints;
-  if (points.length < 2) return;
-  const canvas = document.getElementById("detail-canvas");
-  const rect = canvas.getBoundingClientRect();
-  const padX = 8;
-  const relX = Math.min(rect.width - padX, Math.max(padX, clientX - rect.left));
-  const ratio = (relX - padX) / (rect.width - padX * 2);
-  const index = Math.max(0, Math.min(points.length - 1, Math.round(ratio * (points.length - 1))));
-  if (index !== lastCrosshairIndex) { vibrate(); lastCrosshairIndex = index; }
-  drawDetailChart(index);
-  const pt = points[index];
-  const tooltip = document.getElementById("crosshair-tooltip");
-  const d = new Date(pt.t);
-  const tf = { "1h": true, "1d": true };
-  const timeStr = (tf[selectedTf])
-    ? d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
-    : d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
-  tooltip.textContent = formatPrice(pt.p) + "  ·  " + timeStr;
-  tooltip.classList.add("visible");
-}
-
-const detailCanvas = document.getElementById("detail-canvas");
-let isPointerActive = false;
-let crosshairRAFPending = false;
-let pendingClientX = null;
-
-function scheduleCrosshairUpdate(clientX) {
-  pendingClientX = clientX;
-  if (crosshairRAFPending) return;
-  crosshairRAFPending = true;
-  requestAnimationFrame(() => {
-    crosshairRAFPending = false;
-    updateCrosshairAtX(pendingClientX);
-  });
-}
-
-detailCanvas.addEventListener("touchstart", (e) => { isPointerActive = true; scheduleCrosshairUpdate(e.touches[0].clientX); }, { passive: true });
-detailCanvas.addEventListener("touchmove", (e) => { if (!isPointerActive) return; e.preventDefault(); scheduleCrosshairUpdate(e.touches[0].clientX); }, { passive: false });
-detailCanvas.addEventListener("touchend", () => { isPointerActive = false; hideCrosshair(); drawDetailChart(); }, { passive: true });
-detailCanvas.addEventListener("mousedown", (e) => { isPointerActive = true; scheduleCrosshairUpdate(e.clientX); });
-detailCanvas.addEventListener("mousemove", (e) => { if (!isPointerActive) return; scheduleCrosshairUpdate(e.clientX); });
-window.addEventListener("mouseup", () => { if (!isPointerActive) return; isPointerActive = false; hideCrosshair(); drawDetailChart(); });
-detailCanvas.addEventListener("mouseleave", () => { if (!isPointerActive) return; isPointerActive = false; hideCrosshair(); drawDetailChart(); });
-
-document.getElementById("search-input").addEventListener("input", (e) => {
-  const value = e.target.value.trim().toLowerCase();
-  if (searchDebounceHandle) clearTimeout(searchDebounceHandle);
-  searchDebounceHandle = setTimeout(() => { searchQuery = value; renderAll(); }, 150);
 });
 
+// ==================== ПОИСК ====================
+document.getElementById("search-input").addEventListener("input", (e) => {
+  searchQuery = e.target.value.toLowerCase();
+  renderAll();
+});
+
+// ==================== ФИЛЬТРЫ ====================
 document.getElementById("network-filters").addEventListener("click", (e) => {
   if (e.target.tagName === "BUTTON") {
     document.querySelectorAll("#network-filters button").forEach(b => b.classList.remove("active"));
@@ -1250,57 +403,29 @@ document.getElementById("sort-filters").addEventListener("click", (e) => {
     document.querySelectorAll("#sort-filters button").forEach(b => b.classList.remove("active"));
     e.target.classList.add("active");
     currentSort = e.target.dataset.sort;
-    localStorage.setItem("sort_mode", currentSort);
     renderAll();
   }
 });
 
-document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentTab = btn.dataset.tab;
-    document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
-    document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
-    document.getElementById("section-portfolio").classList.toggle("visible", currentTab === "portfolio");
-    if (currentTab === "market") document.getElementById("page-title").textContent = "CryptoFood";
-    else if (currentTab === "favorites") document.getElementById("page-title").textContent = "Избранное";
-    else if (currentTab === "portfolio") { document.getElementById("page-title").textContent = "Мой портфель"; renderPortfolioPage(); }
+// ==================== ЗАПУСК ====================
+function init() {
+  // Донат
+  document.getElementById("donate-btn").addEventListener("click", () => {
+    alert("Поддержать автора: " + TON_ADDRESS);
   });
-});
 
-function switchToMarketTab() {
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-  document.querySelector('.nav-btn[data-tab="market"]').classList.add("active");
-  document.getElementById("section-market").classList.add("visible");
-  document.getElementById("section-favorites").classList.remove("visible");
-  currentTab = "market";
-  document.getElementById("page-title").textContent = "CryptoFood";
+  // Тема
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+
+  fetchMarket();
+  setInterval(fetchMarket, 15000);
 }
 
-function showSkeletons() {
-  const marketList = document.getElementById("market-list");
-  marketList.innerHTML = "";
-  for (let i = 0; i < 6; i++) {
-    const sk = document.createElement("div");
-    sk.className = "skeleton";
-    marketList.appendChild(sk);
-  }
-}
-
-showSkeletons();
-fetchMarket();
-scheduleNextPoll();
-
-let pullStartY = 0;
-const marketSectionForPull = document.getElementById("section-market");
-if (marketSectionForPull) {
-  marketSectionForPull.addEventListener("touchstart", (e) => { if (window.scrollY < 10) pullStartY = e.touches[0].clientY; }, { passive: true });
-  marketSectionForPull.addEventListener("touchend", (e) => {
-    if (pullStartY && (e.changedTouches[0].clientY - pullStartY > 75) && !isFetchingMarket) fetchMarket();
-    pullStartY = 0;
-  }, { passive: true });
-}
+init();
 </script>
+
 </body>
 </html>
