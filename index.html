@@ -472,6 +472,27 @@
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  .market-filters {
+    margin-bottom: 12px;
+  }
+  .market-filters-row {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .market-filters-row::-webkit-scrollbar { display: none; }
+  .market-filters-label {
+    font-size: 11px; font-weight: 700; color: var(--text-secondary);
+    margin: 8px 2px 6px; letter-spacing: 0.2px;
+  }
+  .market-filters .filter-chip {
+    flex: 0 0 auto; min-width: auto; padding: 9px 14px; border-radius: 999px;
+    font-size: 12px; white-space: nowrap;
+  }
+  .market-filters .filter-chip .fc-sub { display: none; }
+  .market-filters .filter-chip.wide { grid-column: auto; }
+
   @keyframes filterPulse {
     0% { box-shadow: 0 0 0 0 rgba(45,127,249,0.45); }
     70% { box-shadow: 0 0 0 8px rgba(45,127,249,0); }
@@ -616,7 +637,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.6.0</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.7.0</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -626,12 +647,6 @@
   </div>
 
   <div class="section visible" id="section-market">
-    <div class="section-head">
-      <div class="section-title">Популярные</div>
-      <div class="section-hint">топ рынка</div>
-    </div>
-    <div id="popular-coins" style="margin-bottom: 14px;"></div>
-
     <div class="search-box">
       <span class="icon" id="search-icon"></span>
       <input type="text" id="search-input" placeholder="Найти криптовалюту...">
@@ -643,46 +658,32 @@
       <button type="button" class="refresh-btn" id="refresh-btn" title="Обновить">↻ Обновить</button>
     </div>
 
-    <div class="filter-active-bar" id="filter-active-bar"></div>
+    <div class="market-filters">
+      <div class="market-filters-label">Сеть</div>
+      <div class="market-filters-row" id="network-filters">
+        <button type="button" class="filter-chip active" data-network="all">Все</button>
+        <button type="button" class="filter-chip" data-network="ton">TON</button>
+        <button type="button" class="filter-chip" data-network="sol">SOL</button>
+        <button type="button" class="filter-chip" data-network="btc">BTC</button>
+        <button type="button" class="filter-chip" data-network="trc20">TRC20</button>
+      </div>
+      <div class="market-filters-label">Сортировка</div>
+      <div class="market-filters-row" id="sort-filters">
+        <button type="button" class="filter-chip active" data-sort="market_cap">По капитализации</button>
+        <button type="button" class="filter-chip" data-sort="change_desc">По росту 24ч</button>
+        <button type="button" class="filter-chip" data-sort="change_asc">По падению 24ч</button>
+        <button type="button" class="filter-chip" data-sort="volume">По объёму</button>
+      </div>
+    </div>
 
-    <div class="section-head" style="margin-top:2px;">
+    <!-- место под новый блок вместо «Популярные» -->
+    <div id="popular-coins" style="display:none;"></div>
+
+    <div class="section-head" style="margin-top:6px;">
       <div class="section-title">Все монеты</div>
       <div class="section-hint">рынок</div>
     </div>
     <div id="market-list"></div>
-  </div>
-
-  <!-- Вкладка Фильтры -->
-  <div class="section" id="section-filters">
-    <div class="filter-page">
-      <div class="filter-hero">
-        <h2>Фильтры</h2>
-        <p>Сеть и сортировка рынка. Выбор применяется сразу к списку монет.</p>
-      </div>
-
-      <div class="filter-block">
-        <div class="filter-block-title"><span></span> Сеть</div>
-        <div class="filter-grid" id="network-filters">
-          <button type="button" class="filter-chip active" data-network="all">Все<span class="fc-sub">все сети</span></button>
-          <button type="button" class="filter-chip" data-network="ton">TON<span class="fc-sub">The Open Network</span></button>
-          <button type="button" class="filter-chip" data-network="sol">SOL<span class="fc-sub">Solana</span></button>
-          <button type="button" class="filter-chip" data-network="btc">BTC<span class="fc-sub">Bitcoin</span></button>
-          <button type="button" class="filter-chip" data-network="trc20">TRC20<span class="fc-sub">Tron / USDT</span></button>
-        </div>
-      </div>
-
-      <div class="filter-block">
-        <div class="filter-block-title"><span></span> Сортировка</div>
-        <div class="filter-grid" id="sort-filters">
-          <button type="button" class="filter-chip active wide" data-sort="market_cap">По капитализации<span class="fc-sub">крупнейшие проекты</span></button>
-          <button type="button" class="filter-chip" data-sort="change_desc">По росту 24ч<span class="fc-sub">лидеры роста</span></button>
-          <button type="button" class="filter-chip" data-sort="change_asc">По падению 24ч<span class="fc-sub">сильнее всего вниз</span></button>
-          <button type="button" class="filter-chip wide" data-sort="volume">По объёму<span class="fc-sub">самые торгуемые</span></button>
-        </div>
-      </div>
-
-      <button type="button" class="filter-apply" id="filter-apply-btn">Смотреть рынок →</button>
-    </div>
   </div>
 
   <div class="section" id="section-favorites">
@@ -732,10 +733,6 @@
   <button class="nav-btn active" data-tab="market">
     <span class="icon" id="nav-icon-market"></span>
     <span class="nav-label" data-i18n="market">Рынок</span>
-  </button>
-  <button class="nav-btn" data-tab="filters">
-    <span class="icon" id="nav-icon-filters"></span>
-    <span class="nav-label">Фильтры</span>
   </button>
   <button class="nav-btn" data-tab="favorites">
     <span class="icon" id="nav-icon-fav"></span>
@@ -914,7 +911,6 @@ document.getElementById("back-btn").innerHTML = ICONS.back;
 document.getElementById("donate-btn").innerHTML = ICONS.gem;
 document.getElementById("donate-icon-inline").innerHTML = ICONS.gem;
 document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
-const _nf = document.getElementById("nav-icon-filters"); if (_nf) _nf.innerHTML = ICONS.filters;
 
 // Логотип из splash → шапка и empty-states
 const APP_LOGO_SRC = "logo.jpg";
@@ -1007,7 +1003,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v4";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.6.0";
+const APP_VERSION = "1.7.0";
 
 // Сброс кэша рынка при обновлении версии приложения
 (function migrateAppVersion() {
@@ -2590,17 +2586,7 @@ const NETWORK_LABELS = {
 };
 
 function updateFilterActiveBar() {
-  const bar = document.getElementById("filter-active-bar");
-  if (!bar) return;
-  const pills = [];
-  if (currentNetworkFilter && currentNetworkFilter !== "all") {
-    pills.push(`<span class="filter-active-pill">${NETWORK_LABELS[currentNetworkFilter] || currentNetworkFilter}</span>`);
-  }
-  if (currentSort && currentSort !== "market_cap") {
-    pills.push(`<span class="filter-active-pill">${SORT_LABELS[currentSort] || currentSort}</span>`);
-  }
-  bar.innerHTML = pills.join("");
-  bar.style.display = pills.length ? "flex" : "none";
+  // active pills removed with filters tab; keep no-op for compatibility
 }
 
 function syncFilterUI() {
@@ -2634,14 +2620,6 @@ document.getElementById("sort-filters").addEventListener("click", (e) => {
   renderAll();
 });
 
-const filterApplyBtn = document.getElementById("filter-apply-btn");
-if (filterApplyBtn) {
-  filterApplyBtn.addEventListener("click", () => {
-    const marketBtn = document.querySelector('.nav-btn[data-tab="market"]');
-    if (marketBtn) marketBtn.click();
-  });
-}
-
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -2651,24 +2629,9 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
     document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
     document.getElementById("section-portfolio").classList.toggle("visible", currentTab === "portfolio");
-    const fs = document.getElementById("section-filters");
-    if (fs) {
-      fs.classList.toggle("visible", currentTab === "filters");
-      if (currentTab === "filters") {
-        fs.querySelectorAll(".filter-hero, .filter-block, .filter-apply").forEach(el => {
-          el.style.animation = "none";
-          void el.offsetWidth;
-          el.style.animation = "";
-        });
-        syncFilterUI();
-      }
-    }
 
     if (currentTab === "market") {
       document.getElementById("page-title").textContent = "CryptoFood";
-      updateFilterActiveBar();
-    } else if (currentTab === "filters") {
-      document.getElementById("page-title").textContent = "Фильтры";
     } else if (currentTab === "favorites") {
       document.getElementById("page-title").textContent = t("favorites");
     } else if (currentTab === "portfolio") {
@@ -2687,7 +2650,6 @@ function switchToMarketTab() {
   document.getElementById("section-favorites").classList.remove("visible");
   const love = document.getElementById("section-love"); if (love) love.classList.remove("visible");
   const pf = document.getElementById("section-portfolio"); if (pf) pf.classList.remove("visible");
-  const fs = document.getElementById("section-filters"); if (fs) fs.classList.remove("visible");
 
   currentTab = "market";
   document.getElementById("page-title").textContent = "CryptoFood";
