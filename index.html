@@ -990,6 +990,71 @@
   .portfolio-hero-period {
     font-size: 11px; opacity: 0.75; margin-top: 8px; font-weight: 500; position: relative;
   }
+  .portfolio-hero-actions {
+    display: flex; gap: 8px; margin-top: 14px; position: relative; flex-wrap: wrap;
+  }
+  .portfolio-share-btn {
+    border: none; cursor: pointer;
+    background: rgba(255,255,255,0.18);
+    color: #fff; font-weight: 700; font-size: 13px;
+    padding: 9px 14px; border-radius: 12px;
+    display: inline-flex; align-items: center; gap: 7px;
+    backdrop-filter: blur(8px);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .portfolio-share-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.28); }
+  .portfolio-share-btn svg { width: 16px; height: 16px; }
+
+  .detail-actions {
+    display: flex; gap: 8px; margin: 12px 0 4px;
+  }
+  .detail-action-btn {
+    flex: 1; border: none; cursor: pointer;
+    background: var(--card-bg); color: var(--text);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 2px 8px var(--shadow);
+    border-radius: 14px; padding: 12px 10px;
+    font-weight: 700; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .detail-action-btn:active { transform: scale(0.97); }
+  .detail-action-btn.primary {
+    background: linear-gradient(145deg, #1a56d6 0%, #2d7ff9 100%);
+    color: #fff; border: none;
+    box-shadow: 0 6px 16px rgba(45,127,249,0.28);
+  }
+  .detail-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .alert-dir-row { display: flex; gap: 8px; margin: 10px 0 14px; }
+  .alert-dir-btn {
+    flex: 1; border: 2px solid var(--pill-bg); background: var(--pill-bg);
+    color: var(--text); border-radius: 12px; padding: 12px 8px;
+    font-weight: 700; font-size: 13px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  }
+  .alert-dir-btn:active { transform: scale(0.97); }
+  .alert-dir-btn.active.up {
+    border-color: var(--up); background: rgba(46,204,113,0.12); color: var(--up);
+  }
+  .alert-dir-btn.active.down {
+    border-color: var(--down); background: rgba(231,76,60,0.12); color: var(--down);
+  }
+  .alert-hint {
+    font-size: 12px; color: var(--text-secondary); margin-top: 8px; line-height: 1.4;
+  }
+  .alert-status {
+    font-size: 13px; font-weight: 600; margin-top: 10px; min-height: 18px;
+  }
+  .alert-status.ok { color: var(--up); }
+  .alert-status.err { color: var(--down); }
+
+  .share-card-preview {
+    width: 100%; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 8px 24px var(--shadow); margin: 12px 0;
+    border: 1px solid var(--card-border);
+  }
+  .share-card-preview canvas { width: 100%; height: auto; display: block; }
 
   .alloc-card {
     background: var(--card-bg); border-radius: 16px; padding: 16px;
@@ -1325,6 +1390,12 @@
       <div class="portfolio-hero-total" id="portfolio-page-total">$0</div>
       <div class="portfolio-hero-pnl" id="portfolio-page-change"></div>
       <div class="portfolio-hero-period" id="portfolio-page-period">PnL (цена входа или 24ч)</div>
+      <div class="portfolio-hero-actions">
+        <button type="button" class="portfolio-share-btn" id="portfolio-share-btn" aria-label="Поделиться PnL">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+          Поделиться PnL
+        </button>
+      </div>
     </div>
 
     <div class="alloc-card" id="portfolio-alloc-card" style="display:none;">
@@ -1386,6 +1457,17 @@
   </div>
   <div class="detail-price" id="detail-price"></div>
 
+  <div class="detail-actions">
+    <button type="button" class="detail-action-btn primary" id="detail-alert-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      Алерт по цене
+    </button>
+    <button type="button" class="detail-action-btn" id="detail-portfolio-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      В портфель
+    </button>
+  </div>
+
   <!-- === КРАСИВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА (точно в то место, что ты обвел) === -->
   <div id="perf-card" class="perf-card">
     <div class="perf-header">
@@ -1423,6 +1505,43 @@
     <div class="stat-card">
       <div class="stat-label" id="label-low" data-i18n="low24">Минимум за период</div>
       <div class="stat-value" id="stat-low">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка алерта по цене (backend /watch) -->
+<div class="modal-overlay" id="alert-modal-overlay">
+  <div class="modal-box" style="position:relative">
+    <button class="modal-close-x" id="alert-modal-close">✕</button>
+    <div class="modal-title" id="alert-modal-title">🔔 Алерт по цене</div>
+    <div class="modal-desc" id="alert-modal-desc">Уведомим в Telegram, когда цена достигнет уровня</div>
+    <div class="alert-dir-row">
+      <button type="button" class="alert-dir-btn up active" data-dir="above" id="alert-dir-above">📈 Выше</button>
+      <button type="button" class="alert-dir-btn down" data-dir="below" id="alert-dir-below">📉 Ниже</button>
+    </div>
+    <div style="margin: 0 0 8px;">
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Целевая цена (USD)</div>
+      <input type="number" id="alert-modal-price" step="any" inputmode="decimal" placeholder="например 70000" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
+      <div class="alert-hint" id="alert-modal-hint">Сейчас: —</div>
+    </div>
+    <div class="alert-status" id="alert-modal-status"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" id="alert-modal-cancel">Отмена</button>
+      <button class="modal-btn modal-btn-primary" id="alert-modal-save">Создать алерт</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка share PnL -->
+<div class="modal-overlay" id="share-modal-overlay">
+  <div class="modal-box" style="position:relative">
+    <button class="modal-close-x" id="share-modal-close">✕</button>
+    <div class="modal-title">Поделиться PnL</div>
+    <div class="modal-desc">Карточка портфеля CryptoFood</div>
+    <div class="share-card-preview"><canvas id="share-pnl-canvas" width="720" height="900"></canvas></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" id="share-copy-text">Текст</button>
+      <button class="modal-btn modal-btn-primary" id="share-do-btn">Поделиться</button>
     </div>
   </div>
 </div>
@@ -1539,10 +1658,14 @@ try {
   if (w) { w.ready(); w.expand(); }
 } catch (e) {}
 
-// ─── Analytics: сбор данных пользователя при открытии Mini App ───
-const ANALYTICS_URL = "https://cryptofood-bot.jubirulja777.workers.dev/analytics";
+// ─── Analytics + Watch API (Cloudflare Worker) ───
+const API_BASE = "https://cryptofood-bot.jubirulja777.workers.dev";
+const ANALYTICS_URL = API_BASE + "/analytics";
+const WATCH_API_URL = API_BASE + "/watch";
 const ANALYTICS_SESSION_KEY = "cf_analytics_session_sent";
 let _analyticsSent = false;
+let alertModalCoinId = null;
+let alertModalDirection = "above";
 
 function collectTgUser() {
   try {
@@ -2974,6 +3097,9 @@ function renderPortfolioPage() {
       : "PnL за 24ч (укажи цену входа в позиции)";
   }
 
+  const shareBtn = document.getElementById("portfolio-share-btn");
+  if (shareBtn) shareBtn.style.display = rows.length ? "inline-flex" : "none";
+
   renderAllocationChart(rows);
 
   listEl.innerHTML = "";
@@ -3675,6 +3801,332 @@ function renderAll() {
   updatePortfolioSummary();
   renderPortfolioPage();
 }
+
+// ===== алерты из mini-app (тот же backend, что /watch) =====
+function coinSymbolForWatch(coin) {
+  if (!coin) return "";
+  return String(coin.symbol || coin.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function openAlertModal(coinId) {
+  const coin = coins.find(c => c.id === coinId) || (openCoinId === coinId ? coins.find(c => c.id === openCoinId) : null);
+  if (!coin) return;
+  alertModalCoinId = coinId;
+  alertModalDirection = "above";
+  const title = document.getElementById("alert-modal-title");
+  const hint = document.getElementById("alert-modal-hint");
+  const status = document.getElementById("alert-modal-status");
+  const priceInput = document.getElementById("alert-modal-price");
+  if (title) title.textContent = "🔔 Алерт · " + (coin.symbol || "").toUpperCase();
+  if (hint) hint.textContent = "Сейчас: " + formatPrice(coin.current_price || 0);
+  if (status) { status.textContent = ""; status.className = "alert-status"; }
+  if (priceInput) {
+    const p = Number(coin.current_price) || 0;
+    // default target ~ ±3%
+    priceInput.value = p > 0 ? (p * 1.03).toPrecision(6).replace(/\.?0+$/, "") : "";
+  }
+  document.querySelectorAll(".alert-dir-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.dir === "above");
+  });
+  const ov = document.getElementById("alert-modal-overlay");
+  if (ov) ov.classList.add("visible");
+  try { hapticImpact("light"); } catch (e) {}
+  setTimeout(() => { try { priceInput && priceInput.focus(); } catch (e) {} }, 120);
+}
+
+function closeAlertModal() {
+  const ov = document.getElementById("alert-modal-overlay");
+  if (ov) ov.classList.remove("visible");
+  alertModalCoinId = null;
+}
+
+async function submitAlertFromModal() {
+  const status = document.getElementById("alert-modal-status");
+  const priceInput = document.getElementById("alert-modal-price");
+  const coin = coins.find(c => c.id === alertModalCoinId);
+  if (!coin) {
+    if (status) { status.textContent = "Монета не найдена"; status.className = "alert-status err"; }
+    return;
+  }
+  const target = parseFloat(String(priceInput && priceInput.value || "").replace(",", "."));
+  if (!(target > 0)) {
+    if (status) { status.textContent = "Введи корректную цену"; status.className = "alert-status err"; }
+    return;
+  }
+  const w = getTG();
+  const initData = (w && w.initData) || "";
+  if (!initData) {
+    if (status) {
+      status.textContent = "Открой приложение из Telegram-бота, чтобы создать алерт";
+      status.className = "alert-status err";
+    }
+    return;
+  }
+  if (status) { status.textContent = "Создаём…"; status.className = "alert-status"; }
+  const saveBtn = document.getElementById("alert-modal-save");
+  if (saveBtn) saveBtn.disabled = true;
+  try {
+    const res = await fetch(WATCH_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        initData: initData,
+        base: coinSymbolForWatch(coin),
+        direction: alertModalDirection,
+        target: target
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      const err = (data && data.error) || ("http_" + res.status);
+      if (status) {
+        status.textContent = err === "invalid_init_data"
+          ? "Сессия Telegram устарела — переоткрой mini-app"
+          : "Не удалось создать алерт (" + err + ")";
+        status.className = "alert-status err";
+      }
+      return;
+    }
+    if (status) {
+      status.textContent = "✅ Алерт создан — придёт в Telegram";
+      status.className = "alert-status ok";
+    }
+    try { hapticImpact("medium"); } catch (e) {}
+    setTimeout(closeAlertModal, 900);
+  } catch (e) {
+    if (status) {
+      status.textContent = "Сеть недоступна. Попробуй ещё раз";
+      status.className = "alert-status err";
+    }
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+(function initAlertModal() {
+  const ov = document.getElementById("alert-modal-overlay");
+  if (!ov) return;
+  document.getElementById("alert-modal-close")?.addEventListener("click", closeAlertModal);
+  document.getElementById("alert-modal-cancel")?.addEventListener("click", closeAlertModal);
+  document.getElementById("alert-modal-save")?.addEventListener("click", submitAlertFromModal);
+  ov.addEventListener("click", (e) => { if (e.target === ov) closeAlertModal(); });
+  document.querySelectorAll(".alert-dir-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      alertModalDirection = b.dataset.dir || "above";
+      document.querySelectorAll(".alert-dir-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      const coin = coins.find(c => c.id === alertModalCoinId);
+      const priceInput = document.getElementById("alert-modal-price");
+      if (coin && priceInput && Number(coin.current_price) > 0) {
+        const p = Number(coin.current_price);
+        const mult = alertModalDirection === "above" ? 1.03 : 0.97;
+        priceInput.value = (p * mult).toPrecision(6).replace(/\.?0+$/, "");
+      }
+    });
+  });
+  document.getElementById("detail-alert-btn")?.addEventListener("click", () => {
+    if (openCoinId) openAlertModal(openCoinId);
+  });
+  document.getElementById("detail-portfolio-btn")?.addEventListener("click", () => {
+    if (openCoinId) openPortfolioModal(openCoinId);
+  });
+})();
+
+// ===== PnL карточка + share =====
+function buildPnlShareText() {
+  const { totalValue, change, changePercent, mode } = getPortfolioPnL();
+  const { rows } = getPortfolioAllocations();
+  const isUp = change >= 0;
+  const lines = [
+    "🍽 CryptoFood · Portfolio",
+    "━━━━━━━━━━━━━━━━",
+    "💰 $" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 }),
+    (isUp ? "🟢 " : "🔴 ") + (isUp ? "+" : "") + changePercent.toFixed(2) + "%  ·  $" + Math.abs(change).toFixed(2),
+    mode === "entry" ? "PnL от цены входа" : "PnL за 24ч",
+    ""
+  ];
+  rows.slice(0, 6).forEach(r => {
+    lines.push("• " + r.coin.symbol.toUpperCase() + "  $" + r.value.toFixed(2) + "  (" + r.pct.toFixed(1) + "%)");
+  });
+  lines.push("", "via CryptoFood bot");
+  return lines.join("\n");
+}
+
+function drawPnlShareCard() {
+  const canvas = document.getElementById("share-pnl-canvas");
+  if (!canvas) return null;
+  const { totalValue, change, changePercent, mode } = getPortfolioPnL();
+  const { rows } = getPortfolioAllocations();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = 720, H = 900;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = "100%";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const isUp = change >= 0;
+  const grd = ctx.createLinearGradient(0, 0, W, H);
+  grd.addColorStop(0, "#0b1f4a");
+  grd.addColorStop(0.45, "#163a8a");
+  grd.addColorStop(1, "#2d7ff9");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // soft orbs
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.beginPath(); ctx.arc(560, 120, 140, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(80, 780, 160, 0, Math.PI * 2); ctx.fill();
+
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.font = "600 28px -apple-system, Segoe UI, sans-serif";
+  ctx.fillText("CryptoFood", 48, 72);
+  ctx.font = "500 20px -apple-system, Segoe UI, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.fillText("Portfolio PnL", 48, 108);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "800 64px -apple-system, Segoe UI, sans-serif";
+  ctx.fillText("$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 }), 48, 210);
+
+  // pnl pill
+  const pill = (isUp ? "▲ +" : "▼ ") + Math.abs(changePercent).toFixed(2) + "%   " +
+    (isUp ? "+" : "-") + "$" + Math.abs(change).toFixed(2);
+  ctx.font = "700 26px -apple-system, Segoe UI, sans-serif";
+  const tw = ctx.measureText(pill).width;
+  ctx.fillStyle = isUp ? "rgba(46,204,113,0.28)" : "rgba(231,76,60,0.3)";
+  roundRect(ctx, 48, 240, tw + 36, 52, 26);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.fillText(pill, 66, 274);
+
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  ctx.font = "500 18px -apple-system, Segoe UI, sans-serif";
+  ctx.fillText(mode === "entry" ? "Realized from entry price" : "24h change estimate", 48, 330);
+
+  // holdings card
+  const cardY = 370;
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  roundRect(ctx, 40, cardY, W - 80, 420, 24);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.font = "700 18px -apple-system, Segoe UI, sans-serif";
+  ctx.fillText("ASSETS", 64, cardY + 40);
+
+  let y = cardY + 80;
+  rows.slice(0, 6).forEach((r, i) => {
+    ctx.fillStyle = "#fff";
+    ctx.font = "700 24px -apple-system, Segoe UI, sans-serif";
+    ctx.fillText(r.coin.symbol.toUpperCase(), 64, y);
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.font = "600 22px -apple-system, Segoe UI, sans-serif";
+    const val = "$" + r.value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    const vw = ctx.measureText(val).width;
+    ctx.fillText(val, W - 64 - vw, y);
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    roundRect(ctx, 64, y + 14, W - 128, 6, 3);
+    ctx.fill();
+    ctx.fillStyle = r.color || "#5aa0ff";
+    roundRect(ctx, 64, y + 14, Math.max(8, (W - 128) * (r.pct / 100)), 6, 3);
+    ctx.fill();
+    y += 58;
+  });
+
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.font = "500 16px -apple-system, Segoe UI, sans-serif";
+  ctx.fillText("t.me · CryptoFood", 48, H - 40);
+  return canvas;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function openShareModal() {
+  const { rows } = getPortfolioAllocations();
+  if (!rows.length) return;
+  drawPnlShareCard();
+  const ov = document.getElementById("share-modal-overlay");
+  if (ov) ov.classList.add("visible");
+  try { hapticImpact("light"); } catch (e) {}
+}
+
+function closeShareModal() {
+  const ov = document.getElementById("share-modal-overlay");
+  if (ov) ov.classList.remove("visible");
+}
+
+async function sharePnlCard() {
+  const canvas = drawPnlShareCard() || document.getElementById("share-pnl-canvas");
+  const text = buildPnlShareText();
+  try {
+    if (canvas && canvas.toBlob && navigator.share && navigator.canShare) {
+      const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+      if (blob) {
+        const file = new File([blob], "cryptofood-pnl.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "CryptoFood PnL", text: text });
+          return;
+        }
+      }
+    }
+  } catch (e) {}
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "CryptoFood PnL", text: text });
+      return;
+    }
+  } catch (e2) {}
+  // fallback: open image
+  try {
+    if (canvas) {
+      const url = canvas.toDataURL("image/png");
+      const w = getTG();
+      if (w && w.openLink) w.openLink(url);
+      else window.open(url, "_blank");
+    }
+  } catch (e3) {}
+}
+
+async function copyPnlText() {
+  const text = buildPnlShareText();
+  try {
+    await navigator.clipboard.writeText(text);
+    try { hapticSelection(); } catch (e) {}
+    const btn = document.getElementById("share-copy-text");
+    if (btn) {
+      const prev = btn.textContent;
+      btn.textContent = "Скопировано";
+      setTimeout(() => { btn.textContent = prev; }, 1200);
+    }
+  } catch (e) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch (e2) {}
+  }
+}
+
+(function initShareModal() {
+  document.getElementById("portfolio-share-btn")?.addEventListener("click", openShareModal);
+  document.getElementById("share-modal-close")?.addEventListener("click", closeShareModal);
+  document.getElementById("share-do-btn")?.addEventListener("click", sharePnlCard);
+  document.getElementById("share-copy-text")?.addEventListener("click", copyPnlText);
+  const ov = document.getElementById("share-modal-overlay");
+  if (ov) ov.addEventListener("click", (e) => { if (e.target === ov) closeShareModal(); });
+})();
 
 // ===== экран деталей =====
 
@@ -4595,8 +5047,39 @@ function showSkeletons() { showMarketLoading(); }
 
 showMarketLoading();
 syncFilterUI();
-fetchMarket();
-scheduleNextPoll();
+
+// Deep-link: ?coin=btc / #btc — открыть монету после загрузки рынка
+function resolveCoinQuery(q) {
+  if (!q) return null;
+  const s = String(q).toLowerCase().trim();
+  return coins.find(c =>
+    c.id === s ||
+    c.symbol === s ||
+    c.id === (s === "btc" ? "bitcoin" : s === "eth" ? "ethereum" : s === "sol" ? "solana" : s) ||
+    (c.symbol && c.symbol.toLowerCase() === s)
+  );
+}
+
+async function bootWithDeepLink() {
+  await fetchMarket();
+  scheduleNextPoll();
+  try {
+    const params = new URLSearchParams(location.search || "");
+    let q = params.get("coin") || params.get("symbol");
+    if (!q && location.hash) q = location.hash.replace(/^#/, "");
+    // Telegram startapp param
+    const w = getTG();
+    if (!q && w && w.initDataUnsafe && w.initDataUnsafe.start_param) {
+      q = String(w.initDataUnsafe.start_param).replace(/^coin[_-]?/i, "");
+    }
+    if (!q) return;
+    const coin = resolveCoinQuery(q);
+    if (coin) {
+      setTimeout(() => openDetail(coin.id), 350);
+    }
+  } catch (e) {}
+}
+bootWithDeepLink();
 
 // === Pull-to-refresh (простой) ===
 let pullStartY = 0;
