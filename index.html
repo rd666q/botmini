@@ -399,6 +399,86 @@
   .holding-pnl { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .holding-meta { font-size: 11px; color: var(--text-secondary); }
 
+  /* === Filters tab === */
+  .filter-page { padding-bottom: 8px; }
+  .filter-hero {
+    background: linear-gradient(135deg, rgba(45,127,249,0.18), rgba(45,127,249,0.05));
+    border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 18px 16px; margin-bottom: 18px;
+    animation: filterIn 0.45s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .filter-hero h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 6px; }
+  .filter-hero p { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+  .filter-block {
+    margin-bottom: 18px;
+    animation: filterIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .filter-block:nth-child(2) { animation-delay: 0.06s; }
+  .filter-block:nth-child(3) { animation-delay: 0.12s; }
+  .filter-block:nth-child(4) { animation-delay: 0.18s; }
+  .filter-block-title {
+    font-size: 13px; font-weight: 800; margin-bottom: 10px; padding-left: 2px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .filter-block-title span {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent, #2d7ff9);
+    box-shadow: 0 0 0 4px rgba(45,127,249,0.15);
+  }
+  .filter-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .filter-chip {
+    position: relative;
+    background: var(--card-bg); border: 1.5px solid var(--card-border);
+    border-radius: 16px; padding: 14px 12px; text-align: left;
+    cursor: pointer; color: var(--text); font-weight: 700; font-size: 14px;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.25s ease;
+    overflow: hidden;
+  }
+  .filter-chip:active { transform: scale(0.97); }
+  .filter-chip .fc-sub {
+    display: block; margin-top: 4px; font-size: 11px; font-weight: 500; color: var(--text-secondary);
+  }
+  .filter-chip.active {
+    border-color: #2d7ff9;
+    background: linear-gradient(145deg, rgba(45,127,249,0.16), rgba(45,127,249,0.06));
+    box-shadow: 0 4px 16px rgba(45,127,249,0.18);
+    color: #2d7ff9;
+  }
+  .filter-chip.active .fc-sub { color: rgba(45,127,249,0.85); }
+  .filter-chip.active::after {
+    content: ""; position: absolute; top: 10px; right: 10px;
+    width: 8px; height: 8px; border-radius: 50%; background: #2d7ff9;
+    animation: filterPulse 1.4s ease-out infinite;
+  }
+  .filter-chip.wide { grid-column: 1 / -1; }
+  .filter-apply {
+    width: 100%; margin-top: 6px; padding: 14px; border: none; border-radius: 16px;
+    background: #2d7ff9; color: #fff; font-size: 15px; font-weight: 800;
+    cursor: pointer; box-shadow: 0 8px 22px rgba(45,127,249,0.28);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    animation: filterIn 0.55s 0.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .filter-apply:active { transform: scale(0.98); }
+  .filter-active-bar {
+    display: none; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+  }
+  .filter-active-pill {
+    font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
+    background: rgba(45,127,249,0.12); color: #2d7ff9;
+  }
+  @keyframes filterIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes filterPulse {
+    0% { box-shadow: 0 0 0 0 rgba(45,127,249,0.45); }
+    70% { box-shadow: 0 0 0 8px rgba(45,127,249,0); }
+    100% { box-shadow: 0 0 0 0 rgba(45,127,249,0); }
+  }
+
+
   .last-updated {
     display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
     font-size: 11px; color: var(--text-secondary); font-weight: 500;
@@ -536,7 +616,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.5.0</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.6.0</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -557,35 +637,52 @@
       <input type="text" id="search-input" placeholder="Найти криптовалюту...">
     </div>
 
-    <!-- Фильтр по сетям -->
-    <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px;" id="network-filters">
-      <button class="tf-btn active" data-network="all" data-i18n="networkAll">Все</button>
-      <button class="tf-btn" data-network="ton">TON</button>
-      <button class="tf-btn" data-network="sol">SOL</button>
-      <button class="tf-btn" data-network="btc">BTC</button>
-      <button class="tf-btn" data-network="trc20">TRC20</button>
-    </div>
-
     <div class="last-updated" id="last-updated">
       <span class="live-dot" id="live-dot"></span>
       <span id="last-updated-text">Обновление…</span>
-      <span class="src-badge" id="src-badge" title="Источник данных">—</span>
       <button type="button" class="refresh-btn" id="refresh-btn" title="Обновить">↻ Обновить</button>
     </div>
 
-    <!-- Сортировка -->
-    <div style="display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:2px;" id="sort-filters">
-      <button class="tf-btn active" data-sort="market_cap" data-i18n="sortMarketCap">По капитализации</button>
-      <button class="tf-btn" data-sort="change_desc" data-i18n="sortChangeDesc">По росту 24ч</button>
-      <button class="tf-btn" data-sort="change_asc" data-i18n="sortChangeAsc">По падению 24ч</button>
-      <button class="tf-btn" data-sort="volume" data-i18n="sortVolume">По объёму</button>
-    </div>
+    <div class="filter-active-bar" id="filter-active-bar"></div>
 
     <div class="section-head" style="margin-top:2px;">
       <div class="section-title">Все монеты</div>
       <div class="section-hint">рынок</div>
     </div>
     <div id="market-list"></div>
+  </div>
+
+  <!-- Вкладка Фильтры -->
+  <div class="section" id="section-filters">
+    <div class="filter-page">
+      <div class="filter-hero">
+        <h2>Фильтры</h2>
+        <p>Сеть и сортировка рынка. Выбор применяется сразу к списку монет.</p>
+      </div>
+
+      <div class="filter-block">
+        <div class="filter-block-title"><span></span> Сеть</div>
+        <div class="filter-grid" id="network-filters">
+          <button type="button" class="filter-chip active" data-network="all">Все<span class="fc-sub">все сети</span></button>
+          <button type="button" class="filter-chip" data-network="ton">TON<span class="fc-sub">The Open Network</span></button>
+          <button type="button" class="filter-chip" data-network="sol">SOL<span class="fc-sub">Solana</span></button>
+          <button type="button" class="filter-chip" data-network="btc">BTC<span class="fc-sub">Bitcoin</span></button>
+          <button type="button" class="filter-chip" data-network="trc20">TRC20<span class="fc-sub">Tron / USDT</span></button>
+        </div>
+      </div>
+
+      <div class="filter-block">
+        <div class="filter-block-title"><span></span> Сортировка</div>
+        <div class="filter-grid" id="sort-filters">
+          <button type="button" class="filter-chip active wide" data-sort="market_cap">По капитализации<span class="fc-sub">крупнейшие проекты</span></button>
+          <button type="button" class="filter-chip" data-sort="change_desc">По росту 24ч<span class="fc-sub">лидеры роста</span></button>
+          <button type="button" class="filter-chip" data-sort="change_asc">По падению 24ч<span class="fc-sub">сильнее всего вниз</span></button>
+          <button type="button" class="filter-chip wide" data-sort="volume">По объёму<span class="fc-sub">самые торгуемые</span></button>
+        </div>
+      </div>
+
+      <button type="button" class="filter-apply" id="filter-apply-btn">Смотреть рынок →</button>
+    </div>
   </div>
 
   <div class="section" id="section-favorites">
@@ -635,6 +732,10 @@
   <button class="nav-btn active" data-tab="market">
     <span class="icon" id="nav-icon-market"></span>
     <span class="nav-label" data-i18n="market">Рынок</span>
+  </button>
+  <button class="nav-btn" data-tab="filters">
+    <span class="icon" id="nav-icon-filters"></span>
+    <span class="nav-label">Фильтры</span>
   </button>
   <button class="nav-btn" data-tab="favorites">
     <span class="icon" id="nav-icon-fav"></span>
@@ -803,6 +904,7 @@ const ICONS = {
   sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>`,
   gem: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8l3-5h8l3 5-7 12z"/><path d="M5 8h14M9 3l3 5 3-5M12 8l-2.5 12M12 8l2.5 12"/></svg>`,
   portfolio: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>`,
+  filters: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>`,
 };
 
 document.getElementById("search-icon").innerHTML = ICONS.search;
@@ -812,6 +914,7 @@ document.getElementById("back-btn").innerHTML = ICONS.back;
 document.getElementById("donate-btn").innerHTML = ICONS.gem;
 document.getElementById("donate-icon-inline").innerHTML = ICONS.gem;
 document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
+const _nf = document.getElementById("nav-icon-filters"); if (_nf) _nf.innerHTML = ICONS.filters;
 
 // Логотип из splash → шапка и empty-states
 const APP_LOGO_SRC = "logo.jpg";
@@ -904,7 +1007,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v4";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.6.0";
 
 // Сброс кэша рынка при обновлении версии приложения
 (function migrateAppVersion() {
@@ -1233,21 +1336,7 @@ async function enrichCoinMarketData(coinId) {
 
 function setSourceBadge(source) {
   marketSource = source || "";
-  const badge = document.getElementById("src-badge");
-  if (!badge) return;
-  badge.className = "src-badge";
-  if (source === "binance") {
-    badge.textContent = "Binance";
-    badge.classList.add("binance");
-  } else if (source === "coingecko") {
-    badge.textContent = "CoinGecko";
-    badge.classList.add("coingecko");
-  } else if (source === "cache") {
-    badge.textContent = "Кэш";
-    badge.classList.add("cache");
-  } else {
-    badge.textContent = source || "—";
-  }
+  // бейдж Binance/CoinGecko убран из UI
 }
 
 function applyMarketData(data, { fromCache, source } = {}) {
@@ -2486,24 +2575,72 @@ document.getElementById("search-input").addEventListener("input", (e) => {
   }, 150);
 });
 
-document.getElementById("network-filters").addEventListener("click", (e) => {
-  if (e.target.tagName === "BUTTON") {
-    document.querySelectorAll("#network-filters button").forEach(b => b.classList.remove("active"));
-    e.target.classList.add("active");
-    currentNetworkFilter = e.target.dataset.network;
-    renderAll();
+const SORT_LABELS = {
+  market_cap: "По капитализации",
+  change_desc: "По росту 24ч",
+  change_asc: "По падению 24ч",
+  volume: "По объёму",
+};
+const NETWORK_LABELS = {
+  all: "Все сети",
+  ton: "TON",
+  sol: "SOL",
+  btc: "BTC",
+  trc20: "TRC20",
+};
+
+function updateFilterActiveBar() {
+  const bar = document.getElementById("filter-active-bar");
+  if (!bar) return;
+  const pills = [];
+  if (currentNetworkFilter && currentNetworkFilter !== "all") {
+    pills.push(`<span class="filter-active-pill">${NETWORK_LABELS[currentNetworkFilter] || currentNetworkFilter}</span>`);
   }
+  if (currentSort && currentSort !== "market_cap") {
+    pills.push(`<span class="filter-active-pill">${SORT_LABELS[currentSort] || currentSort}</span>`);
+  }
+  bar.innerHTML = pills.join("");
+  bar.style.display = pills.length ? "flex" : "none";
+}
+
+function syncFilterUI() {
+  document.querySelectorAll("#network-filters [data-network]").forEach(b => {
+    b.classList.toggle("active", b.dataset.network === currentNetworkFilter);
+  });
+  document.querySelectorAll("#sort-filters [data-sort]").forEach(b => {
+    b.classList.toggle("active", b.dataset.sort === currentSort);
+  });
+  updateFilterActiveBar();
+}
+
+document.getElementById("network-filters").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-network]");
+  if (!btn) return;
+  document.querySelectorAll("#network-filters [data-network]").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentNetworkFilter = btn.dataset.network;
+  updateFilterActiveBar();
+  renderAll();
 });
 
 document.getElementById("sort-filters").addEventListener("click", (e) => {
-  if (e.target.tagName === "BUTTON") {
-    document.querySelectorAll("#sort-filters button").forEach(b => b.classList.remove("active"));
-    e.target.classList.add("active");
-    currentSort = e.target.dataset.sort;
-    localStorage.setItem("sort_mode", currentSort);
-    renderAll();
-  }
+  const btn = e.target.closest("[data-sort]");
+  if (!btn) return;
+  document.querySelectorAll("#sort-filters [data-sort]").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentSort = btn.dataset.sort;
+  localStorage.setItem("sort_mode", currentSort);
+  updateFilterActiveBar();
+  renderAll();
 });
+
+const filterApplyBtn = document.getElementById("filter-apply-btn");
+if (filterApplyBtn) {
+  filterApplyBtn.addEventListener("click", () => {
+    const marketBtn = document.querySelector('.nav-btn[data-tab="market"]');
+    if (marketBtn) marketBtn.click();
+  });
+}
 
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -2514,9 +2651,24 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
     document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
     document.getElementById("section-portfolio").classList.toggle("visible", currentTab === "portfolio");
+    const fs = document.getElementById("section-filters");
+    if (fs) {
+      fs.classList.toggle("visible", currentTab === "filters");
+      if (currentTab === "filters") {
+        fs.querySelectorAll(".filter-hero, .filter-block, .filter-apply").forEach(el => {
+          el.style.animation = "none";
+          void el.offsetWidth;
+          el.style.animation = "";
+        });
+        syncFilterUI();
+      }
+    }
 
     if (currentTab === "market") {
       document.getElementById("page-title").textContent = "CryptoFood";
+      updateFilterActiveBar();
+    } else if (currentTab === "filters") {
+      document.getElementById("page-title").textContent = "Фильтры";
     } else if (currentTab === "favorites") {
       document.getElementById("page-title").textContent = t("favorites");
     } else if (currentTab === "portfolio") {
@@ -2535,6 +2687,7 @@ function switchToMarketTab() {
   document.getElementById("section-favorites").classList.remove("visible");
   const love = document.getElementById("section-love"); if (love) love.classList.remove("visible");
   const pf = document.getElementById("section-portfolio"); if (pf) pf.classList.remove("visible");
+  const fs = document.getElementById("section-filters"); if (fs) fs.classList.remove("visible");
 
   currentTab = "market";
   document.getElementById("page-title").textContent = "CryptoFood";
@@ -2551,6 +2704,7 @@ function showSkeletons() {
 }
 
 showSkeletons();
+syncFilterUI();
 fetchMarket();
 scheduleNextPoll();
 
