@@ -875,7 +875,7 @@ const REFRESH_BASE_MS = 12000;
 const REFRESH_JITTER_MS = 4000;
 const MARKET_RETRIES = 1;
 const CHART_RETRIES = 1;
-const MARKET_CACHE_KEY = "cf_market_cache_v1";
+const MARKET_CACHE_KEY = "cf_market_cache_v2";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000; // 5 мин офлайн-кэш
 
 let coins = [];
@@ -1122,8 +1122,41 @@ function loadMarketCache() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.data) || !parsed.data.length) return null;
+    // кэш без капитализации (старый Binance) — выбрасываем, чтобы не показывать $0
+    const withCap = parsed.data.filter(c => Number(c.market_cap) > 0).length;
+    if (withCap < Math.min(5, parsed.data.length)) {
+      localStorage.removeItem(MARKET_CACHE_KEY);
+      return null;
+    }
     return parsed;
   } catch (e) { return null; }
+}
+
+/** Подтянуть market_cap / volume с CoinGecko, если их нет (после Binance fallback) */
+async function enrichCoinMarketData(coinId) {
+  if (!coinId) return null;
+  try {
+    const url =
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(coinId)}` +
+      `&price_change_percentage=24h&sparkline=false`;
+    const data = await fetchJsonWithRetry(url, 8000, 0);
+    if (!Array.isArray(data) || !data[0]) return null;
+    const fresh = data[0];
+    const idx = coins.findIndex(c => c.id === coinId);
+    if (idx >= 0) {
+      coins[idx] = {
+        ...coins[idx],
+        ...fresh,
+        // не затираем уже хорошую цену нулём
+        current_price: fresh.current_price || coins[idx].current_price,
+      };
+      try { saveMarketCache(coins); } catch (e) {}
+      return coins[idx];
+    }
+    return fresh;
+  } catch (e) {
+    return null;
+  }
 }
 
 function applyMarketData(data, { fromCache } = {}) {
@@ -1163,6 +1196,19 @@ function apiUrl(path, params) {
   return qs ? `${path}?${qs}` : path;
 }
 
+// Символ → id CoinGecko (чтобы капитализация/графики не ломались на fallback)
+const BINANCE_TO_CG_ID = {
+  btc: "bitcoin", eth: "ethereum", bnb: "binancecoin", sol: "solana", xrp: "ripple",
+  ada: "cardano", doge: "dogecoin", trx: "tron", ton: "the-open-network",
+  usdc: "usd-coin", usdt: "tether", avax: "avalanche-2", link: "chainlink",
+  dot: "polkadot", ltc: "litecoin", shib: "shiba-inu", matic: "matic-network",
+  uni: "uniswap", xlm: "stellar", atom: "cosmos", near: "near", apt: "aptos",
+  sui: "sui", pepe: "pepe", wbtc: "wrapped-bitcoin", etc: "ethereum-classic",
+  arb: "arbitrum", op: "optimism", fil: "filecoin", icp: "internet-computer",
+  hbar: "hedera-hashgraph", inj: "injective-protocol", render: "render-token",
+  bch: "bitcoin-cash", xmr: "monero", dai: "dai",
+};
+
 function mapBinanceToMarkets(tickers) {
   return (Array.isArray(tickers) ? tickers : [])
     .filter(t => t.symbol && t.symbol.endsWith("USDT") && !t.symbol.includes("_"))
@@ -1170,16 +1216,19 @@ function mapBinanceToMarkets(tickers) {
     .slice(0, PER_PAGE)
     .map(t => {
       const base = t.symbol.replace(/USDT$/, "");
+      const sym = base.toLowerCase();
+      const cgId = BINANCE_TO_CG_ID[sym] || sym;
       return {
-        id: base.toLowerCase(),
-        symbol: base.toLowerCase(),
+        id: cgId,
+        symbol: sym,
         name: base,
         image: "",
         current_price: Number(t.lastPrice) || 0,
-        market_cap: 0,
+        market_cap: 0, // Binance не отдаёт mcap — подтянем отдельно при открытии монеты
         total_volume: Number(t.quoteVolume) || 0,
         price_change_percentage_24h: Number(t.priceChangePercent) || 0,
         sparkline_in_7d: null,
+        _source: "binance",
       };
     });
 }
@@ -1586,9 +1635,12 @@ function formatPrice(p) {
   return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 6 });
 }
 function formatBig(n) {
-  if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + " млрд";
-  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + " млн";
-  return "$" + (n || 0).toLocaleString("en-US");
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) return "—";
+  if (v >= 1e12) return "$" + (v / 1e12).toFixed(2) + " трлн";
+  if (v >= 1e9) return "$" + (v / 1e9).toFixed(2) + " млрд";
+  if (v >= 1e6) return "$" + (v / 1e6).toFixed(2) + " млн";
+  return "$" + Math.round(v).toLocaleString("en-US");
 }
 
 // Популярные монеты (без короны 👑) — инкрементальное обновление, без пересоздания <img> на каждый тик
@@ -1959,6 +2011,19 @@ function updateDetailHeader(coinId) {
 
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
+
+  // Если mcap нет (Binance/кэш) — догружаем с CoinGecko
+  if (!(Number(coin.market_cap) > 0) || !(Number(coin.total_volume) > 0)) {
+    enrichCoinMarketData(coinId).then(fresh => {
+      if (!fresh || openCoinId !== coinId) return;
+      document.getElementById("stat-marketcap").textContent = formatBig(fresh.market_cap);
+      document.getElementById("stat-volume").textContent = formatBig(fresh.total_volume);
+      if (fresh.current_price) {
+        animateNumberText(priceEl, detailLastPrice, fresh.current_price, 400, formatPrice);
+        detailLastPrice = fresh.current_price;
+      }
+    });
+  }
 }
 
 function updatePerfCardFromChart() {
