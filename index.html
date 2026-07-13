@@ -129,8 +129,34 @@
   }
   .empty-btn:active { transform: scale(0.97); }
 
-  .skeleton { background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 16px; height: 66px; margin-bottom: 10px; }
+  .skeleton {
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
+    border-radius: 16px; height: 66px; margin-bottom: 10px;
+  }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* Явная загрузка — не «зависло», а понятный статус */
+  .market-loading {
+    text-align: center;
+    padding: 36px 20px 28px;
+    color: var(--text-secondary);
+    animation: fadeIn 0.35s ease;
+  }
+  .market-loading-spinner {
+    width: 36px; height: 36px; margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 3px solid var(--pill-bg);
+    border-top-color: #2d7ff9;
+    animation: spinLoad 0.75s linear infinite;
+  }
+  @keyframes spinLoad { to { transform: rotate(360deg); } }
+  .market-loading-title {
+    font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 6px;
+  }
+  .market-loading-desc { font-size: 12px; line-height: 1.4; }
+  .market-loading-rows { margin-top: 18px; }
+  .market-loading-rows .skeleton { opacity: 0.55; height: 58px; }
 
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); display: flex; box-shadow: 0 -2px 12px var(--nav-shadow); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 10; transition: background 0.3s ease; }
   .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; font-size: 11px; font-weight: 600; color: #b0b3b8; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; position: relative; }
@@ -671,7 +697,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.8.0</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.8.1</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -1041,7 +1067,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.8.0";
+const APP_VERSION = "1.8.1";
 
 // Сброс кэша рынка при обновлении версии приложения
 (function migrateAppVersion() {
@@ -1503,6 +1529,10 @@ async function fetchMarket() {
   if (isFetchingMarket) return;
   if (document.hidden) return;
   isFetchingMarket = true;
+  // лоадер только если списка ещё нет (не мигаем при refresh)
+  if (!coins.length && !document.querySelector("#market-list .coin-card")) {
+    showMarketLoading();
+  }
   try {
     const { data, source } = await fetchMarketDirect(false);
     applyMarketData(data, { source });
@@ -1518,12 +1548,22 @@ async function fetchMarket() {
         applyMarketData(cached.data, { fromCache: true, source: "cache" });
       } else {
         showMarketError("Сеть/API недоступны. Попробуйте позже или потяните вниз");
+        const marketList = document.getElementById("market-list");
+        if (marketList && !marketList.querySelector(".coin-card")) {
+          marketList.innerHTML = emptyStateHtml(
+            "Не удалось загрузить",
+            "Проверьте интернет и нажмите «Обновить»",
+            false
+          );
+        }
       }
     }
   } finally {
     isFetchingMarket = false;
     const rb = document.getElementById("refresh-btn");
     if (rb) rb.classList.remove("busy");
+    // на всякий случай снести loader/skeleton
+    document.querySelectorAll("#market-list .skeleton, #market-list .market-loading").forEach(el => el.remove());
   }
 }
 
@@ -2098,7 +2138,16 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   }
 }
 
+function clearListPlaceholders(container) {
+  if (!container) return;
+  // убираем skeleton / loader — иначе остаются «пустые» полоски как будто зависло
+  container.querySelectorAll(".skeleton, .market-loading, .empty-state").forEach(el => el.remove());
+}
+
 function reconcileList(container, registry, list, prevPriceMap, emptyText, isFavorites = false) {
+  if (!container) return;
+  clearListPlaceholders(container);
+
   if (list.length === 0) {
     registry.forEach(entry => entry.root.remove());
     registry.clear();
@@ -2110,8 +2159,6 @@ function reconcileList(container, registry, list, prevPriceMap, emptyText, isFav
     }
     return;
   }
-  const emptyState = container.querySelector(".empty-state");
-  if (emptyState) emptyState.remove();
 
   const seen = new Set();
   let prevEl = null;
@@ -2138,6 +2185,9 @@ function reconcileList(container, registry, list, prevPriceMap, emptyText, isFav
       registry.delete(id);
     }
   });
+
+  // skeleton/loader не в registry — вычищаем вручную (иначе «пустые» полоски)
+  container.querySelectorAll(".skeleton, .market-loading").forEach(el => el.remove());
 }
 
 function getVisibleMarketCoins() {
@@ -2718,17 +2768,28 @@ function switchToMarketTab() {
   document.getElementById("page-title").textContent = "CryptoFood";
 }
 
-function showSkeletons() {
+function showMarketLoading() {
   const marketList = document.getElementById("market-list");
-  marketList.innerHTML = "";
-  for (let i = 0; i < 6; i++) {
-    const sk = document.createElement("div");
-    sk.className = "skeleton";
-    marketList.appendChild(sk);
-  }
+  if (!marketList) return;
+  marketCardRegistry.forEach(entry => entry.root.remove());
+  marketCardRegistry.clear();
+  marketList.innerHTML = `
+    <div class="market-loading" id="market-loading">
+      <div class="market-loading-spinner"></div>
+      <div class="market-loading-title">Загружаем рынок…</div>
+      <div class="market-loading-desc">Ещё секунду — подтягиваем курсы</div>
+      <div class="market-loading-rows">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+    </div>`;
 }
 
-showSkeletons();
+// совместимость со старым именем
+function showSkeletons() { showMarketLoading(); }
+
+showMarketLoading();
 syncFilterUI();
 fetchMarket();
 scheduleNextPoll();
