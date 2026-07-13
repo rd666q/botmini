@@ -418,14 +418,91 @@
 
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.8px; font-variant-numeric: tabular-nums; }
 
-  .tf-btn { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; border: none; background: var(--pill-bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, color 0.2s ease; }
-  .tf-btn.active { background: #2d7ff9; color: #fff; }
+  /* Timeframe — segmented control как в Tonkeeper */
+  .timeframe-selector {
+    position: relative;
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    padding: 3px;
+    background: var(--pill-bg);
+    border-radius: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .timeframe-selector::-webkit-scrollbar { display: none; }
+  .tf-indicator {
+    position: absolute;
+    top: 3px; bottom: 3px; left: 3px;
+    width: 40px;
+    border-radius: 10px;
+    background: #2d7ff9;
+    box-shadow: 0 2px 10px rgba(45, 127, 249, 0.35);
+    transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), width 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform, width;
+  }
+  .tf-btn {
+    flex: 1 0 auto;
+    min-width: 44px;
+    position: relative;
+    z-index: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tf-btn.active { background: transparent; color: #fff; }
+  .tf-btn:active { transform: scale(0.96); }
 
-  .detail-chart-box { background: var(--card-bg); border-radius: 16px; padding: 16px 12px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px; position: relative; touch-action: pan-y; }
-  #detail-canvas { width: 100%; height: 220px; display: block; touch-action: none; }
+  .detail-chart-box {
+    background: var(--card-bg); border-radius: 16px; padding: 16px 12px;
+    box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px;
+    position: relative; touch-action: pan-y;
+    overflow: hidden;
+  }
+  #detail-canvas {
+    width: 100%; height: 220px; display: block; touch-action: none;
+    transform-origin: center bottom;
+  }
+  .detail-chart-box.tf-morphing #detail-canvas {
+    animation: chartMorphIn 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  @keyframes chartMorphIn {
+    0%   { opacity: 0.25; transform: scaleY(0.92) translateY(6px); }
+    55%  { opacity: 1; }
+    100% { opacity: 1; transform: scaleY(1) translateY(0); }
+  }
   .chart-hint { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 6px; min-height: 16px; }
-  .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-secondary); background: var(--card-bg); border-radius: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+  .chart-loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--text-secondary);
+    background: rgba(0,0,0,0.02);
+    border-radius: 16px; opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease;
+    backdrop-filter: blur(1px);
+  }
+  [data-theme="dark"] .chart-loading { background: rgba(0,0,0,0.25); }
   .chart-loading.visible { opacity: 1; pointer-events: all; }
+
+  .perf-percent, .perf-pill, .perf-label {
+    transition: color 0.3s ease, background 0.3s ease, opacity 0.25s ease, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .perf-card.tf-pulse .perf-percent {
+    animation: perfPop 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes perfPop {
+    0%   { transform: scale(0.92); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 
   .crosshair-tooltip {
     position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
@@ -1645,7 +1722,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.13";
+const APP_VERSION = "1.9.14";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -3462,26 +3539,55 @@ function closeDetail() {
 }
 document.getElementById("back-btn").addEventListener("click", closeDetail);
 
+function moveTfIndicator(container, activeBtn, animate) {
+  if (!container || !activeBtn) return;
+  let ind = container.querySelector(".tf-indicator");
+  if (!ind) {
+    ind = document.createElement("div");
+    ind.className = "tf-indicator";
+    container.insertBefore(ind, container.firstChild);
+  }
+  const cRect = container.getBoundingClientRect();
+  const bRect = activeBtn.getBoundingClientRect();
+  const x = bRect.left - cRect.left + container.scrollLeft;
+  const w = bRect.width;
+  if (!animate) {
+    ind.style.transition = "none";
+  } else {
+    ind.style.transition = "";
+  }
+  ind.style.width = w + "px";
+  ind.style.transform = "translate3d(" + Math.round(x) + "px, 0, 0)";
+  if (!animate) {
+    void ind.offsetWidth;
+    ind.style.transition = "";
+  }
+}
+
 function renderTimeframeSelector() {
   const container = document.getElementById("timeframe-selector");
   if (!container) return;
 
   container.innerHTML = "";
+  const ind = document.createElement("div");
+  ind.className = "tf-indicator";
+  container.appendChild(ind);
 
   TIMEFRAMES.forEach(tf => {
     const btn = document.createElement("button");
-    btn.className = `tf-btn ${tf.key === selectedTf ? "active" : ""}`;
+    btn.type = "button";
+    btn.className = "tf-btn" + (tf.key === selectedTf ? " active" : "");
     btn.textContent = TF_LABELS[tf.key] || tf.key;
     btn.dataset.tf = tf.key;
 
     btn.addEventListener("click", () => {
       if (selectedTf === tf.key) return;
-
       selectedTf = tf.key;
 
-      // Обновляем активный класс
       container.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
+      moveTfIndicator(container, btn, true);
+      try { hapticSelection(); } catch (e) {}
 
       if (openCoinId) {
         loadAndDrawChart(openCoinId, selectedTf, true);
@@ -3489,6 +3595,12 @@ function renderTimeframeSelector() {
     });
 
     container.appendChild(btn);
+  });
+
+  // индикатор под активной кнопкой (после layout)
+  requestAnimationFrame(() => {
+    const active = container.querySelector(".tf-btn.active");
+    moveTfIndicator(container, active, false);
   });
 }
 
@@ -3570,20 +3682,19 @@ function updateDetailHeader(coinId) {
   });
 })();
 
-function updatePerfCardFromChart() {
+function updatePerfCardFromChart(animate) {
   const perfLabel = document.getElementById("perf-label");
   const perfPercent = document.getElementById("perf-percent");
   const perfPill = document.getElementById("perf-pill");
+  const perfCard = document.getElementById("perf-card");
 
   if (!perfPercent || !perfPill || !perfLabel || currentChartPoints.length < 2) return;
 
   const firstPrice = currentChartPoints[0].p;
   const lastPrice = currentChartPoints[currentChartPoints.length - 1].p;
   const change = ((lastPrice - firstPrice) / firstPrice) * 100;
-
   const isUp = change >= 0;
 
-  // Динамический лейбл в зависимости от выбранного таймфрейма
   const labelKey = "period_" + selectedTf;
   perfLabel.textContent = t(labelKey) || t("perPeriod");
 
@@ -3591,30 +3702,124 @@ function updatePerfCardFromChart() {
   perfPercent.style.color = isUp ? "#2ecc71" : "#e74c3c";
 
   perfPill.textContent = isUp ? `▲ ${t("growth")}` : `▼ ${t("decline")}`;
-  perfPill.style.background = isUp 
-    ? "rgba(46,204,113,0.15)" 
+  perfPill.style.background = isUp
+    ? "rgba(46,204,113,0.15)"
     : "rgba(231,76,60,0.15)";
   perfPill.style.color = isUp ? "#2ecc71" : "#e74c3c";
+
+  if (animate && perfCard) {
+    perfCard.classList.remove("tf-pulse");
+    void perfCard.offsetWidth;
+    perfCard.classList.add("tf-pulse");
+  }
 }
 
 function setChartLoading(state) {
-  document.getElementById("chart-loading").classList.toggle("visible", state);
+  const el = document.getElementById("chart-loading");
+  if (el) el.classList.toggle("visible", !!state);
+}
+
+/** Нормализуем серию к N точкам (для морфа) */
+function resamplePrices(points, n) {
+  if (!points || points.length < 2) return null;
+  const out = [];
+  const last = points.length - 1;
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    const f = t * last;
+    const i0 = Math.floor(f);
+    const i1 = Math.min(last, i0 + 1);
+    const u = f - i0;
+    out.push(points[i0].p * (1 - u) + points[i1].p * u);
+  }
+  return out;
+}
+
+let chartMorphRAF = null;
+
+/**
+ * Плавный морф графика (как в Tonkeeper): интерполяция старых → новых точек.
+ */
+function animateChartTransition(fromPoints, toPoints, durationMs) {
+  if (chartMorphRAF) {
+    cancelAnimationFrame(chartMorphRAF);
+    chartMorphRAF = null;
+  }
+  const N = 48;
+  const from = resamplePrices(fromPoints, N);
+  const to = resamplePrices(toPoints, N);
+  if (!to) {
+    currentChartPoints = toPoints || [];
+    drawDetailChart();
+    return Promise.resolve();
+  }
+  // если нет «откуда» — просто draw с CSS-анимацией
+  if (!from) {
+    currentChartPoints = toPoints;
+    playChartBoxMorph();
+    drawDetailChart();
+    return Promise.resolve();
+  }
+
+  const t0 = performance.now();
+  const dur = durationMs || 420;
+
+  return new Promise(resolve => {
+    function frame(now) {
+      const u = Math.min(1, (now - t0) / dur);
+      // ease-out cubic
+      const e = 1 - Math.pow(1 - u, 3);
+      const mid = [];
+      for (let i = 0; i < N; i++) {
+        const p = from[i] + (to[i] - from[i]) * e;
+        mid.push({ t: i, p: p });
+      }
+      currentChartPoints = mid;
+      drawDetailChart();
+      if (u < 1) {
+        chartMorphRAF = requestAnimationFrame(frame);
+      } else {
+        currentChartPoints = toPoints;
+        drawDetailChart();
+        chartMorphRAF = null;
+        resolve();
+      }
+    }
+    chartMorphRAF = requestAnimationFrame(frame);
+  });
+}
+
+function playChartBoxMorph() {
+  const box = document.querySelector(".detail-chart-box");
+  if (!box) return;
+  box.classList.remove("tf-morphing");
+  void box.offsetWidth;
+  box.classList.add("tf-morphing");
+  setTimeout(() => box.classList.remove("tf-morphing"), 450);
 }
 
 async function loadAndDrawChart(coinId, tfKey, showLoader) {
-  const myToken = ++chartRequestToken; // защита от гонки: если пользователь быстро тыкает по таймфреймам,
-                                        // старый ответ не должен перезаписать новый график
+  const myToken = ++chartRequestToken;
   const tf = TIMEFRAMES.find(x => x.key === tfKey);
+  if (!tf) return;
+
+  const prevPoints = currentChartPoints && currentChartPoints.length > 1
+    ? currentChartPoints.slice()
+    : null;
+
   let points = [];
   const hint = document.getElementById("chart-hint");
-  hint.textContent = "";
+  if (hint) hint.textContent = "";
 
   const cacheKey = tf.type === "api-window" ? "1h" : tfKey;
-  const cached = apiChartCache[coinId]?.[cacheKey];
+  const cached = apiChartCache[coinId] && apiChartCache[coinId][cacheKey];
   let fullData;
-  if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
+  const needFetch = !(cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000);
+
+  if (!needFetch) {
     fullData = cached.data;
   } else {
+    // мягкий loader — не на весь экран, только лёгкий оверлей
     if (showLoader) setChartLoading(true);
     try {
       const days = tf.type === "api-window" ? 1 : tf.days;
@@ -3629,7 +3834,7 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
     if (showLoader) setChartLoading(false);
   }
 
-  if (myToken !== chartRequestToken) return; // пришёл ответ на устаревший запрос — игнорируем
+  if (myToken !== chartRequestToken) return;
 
   if (tf.type === "api-window" && fullData.length) {
     const reference = fullData[fullData.length - 1].t;
@@ -3643,16 +3848,27 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
     const prices = points.map(p => p.p);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    document.getElementById("stat-high").textContent = formatPrice(maxPrice);
-    document.getElementById("stat-low").textContent = formatPrice(minPrice);
+    const hi = document.getElementById("stat-high");
+    const lo = document.getElementById("stat-low");
+    if (hi) hi.textContent = formatPrice(maxPrice);
+    if (lo) lo.textContent = formatPrice(minPrice);
   }
 
-  currentChartPoints = points;
   hideCrosshair();
-  drawDetailChart();
 
-  // Обновляем карточку изменения за текущий период
-  updatePerfCardFromChart();
+  // морф старого графика → нового
+  if (prevPoints && points.length > 1) {
+    playChartBoxMorph();
+    await animateChartTransition(prevPoints, points, 400);
+  } else {
+    currentChartPoints = points;
+    playChartBoxMorph();
+    drawDetailChart();
+  }
+
+  if (myToken !== chartRequestToken) return;
+  currentChartPoints = points;
+  updatePerfCardFromChart(true);
 }
 
 function prepareHiDPICanvas(canvas) {
