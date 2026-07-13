@@ -869,14 +869,14 @@ const TIMEFRAMES = [
 ];
 
 // ---- настройки нагрузки и производительности ----
-const PER_PAGE = 80;             // меньше payload = быстрее на 4G
+const PER_PAGE = 60;
 const VISIBLE_LIMIT = 40;
-const REFRESH_BASE_MS = 12000;
-const REFRESH_JITTER_MS = 4000;
-const MARKET_RETRIES = 1;
-const CHART_RETRIES = 1;
-const MARKET_CACHE_KEY = "cf_market_cache_v2";
-const MARKET_CACHE_TTL_MS = 5 * 60 * 1000; // 5 мин офлайн-кэш
+const REFRESH_BASE_MS = 18000;   // реже опрос — меньше 429
+const REFRESH_JITTER_MS = 5000;
+const MARKET_RETRIES = 0;        // 429/502 → сразу другой источник
+const CHART_RETRIES = 0;
+const MARKET_CACHE_KEY = "cf_market_cache_v3";
+const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let coins = [];
 let apiChartCache = {};
@@ -945,17 +945,29 @@ function normalizeIconSymbol(coin) {
 function getCoinIconCandidates(coin) {
   const sym = normalizeIconSymbol(coin);
   const list = [];
-  const primary = coin && coin.image ? String(coin.image).trim() : "";
-  if (primary && primary.startsWith("http")) list.push(primary);
-
-  // spothq icons на jsDelivr — обычно стабильнее CoinGecko CDN
+  // СНАЧАЛА стабильные CDN (jsDelivr) — CoinGecko CDN часто 429/битый
   if (sym && sym !== "generic") {
-    list.push(`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${sym}.png`);
     list.push(`https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${sym}.png`);
+    list.push(`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${sym}.png`);
     list.push(`https://assets.coincap.io/assets/icons/${sym}@2x.png`);
   }
-  // дедуп
+  const primary = coin && coin.image ? String(coin.image).trim() : "";
+  // CoinGecko image только если не coingecko CDN под блокировкой — всё равно в конец
+  if (primary && primary.startsWith("http") && !primary.includes("coingecko.com")) {
+    list.unshift(primary);
+  } else if (primary && primary.startsWith("http")) {
+    list.push(primary);
+  }
   return [...new Set(list)];
+}
+
+function ensureCoinIcon(coin) {
+  if (!coin) return coin;
+  const candidates = getCoinIconCandidates(coin);
+  if (candidates.length && (!coin.image || !String(coin.image).startsWith("http"))) {
+    coin.image = candidates[0];
+  }
+  return coin;
 }
 
 function makeLetterAvatar(symbol, sizeClass) {
@@ -1065,12 +1077,10 @@ function fetchWithTimeout(url, ms, options) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// Запрос с повторными попытками — важно, когда несколько пользователей одновременно
-// упираются в лимит запросов CoinGecko (HTTP 429): вместо "зависшего" экрана делаем
-// пару повторов с нарастающей паузой.
+// 429/502 — сразу fail (не долбим CoinGecko), иначе 1 быстрый retry
 async function fetchJsonWithRetry(url, timeoutMs, retries) {
   let attempt = 0;
-  let delay = 700;
+  let delay = 400;
   while (true) {
     try {
       const res = await fetchWithTimeout(url, timeoutMs, {
@@ -1078,11 +1088,9 @@ async function fetchJsonWithRetry(url, timeoutMs, retries) {
         cache: "no-store",
         mode: "cors",
       });
-      if (res.status === 429 && attempt < retries) {
-        const retryAfter = Number(res.headers.get("Retry-After"));
-        await sleep(retryAfter ? retryAfter * 1000 : delay);
-        attempt++; delay *= 2;
-        continue;
+      // rate-limit / gateway — не ждём, переключаемся на другой источник
+      if (res.status === 429 || res.status === 502 || res.status === 503) {
+        throw new Error("HTTP " + res.status);
       }
       if (!res.ok) throw new Error("HTTP " + res.status);
       return await res.json();
@@ -1132,31 +1140,40 @@ function loadMarketCache() {
   } catch (e) { return null; }
 }
 
-/** Подтянуть market_cap / volume с CoinGecko, если их нет (после Binance fallback) */
+/** Подтянуть market_cap / volume, если их нет (после Binance fallback) */
 async function enrichCoinMarketData(coinId) {
   if (!coinId) return null;
+  let fresh = null;
   try {
-    const url =
-      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(coinId)}` +
-      `&price_change_percentage=24h&sparkline=false`;
-    const data = await fetchJsonWithRetry(url, 8000, 0);
-    if (!Array.isArray(data) || !data[0]) return null;
-    const fresh = data[0];
-    const idx = coins.findIndex(c => c.id === coinId);
-    if (idx >= 0) {
-      coins[idx] = {
-        ...coins[idx],
-        ...fresh,
-        // не затираем уже хорошую цену нулём
-        current_price: fresh.current_price || coins[idx].current_price,
-      };
-      try { saveMarketCache(coins); } catch (e) {}
-      return coins[idx];
-    }
-    return fresh;
-  } catch (e) {
-    return null;
+    const full = await fetchJsonWithRetry(
+      `${CF_PROXY_BASE}/api/markets?per_page=${PER_PAGE}&sparkline=false`,
+      12000, 0
+    );
+    if (Array.isArray(full)) fresh = full.find(c => c.id === coinId) || null;
+  } catch (e) {}
+  if (!fresh) {
+    try {
+      const data = await fetchJsonWithRetry(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(coinId)}&sparkline=false`,
+        8000, 0
+      );
+      if (Array.isArray(data) && data[0]) fresh = data[0];
+    } catch (e) {}
   }
+  if (!fresh) return null;
+  fresh = ensureCoinIcon(fresh);
+  const idx = coins.findIndex(c => c.id === coinId);
+  if (idx >= 0) {
+    coins[idx] = {
+      ...coins[idx],
+      ...fresh,
+      current_price: fresh.current_price || coins[idx].current_price,
+      image: coins[idx].image || fresh.image,
+    };
+    try { saveMarketCache(coins); } catch (e) {}
+    return coins[idx];
+  }
+  return fresh;
 }
 
 function applyMarketData(data, { fromCache } = {}) {
@@ -1218,74 +1235,91 @@ function mapBinanceToMarkets(tickers) {
       const base = t.symbol.replace(/USDT$/, "");
       const sym = base.toLowerCase();
       const cgId = BINANCE_TO_CG_ID[sym] || sym;
-      return {
+      const coin = {
         id: cgId,
         symbol: sym,
         name: base,
-        image: "",
+        image: `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${sym}.png`,
         current_price: Number(t.lastPrice) || 0,
-        market_cap: 0, // Binance не отдаёт mcap — подтянем отдельно при открытии монеты
+        market_cap: 0, // подтянем при открытии монеты / фоном
         total_volume: Number(t.quoteVolume) || 0,
         price_change_percentage_24h: Number(t.priceChangePercent) || 0,
         sparkline_in_7d: null,
         _source: "binance",
       };
+      return ensureCoinIcon(coin);
     });
+}
+
+// Worker-прокси (обходит 429 CoinGecko с телефона). Не относительный /api с GitHub Pages!
+const CF_PROXY_BASE = "https://cryptofood-app.jubirulja777.workers.dev";
+
+function normalizeMarketList(list) {
+  return (Array.isArray(list) ? list : []).map(c => ensureCoinIcon({ ...c }));
 }
 
 async function fetchMarketDirect(withSparkline) {
   const errors = [];
+  const spark = withSparkline ? "true" : "false";
 
-  // 1) CoinGecko напрямую (у большинства сетей РФ работает)
+  // 1) Cloudflare Worker proxy — надёжнее прямого CoinGecko (429)
   try {
-    const spark = withSparkline ? "true" : "false";
-    const url =
-      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc` +
-      `&per_page=${PER_PAGE}&page=1&price_change_percentage=24h&sparkline=${spark}`;
-    const data = await fetchJsonWithRetry(url, 10000, MARKET_RETRIES);
-    if (Array.isArray(data) && data.length) return { data, source: "coingecko" };
-  } catch (e) { errors.push("cg:" + (e && e.message)); }
+    const url = `${CF_PROXY_BASE}/api/markets?per_page=${PER_PAGE}&sparkline=${spark}`;
+    const data = await fetchJsonWithRetry(url, 12000, 0);
+    if (Array.isArray(data) && data.length) {
+      return { data: normalizeMarketList(data), source: "proxy" };
+    }
+  } catch (e) { errors.push("px:" + (e && e.message)); }
 
-  // 2) Binance 24h ticker
+  // 2) Binance — стабилен в РБ/СНГ, иконки с jsDelivr
   try {
-    const raw = await fetchJsonWithRetry("https://api.binance.com/api/v3/ticker/24hr", 10000, 1);
+    const raw = await fetchJsonWithRetry("https://api.binance.com/api/v3/ticker/24hr", 10000, 0);
     const data = mapBinanceToMarkets(raw);
     if (data.length) return { data, source: "binance" };
   } catch (e) { errors.push("bn:" + (e && e.message)); }
 
-  // 3) Cloudflare proxy (если задеплоено на workers/pages с /api)
+  // 3) CoinGecko напрямую (часто 429 — последний шанс)
   try {
-    const url = apiUrl("/api/markets", {
-      per_page: String(PER_PAGE),
-      sparkline: withSparkline ? "true" : "false",
-    });
-    const data = await fetchJsonWithRetry(url, 12000, 0);
-    if (Array.isArray(data) && data.length) return { data, source: "proxy" };
-  } catch (e) { errors.push("px:" + (e && e.message)); }
+    const url =
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc` +
+      `&per_page=${PER_PAGE}&page=1&price_change_percentage=24h&sparkline=${spark}`;
+    const data = await fetchJsonWithRetry(url, 8000, 0);
+    if (Array.isArray(data) && data.length) {
+      return { data: normalizeMarketList(data), source: "coingecko" };
+    }
+  } catch (e) { errors.push("cg:" + (e && e.message)); }
 
   throw new Error("all_sources_failed " + errors.join("; "));
 }
 
 async function fetchChartData(coinId, days) {
-  // CoinGecko chart
+  // 1) Worker proxy
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=${encodeURIComponent(days)}`;
-    const json = await fetchJsonWithRetry(url, 12000, CHART_RETRIES);
+    const json = await fetchJsonWithRetry(
+      `${CF_PROXY_BASE}/api/chart?id=${encodeURIComponent(coinId)}&days=${encodeURIComponent(days)}`,
+      12000, 0
+    );
     if (json && json.prices) return json;
   } catch (e) {}
 
-  // proxy fallback
+  // 2) CoinGecko direct
   try {
-    return await fetchJsonWithRetry(apiUrl("/api/chart", { id: coinId, days: String(days) }), 12000, 0);
+    const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=${encodeURIComponent(days)}`;
+    const json = await fetchJsonWithRetry(url, 10000, 0);
+    if (json && json.prices) return json;
   } catch (e) {}
 
-  // Binance klines fallback (only if id looks like a symbol)
+  // 3) Binance klines (id или symbol)
   try {
-    const sym = (coinId || "").toUpperCase().replace(/[^A-Z0-9]/g, "") + "USDT";
+    let base = (coinId || "").toLowerCase();
+    // reverse map cg id → symbol
+    const rev = Object.entries(BINANCE_TO_CG_ID).find(([, id]) => id === base);
+    if (rev) base = rev[0];
+    else if (ICON_ID_TO_SYM[base]) base = ICON_ID_TO_SYM[base];
+    const sym = base.toUpperCase().replace(/[^A-Z0-9]/g, "") + "USDT";
     const interval = Number(days) <= 1 ? "15m" : Number(days) <= 7 ? "1h" : Number(days) <= 30 ? "4h" : "1d";
-    const limit = 200;
-    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&limit=${limit}`;
-    const raw = await fetchJsonWithRetry(url, 10000, 1);
+    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&limit=200`;
+    const raw = await fetchJsonWithRetry(url, 10000, 0);
     if (Array.isArray(raw) && raw.length) {
       return { prices: raw.map(k => [k[0], Number(k[4])]) };
     }
