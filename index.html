@@ -1305,18 +1305,22 @@ async function fetchMarket() {
       console.log("market source:", source);
     }
 
-    // sparkline фоном (только CoinGecko)
+    // sparkline / market_cap фоном с CoinGecko (не блокируем UI)
     if (source === "binance") {
       setTimeout(async () => {
         try {
-          const rich = await fetchMarketDirect(true);
-          if (rich && rich.source === "coingecko" && Array.isArray(rich.data) && rich.data.length) {
-            coins = rich.data;
+          const url =
+            `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc` +
+            `&per_page=${PER_PAGE}&page=1&price_change_percentage=24h&sparkline=true`;
+          const data = await fetchJsonWithRetry(url, 8000, 0);
+          if (Array.isArray(data) && data.length) {
+            coins = normalizeMarketList(data);
             saveMarketCache(coins);
             renderAll();
             renderPopularCoins();
+            if (openCoinId) updateDetailHeader(openCoinId);
           }
-        } catch (e) { /* optional */ }
+        } catch (e) { /* CG optional */ }
       }, 800);
     }
 
