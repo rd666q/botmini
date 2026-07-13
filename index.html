@@ -473,6 +473,40 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+
+  .filters-toggle {
+    border: none; cursor: pointer;
+    background: var(--pill-bg); color: var(--text);
+    font-size: 11px; font-weight: 700;
+    padding: 5px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: background 0.2s ease, transform 0.15s ease, color 0.2s ease;
+  }
+  .filters-toggle:active { transform: scale(0.96); }
+  .filters-toggle.open, .filters-toggle.has-active {
+    background: rgba(45,127,249,0.14); color: #2d7ff9;
+  }
+  .filters-toggle svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .filters-panel {
+    display: none;
+    margin: 0 0 12px;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 28px var(--shadow);
+    animation: filterPanelIn 0.28s cubic-bezier(0.22,1,0.36,1) both;
+    overflow: hidden;
+  }
+  .filters-panel.open { display: block; }
+  @keyframes filterPanelIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .last-updated { gap: 8px; }
+  .last-updated .refresh-btn { margin-left: 0; }
+  .last-updated .filters-toggle { margin-left: auto; }
+
   .market-filters {
     margin-bottom: 12px;
   }
@@ -637,7 +671,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.7.0</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.8.0</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -655,10 +689,14 @@
     <div class="last-updated" id="last-updated">
       <span class="live-dot" id="live-dot"></span>
       <span id="last-updated-text">Обновление…</span>
+      <button type="button" class="filters-toggle" id="filters-toggle" title="Фильтры" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        Фильтры
+      </button>
       <button type="button" class="refresh-btn" id="refresh-btn" title="Обновить">↻ Обновить</button>
     </div>
 
-    <div class="market-filters">
+    <div class="filters-panel market-filters" id="filters-panel" hidden>
       <div class="market-filters-label">Сеть</div>
       <div class="market-filters-row" id="network-filters">
         <button type="button" class="filter-chip active" data-network="all">Все</button>
@@ -995,15 +1033,15 @@ const TIMEFRAMES = [
 ];
 
 // ---- настройки нагрузки и производительности ----
-const PER_PAGE = 60;
-const VISIBLE_LIMIT = 40;
-const REFRESH_BASE_MS = 18000;   // реже опрос — меньше 429
+const PER_PAGE = 40;
+const VISIBLE_LIMIT = 25;
+const REFRESH_BASE_MS = 25000;   // реже опрос — меньше 429
 const REFRESH_JITTER_MS = 5000;
 const MARKET_RETRIES = 0;        // 429/502 → сразу другой источник
 const CHART_RETRIES = 0;
-const MARKET_CACHE_KEY = "cf_market_cache_v4";
+const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.7.0";
+const APP_VERSION = "1.8.0";
 
 // Сброс кэша рынка при обновлении версии приложения
 (function migrateAppVersion() {
@@ -1470,22 +1508,7 @@ async function fetchMarket() {
     applyMarketData(data, { source });
     saveMarketCache(data);
     console.log("market source:", source);
-
-    // sparkline / market_cap фоном с CoinGecko
-    if (source === "binance") {
-      setTimeout(async () => {
-        try {
-          const url =
-            `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc` +
-            `&per_page=${PER_PAGE}&page=1&price_change_percentage=24h&sparkline=true`;
-          const data = await fetchJsonWithRetry(url, 8000, 0);
-          if (Array.isArray(data) && data.length) {
-            applyMarketData(normalizeMarketList(data), { source: "coingecko" });
-            saveMarketCache(coins);
-          }
-        } catch (e) { /* CG optional */ }
-      }, 800);
-    }
+    // sparklines не грузим сразу — быстрее первый рендер (график есть в деталях)
 
   } catch (e) {
     console.error("Ошибка загрузки рынка:", e);
@@ -1901,6 +1924,7 @@ function updatePopularCard(entry, coin) {
 }
 function renderPopularCoins() {
   const container = document.getElementById("popular-coins");
+  if (!container || container.style.display === "none") return; // топ скрыт — не тратим время
   const top6 = coins.slice(0, 6);
   const idsKey = top6.map(c => c.id).join(",");
 
@@ -2586,7 +2610,7 @@ const NETWORK_LABELS = {
 };
 
 function updateFilterActiveBar() {
-  // active pills removed with filters tab; keep no-op for compatibility
+  if (typeof window.refreshFiltersToggleState === "function") window.refreshFiltersToggleState();
 }
 
 function syncFilterUI() {
@@ -2598,6 +2622,45 @@ function syncFilterUI() {
   });
   updateFilterActiveBar();
 }
+
+
+// Кнопка «Фильтры» — раскрывает панель
+(function initFiltersToggle() {
+  const btn = document.getElementById("filters-toggle");
+  const panel = document.getElementById("filters-panel");
+  if (!btn || !panel) return;
+
+  function setOpen(open) {
+    panel.hidden = !open;
+    panel.classList.toggle("open", open);
+    btn.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      panel.style.animation = "none";
+      void panel.offsetWidth;
+      panel.style.animation = "";
+    }
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(panel.hidden);
+  });
+
+  // закрыть по клику вне
+  document.addEventListener("click", (e) => {
+    if (panel.hidden) return;
+    if (panel.contains(e.target) || btn.contains(e.target)) return;
+    setOpen(false);
+  });
+
+  // подсветка кнопки, если фильтры не дефолтные
+  window.refreshFiltersToggleState = function () {
+    const active = (currentNetworkFilter && currentNetworkFilter !== "all")
+      || (currentSort && currentSort !== "market_cap");
+    btn.classList.toggle("has-active", !!active);
+  };
+})();
 
 document.getElementById("network-filters").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-network]");
