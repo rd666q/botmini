@@ -426,6 +426,16 @@
     font-size: 13px; font-weight: 800; letter-spacing: 0.2px;
     color: var(--text); text-transform: none;
   }
+  .section-title-with-icon {
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .sec-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 7px;
+    background: rgba(45,127,249,0.12); color: #2d7ff9;
+    flex-shrink: 0;
+  }
+  .sec-icon svg { width: 14px; height: 14px; display: block; }
   .section-hint { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
 
 
@@ -875,7 +885,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.1</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.2</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -935,18 +945,13 @@
 
       <div class="dash-block" id="dash-trending">
         <div class="section-head">
-          <div class="section-title">🔥 В тренде</div>
+          <div class="section-title section-title-with-icon">
+            <span class="sec-icon" id="dash-trending-icon" aria-hidden="true"></span>
+            В тренде
+          </div>
           <div class="section-hint">по объёму</div>
         </div>
         <div class="h-rail" id="trending-rail"></div>
-      </div>
-
-      <div class="dash-block" id="dash-favs">
-        <div class="section-head">
-          <div class="section-title">⭐ Избранное</div>
-          <div class="section-hint">быстрый доступ</div>
-        </div>
-        <div class="h-rail" id="favs-rail"></div>
       </div>
 
       <button type="button" class="view-all-btn" id="view-all-coins">Все монеты →</button>
@@ -963,19 +968,15 @@
     </div>
   </div>
 
-  <div class="section" id="section-favorites">
-    <div class="portfolio-hero" id="portfolio-summary" style="display:none;">
-      <div class="portfolio-hero-label">Стоимость портфеля</div>
-      <div class="portfolio-hero-total" id="portfolio-total">$0</div>
-      <div class="portfolio-hero-pnl" id="portfolio-change"></div>
-      <div class="portfolio-hero-period" id="portfolio-fav-period">изменение за 24 часа</div>
-    </div>
-
+  <div class="section" id="section-trending">
     <div class="section-head">
-      <div class="section-title">Избранное</div>
-      <div class="section-hint">ваши монеты</div>
+      <div class="section-title section-title-with-icon">
+        <span class="sec-icon" id="trending-page-icon" aria-hidden="true"></span>
+        В тренде
+      </div>
+      <div class="section-hint">по объёму 24ч</div>
     </div>
-    <div id="favorites-list"></div>
+    <div id="trending-list"></div>
   </div>
 
   <!-- Вкладка "Мой портфель" -->
@@ -1011,9 +1012,9 @@
     <span class="icon" id="nav-icon-market"></span>
     <span class="nav-label" data-i18n="market">Рынок</span>
   </button>
-  <button class="nav-btn" data-tab="favorites">
-    <span class="icon" id="nav-icon-fav"></span>
-    <span class="nav-label" data-i18n="favorites">Избранное</span>
+  <button class="nav-btn" data-tab="trending">
+    <span class="icon" id="nav-icon-trending"></span>
+    <span class="nav-label" data-i18n="trending">В тренде</span>
   </button>
   <button class="nav-btn" data-tab="portfolio">
     <span class="icon" id="nav-icon-portfolio"></span>
@@ -1169,6 +1170,9 @@ const TON_TRANSFER_URL = "https://app.tonkeeper.com/transfer/" + TON_ADDRESS;
 
 const ICONS = {
   chart: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
+  // В тренде — стрелка вверх (единый stroke-стиль с остальными nav-иконками)
+  trending: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>`,
+  trendingSm: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>`,
   starOutline: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Outline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Filled: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
@@ -1183,11 +1187,15 @@ const ICONS = {
 
 document.getElementById("search-icon").innerHTML = ICONS.search;
 document.getElementById("nav-icon-market").innerHTML = ICONS.chart;
-document.getElementById("nav-icon-fav").innerHTML = ICONS.starOutline;
+document.getElementById("nav-icon-trending").innerHTML = ICONS.trending;
 document.getElementById("back-btn").innerHTML = ICONS.back;
 document.getElementById("donate-btn").innerHTML = ICONS.gem;
 document.getElementById("donate-icon-inline").innerHTML = ICONS.gem;
 document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
+const _dashTrIcon = document.getElementById("dash-trending-icon");
+if (_dashTrIcon) _dashTrIcon.innerHTML = ICONS.trendingSm;
+const _pageTrIcon = document.getElementById("trending-page-icon");
+if (_pageTrIcon) _pageTrIcon.innerHTML = ICONS.trendingSm;
 
 // Логотип из splash → шапка и empty-states
 const APP_LOGO_SRC = "logo.jpg";
@@ -1212,6 +1220,7 @@ function emptyStateHtml(title, desc, showBtn) {
 const I18N = {
   market: "Рынок",
   favorites: "Избранное",
+  trending: "В тренде",
   portfolio: "Мой портфель",
   searchPlaceholder: "Найти криптовалюту...",
   notFound: "Ничего не найдено",
@@ -1274,13 +1283,13 @@ const TIMEFRAMES = [
 // ---- настройки нагрузки и производительности ----
 const PER_PAGE = 40;
 const VISIBLE_LIMIT = 40;
-const REFRESH_BASE_MS = 25000;   // реже опрос — меньше 429
-const REFRESH_JITTER_MS = 5000;
+const REFRESH_BASE_MS = 8000;    // чаще обновляем цены
+const REFRESH_JITTER_MS = 2000;
 const MARKET_RETRIES = 0;        // 429/502 → сразу другой источник
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.1";
+const APP_VERSION = "1.9.2";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -1353,7 +1362,7 @@ function getHoldingAvgPrice(coinId) {
 
 // реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
 const marketCardRegistry = new Map();
-const favCardRegistry = new Map();
+const trendingCardRegistry = new Map();
 const popularCardRegistry = new Map();
 
 // Брендовые цвета + единый fallback — иконки выглядят «как из одного набора»
@@ -2476,12 +2485,8 @@ function buildCardEntry(coin) {
     localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
     renderAll();
   });
-  root.addEventListener("click", (e) => {
-    if (currentTab === "favorites") {
-      openPortfolioModal(entry.coinId);
-    } else {
-      openDetail(entry.coinId);
-    }
+  root.addEventListener("click", () => {
+    openDetail(entry.coinId);
   });
 
   return entry;
@@ -2848,21 +2853,23 @@ function renderMarketHero() {
   setPair("eth", "hero-eth-price", "hero-eth-chg");
 }
 
+function getTrendingCoins(limit) {
+  const lim = limit || 30;
+  return coins
+    .filter(c => !isStableCoin(c))
+    .slice()
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .slice(0, lim);
+}
+
 function renderDashboard() {
   if (shouldShowMarketList()) return;
   if (!coins.length) return;
   renderMarketHero();
   renderFeaturedCoins();
 
-  const nonStable = coins.filter(c => !isStableCoin(c));
-  const byVol = nonStable.slice().sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
-  const trending = byVol.slice(0, 8);
+  const trending = getTrendingCoins(8);
   fillRail(document.getElementById("trending-rail"), trending, "Нет данных");
-
-  const favCoins = coins.filter(c => favorites.has(c.id)).slice(0, 10);
-  const favBlock = document.getElementById("dash-favs");
-  if (favBlock) favBlock.style.display = favCoins.length ? "block" : "none";
-  fillRail(document.getElementById("favs-rail"), favCoins, "Добавь монеты ★ в списке");
 }
 
 function renderAll() {
@@ -2873,16 +2880,20 @@ function renderAll() {
   updateMarketLayout();
 
   // A: дашборд на главной
-  if (!shouldShowMarketList()) {
-    renderDashboard();
-  } else {
-    const marketList = document.getElementById("market-list");
-    reconcileList(marketList, marketCardRegistry, getVisibleMarketCoins(), prevPriceMap, t("notFound"));
+  if (currentTab === "market") {
+    if (!shouldShowMarketList()) {
+      renderDashboard();
+    } else {
+      const marketList = document.getElementById("market-list");
+      reconcileList(marketList, marketCardRegistry, getVisibleMarketCoins(), prevPriceMap, t("notFound"));
+    }
   }
 
-  const favList = document.getElementById("favorites-list");
-  const favCoins = coins.filter(c => favorites.has(c.id));
-  reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"), true);
+  // Вкладка «В тренде»
+  if (currentTab === "trending") {
+    const trList = document.getElementById("trending-list");
+    reconcileList(trList, trendingCardRegistry, getTrendingCoins(30), prevPriceMap, "Нет данных");
+  }
 
   // Обновляем summary портфолио
   updatePortfolioSummary();
@@ -3348,17 +3359,19 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     currentTab = btn.dataset.tab;
 
     document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
-    document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
+    const trSec = document.getElementById("section-trending");
+    if (trSec) trSec.classList.toggle("visible", currentTab === "trending");
     document.getElementById("section-portfolio").classList.toggle("visible", currentTab === "portfolio");
 
     if (currentTab === "market") {
       document.getElementById("page-title").textContent = "CryptoFood";
-    } else if (currentTab === "favorites") {
-      document.getElementById("page-title").textContent = t("favorites");
+    } else if (currentTab === "trending") {
+      document.getElementById("page-title").textContent = t("trending");
     } else if (currentTab === "portfolio") {
       document.getElementById("page-title").textContent = t("portfolio");
       renderPortfolioPage();
     }
+    renderAll();
   });
 });
 
@@ -3368,7 +3381,7 @@ function switchToMarketTab() {
   document.querySelector('.nav-btn[data-tab="market"]').classList.add("active");
 
   document.getElementById("section-market").classList.add("visible");
-  document.getElementById("section-favorites").classList.remove("visible");
+  const tr = document.getElementById("section-trending"); if (tr) tr.classList.remove("visible");
   const love = document.getElementById("section-love"); if (love) love.classList.remove("visible");
   const pf = document.getElementById("section-portfolio"); if (pf) pf.classList.remove("visible");
 
