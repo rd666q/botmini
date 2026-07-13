@@ -209,8 +209,23 @@
   .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .detail-header .icon-badge.lg { width: 48px; height: 48px; }
   .detail-icon { width: 62%; height: 62%; object-fit: contain; border-radius: 0; background: transparent; }
-  .detail-name { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+  .detail-title-row {
+    display: flex; align-items: center; gap: 8px; min-width: 0;
+  }
+  .detail-name { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; min-width: 0; }
   .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.4px; }
+  .detail-fav-btn {
+    background: none; border: none; cursor: pointer; padding: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #aaaaaa; flex-shrink: 0;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+  .detail-fav-btn:active { transform: scale(1.25); }
+  .detail-fav-btn.active { color: #2d7ff9; }
+  .detail-fav-btn svg { width: 22px; height: 22px; display: block; }
+  .detail-sticky { justify-content: space-between; }
+  .detail-sticky-right { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+  .detail-sticky .detail-fav-btn svg { width: 20px; height: 20px; }
 
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.8px; font-variant-numeric: tabular-nums; }
 
@@ -875,7 +890,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.1</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.2</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -1025,15 +1040,21 @@
 <div id="detail-screen">
   <div class="detail-sticky">
     <button class="back-btn" id="back-btn"></button>
-    <div style="min-width:0;">
+    <div style="min-width:0;flex:1;">
       <div class="detail-sticky-title" id="detail-sticky-name">Монета</div>
       <div class="detail-sticky-sub" id="detail-sticky-symbol"></div>
+    </div>
+    <div class="detail-sticky-right">
+      <button type="button" class="detail-fav-btn" id="detail-fav-sticky" title="В избранное" aria-label="В избранное"></button>
     </div>
   </div>
   <div class="detail-header">
     <span class="icon-badge lg"><img class="detail-icon coin-icon" id="detail-icon" src="" alt=""></span>
-    <div>
-      <div class="detail-name" id="detail-name"></div>
+    <div style="min-width:0;flex:1;">
+      <div class="detail-title-row">
+        <div class="detail-name" id="detail-name"></div>
+        <button type="button" class="detail-fav-btn" id="detail-fav-btn" title="В избранное" aria-label="В избранное"></button>
+      </div>
       <div class="detail-symbol" id="detail-symbol"></div>
     </div>
   </div>
@@ -1280,7 +1301,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.1";
+const APP_VERSION = "1.9.2";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -2941,6 +2962,33 @@ function renderTimeframeSelector() {
   });
 }
 
+function updateDetailFavButtons(coinId) {
+  const isFav = favorites.has(coinId);
+  ["detail-fav-btn", "detail-fav-sticky"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.classList.toggle("active", isFav);
+    btn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
+    btn.setAttribute("aria-pressed", isFav ? "true" : "false");
+    btn.title = isFav ? "Убрать из избранного" : "В избранное";
+  });
+}
+
+function toggleFavorite(coinId) {
+  if (!coinId) return;
+  if (favorites.has(coinId)) favorites.delete(coinId);
+  else favorites.add(coinId);
+  try { localStorage.setItem("fav_coins", JSON.stringify([...favorites])); } catch (e) {}
+  updateDetailFavButtons(coinId);
+  // обновить звёзды в списках
+  if (typeof renderAll === "function") renderAll();
+  try {
+    if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === "function") {
+      tg.HapticFeedback.impactOccurred("light");
+    }
+  } catch (e) {}
+}
+
 function updateDetailHeader(coinId) {
   const coin = coins.find(c => c.id === coinId);
   if (!coin) return;
@@ -2960,6 +3008,7 @@ function updateDetailHeader(coinId) {
   const stickySym = document.getElementById("detail-sticky-symbol");
   if (stickyName) stickyName.textContent = coin.name;
   if (stickySym) stickySym.textContent = coin.symbol;
+  updateDetailFavButtons(coinId);
 
   const priceEl = document.getElementById("detail-price");
   animateNumberText(priceEl, detailLastPrice, coin.current_price, 600, formatPrice);
@@ -2981,6 +3030,19 @@ function updateDetailHeader(coinId) {
     });
   }
 }
+
+// Звёздочка рядом с названием на экране монеты
+(function initDetailFavButtons() {
+  function onFavClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (openCoinId) toggleFavorite(openCoinId);
+  }
+  const mainBtn = document.getElementById("detail-fav-btn");
+  const stickyBtn = document.getElementById("detail-fav-sticky");
+  if (mainBtn) mainBtn.addEventListener("click", onFavClick);
+  if (stickyBtn) stickyBtn.addEventListener("click", onFavClick);
+})();
 
 function updatePerfCardFromChart() {
   const perfLabel = document.getElementById("perf-label");
