@@ -35,8 +35,17 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; transition: background 0.3s ease, color 0.3s ease; -webkit-font-smoothing: antialiased; height: 100%; }
+  /* смена темы — мгновенно (без transition на body: иначе лаг на всех карточках) */
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; -webkit-font-smoothing: antialiased; height: 100%; }
   html { height: 100%; overflow: hidden; }
+  /* на время applyTheme отключаем все transition/animation — главный фикс «зависания» */
+  html.theme-instant,
+  html.theme-instant *,
+  html.theme-instant *::before,
+  html.theme-instant *::after {
+    transition: none !important;
+    animation: none !important;
+  }
   #app {
     padding: 16px 0 0;
     height: 100vh; height: 100dvh;
@@ -74,7 +83,7 @@
   .search-box { display: flex; align-items: center; background: var(--card-bg); border-radius: 14px; padding: 10px 14px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 14px; color: var(--text-secondary); }
   .search-box input { border: none; outline: none; font-size: 15px; flex: 1; margin-left: 8px; background: transparent; color: var(--text); }
 
-  .coin-card { background: var(--card-bg); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px var(--shadow); border: 1px solid var(--card-border); margin-bottom: 10px; animation: slideIn 0.35s ease; cursor: pointer; transition: transform 0.15s ease, background 0.3s ease; }
+  .coin-card { background: var(--card-bg); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px var(--shadow); border: 1px solid var(--card-border); margin-bottom: 10px; animation: slideIn 0.35s ease; cursor: pointer; transition: transform 0.15s ease; }
   .coin-card:active { transform: scale(0.98); }
   @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -115,7 +124,7 @@
   .coin-symbol { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 500; letter-spacing: 0.3px; }
 
   .coin-mid { display: flex; flex-direction: column; align-items: flex-end; margin-right: 10px; gap: 4px; }
-  .coin-price { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; transition: color 0.4s ease; font-variant-numeric: tabular-nums; }
+  .coin-price { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
   .coin-change {
     font-size: 11px; font-weight: 700; margin-top: 0;
     font-variant-numeric: tabular-nums;
@@ -1586,7 +1595,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.11";
+const APP_VERSION = "1.9.12";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -1848,19 +1857,68 @@ function bindCoinIcon(img, coin, sizeClass) {
 }
 
 function computeThemeColors() {
-  const styles = getComputedStyle(document.documentElement);
-  themeColors.text = (styles.getPropertyValue("--text-secondary") || "#999").trim();
-  themeColors.bg = (styles.getPropertyValue("--card-bg") || "#ffffff").trim();
+  // тёмная/светлая — без getComputedStyle при каждом клике (дорого)
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  themeColors.text = dark ? "#888888" : "#9a9ea5";
+  themeColors.bg = dark ? "#0a0a0a" : "#ffffff";
 }
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  document.getElementById("theme-toggle").innerHTML = theme === "dark" ? ICONS.sun : ICONS.moon;
-  localStorage.setItem("theme", theme);
+
+let _themeFlipLock = false;
+
+function applyTheme(theme, opts) {
+  opts = opts || {};
+  const isDark = theme === "dark";
+  const root = document.documentElement;
+  const next = isDark ? "dark" : "light";
+
+  // мгновенный flip: без CSS-transition на всём дереве
+  root.classList.add("theme-instant");
+  root.setAttribute("data-theme", next);
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", isDark ? "#000000" : "#f4f5f7");
+
+  const btn = document.getElementById("theme-toggle");
+  if (btn) btn.innerHTML = isDark ? ICONS.sun : ICONS.moon;
+
+  try { localStorage.setItem("theme", next); } catch (e) {}
+
   computeThemeColors();
-  if (openCoinId) drawDetailChart(lastCrosshairIndex);
+
+  // тяжёлую перерисовку canvas — после paint
+  if (openCoinId && typeof drawDetailChart === "function" && !opts.skipChart) {
+    requestAnimationFrame(() => {
+      try { drawDetailChart(lastCrosshairIndex); } catch (e) {}
+    });
+  }
+
+  // вернуть transition на следующем кадре (после применения стилей)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.classList.remove("theme-instant");
+      _themeFlipLock = false;
+    });
+  });
 }
-applyTheme(localStorage.getItem("theme") || "light");
+
+// init: без лишних redraw (атрибут уже мог быть выставлен в <head>)
+(function initTheme() {
+  const saved = localStorage.getItem("theme") || "light";
+  const root = document.documentElement;
+  root.classList.add("theme-instant");
+  if (saved === "dark") root.setAttribute("data-theme", "dark");
+  else root.removeAttribute("data-theme");
+  const btn = document.getElementById("theme-toggle");
+  if (btn) btn.innerHTML = saved === "dark" ? ICONS.sun : ICONS.moon;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", saved === "dark" ? "#000000" : "#f4f5f7");
+  computeThemeColors();
+  requestAnimationFrame(() => root.classList.remove("theme-instant"));
+})();
+
 document.getElementById("theme-toggle").addEventListener("click", () => {
+  if (_themeFlipLock) return;
+  _themeFlipLock = true;
   const cur = document.documentElement.getAttribute("data-theme") || "light";
   applyTheme(cur === "dark" ? "light" : "dark");
 });
