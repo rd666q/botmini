@@ -1140,26 +1140,17 @@ function loadMarketCache() {
   } catch (e) { return null; }
 }
 
-/** Подтянуть market_cap / volume, если их нет (после Binance fallback) */
+/** Подтянуть market_cap / volume с CoinGecko, если их нет (после Binance) */
 async function enrichCoinMarketData(coinId) {
   if (!coinId) return null;
   let fresh = null;
   try {
-    const full = await fetchJsonWithRetry(
-      `${CF_PROXY_BASE}/api/markets?per_page=${PER_PAGE}&sparkline=false`,
-      12000, 0
+    const data = await fetchJsonWithRetry(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(coinId)}&sparkline=false`,
+      8000, 0
     );
-    if (Array.isArray(full)) fresh = full.find(c => c.id === coinId) || null;
+    if (Array.isArray(data) && data[0]) fresh = data[0];
   } catch (e) {}
-  if (!fresh) {
-    try {
-      const data = await fetchJsonWithRetry(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(coinId)}&sparkline=false`,
-        8000, 0
-      );
-      if (Array.isArray(data) && data[0]) fresh = data[0];
-    } catch (e) {}
-  }
   if (!fresh) return null;
   fresh = ensureCoinIcon(fresh);
   const idx = coins.findIndex(c => c.id === coinId);
@@ -1206,13 +1197,6 @@ function showMarketError(msg) {
   if (typeof hideSplash === "function") hideSplash();
 }
 
-// Источники рынка: прямой CoinGecko → Binance → (опционально) локальный /api proxy
-function apiUrl(path, params) {
-  const q = new URLSearchParams(params || {});
-  const qs = q.toString();
-  return qs ? `${path}?${qs}` : path;
-}
-
 // Символ → id CoinGecko (чтобы капитализация/графики не ломались на fallback)
 const BINANCE_TO_CG_ID = {
   btc: "bitcoin", eth: "ethereum", bnb: "binancecoin", sol: "solana", xrp: "ripple",
@@ -1251,34 +1235,23 @@ function mapBinanceToMarkets(tickers) {
     });
 }
 
-// Worker-прокси (обходит 429 CoinGecko с телефона). Не относительный /api с GitHub Pages!
-const CF_PROXY_BASE = "https://cryptofood-app.jubirulja777.workers.dev";
-
 function normalizeMarketList(list) {
   return (Array.isArray(list) ? list : []).map(c => ensureCoinIcon({ ...c }));
 }
 
+// Только прямые API: Binance (стабильно) → CoinGecko (если доступен)
 async function fetchMarketDirect(withSparkline) {
   const errors = [];
   const spark = withSparkline ? "true" : "false";
 
-  // 1) Cloudflare Worker proxy — надёжнее прямого CoinGecko (429)
-  try {
-    const url = `${CF_PROXY_BASE}/api/markets?per_page=${PER_PAGE}&sparkline=${spark}`;
-    const data = await fetchJsonWithRetry(url, 12000, 0);
-    if (Array.isArray(data) && data.length) {
-      return { data: normalizeMarketList(data), source: "proxy" };
-    }
-  } catch (e) { errors.push("px:" + (e && e.message)); }
-
-  // 2) Binance — стабилен в РБ/СНГ, иконки с jsDelivr
+  // 1) Binance — стабилен в РБ/СНГ, иконки с jsDelivr
   try {
     const raw = await fetchJsonWithRetry("https://api.binance.com/api/v3/ticker/24hr", 10000, 0);
     const data = mapBinanceToMarkets(raw);
     if (data.length) return { data, source: "binance" };
   } catch (e) { errors.push("bn:" + (e && e.message)); }
 
-  // 3) CoinGecko напрямую (часто 429 — последний шанс)
+  // 2) CoinGecko (капитализация/sparkline; иногда 429)
   try {
     const url =
       `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc` +
@@ -1293,26 +1266,16 @@ async function fetchMarketDirect(withSparkline) {
 }
 
 async function fetchChartData(coinId, days) {
-  // 1) Worker proxy
-  try {
-    const json = await fetchJsonWithRetry(
-      `${CF_PROXY_BASE}/api/chart?id=${encodeURIComponent(coinId)}&days=${encodeURIComponent(days)}`,
-      12000, 0
-    );
-    if (json && json.prices) return json;
-  } catch (e) {}
-
-  // 2) CoinGecko direct
+  // 1) CoinGecko
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=${encodeURIComponent(days)}`;
     const json = await fetchJsonWithRetry(url, 10000, 0);
     if (json && json.prices) return json;
   } catch (e) {}
 
-  // 3) Binance klines (id или symbol)
+  // 2) Binance klines
   try {
     let base = (coinId || "").toLowerCase();
-    // reverse map cg id → symbol
     const rev = Object.entries(BINANCE_TO_CG_ID).find(([, id]) => id === base);
     if (rev) base = rev[0];
     else if (ICON_ID_TO_SYM[base]) base = ICON_ID_TO_SYM[base];
@@ -1342,19 +1305,19 @@ async function fetchMarket() {
       console.log("market source:", source);
     }
 
-    // sparkline фоном (только CoinGecko умеет sparkline)
-    if (source === "coingecko" || source === "proxy") {
+    // sparkline фоном (только CoinGecko)
+    if (source === "binance") {
       setTimeout(async () => {
         try {
           const rich = await fetchMarketDirect(true);
-          if (rich && Array.isArray(rich.data) && rich.data.length && rich.data[0].sparkline_in_7d) {
+          if (rich && rich.source === "coingecko" && Array.isArray(rich.data) && rich.data.length) {
             coins = rich.data;
             saveMarketCache(coins);
             renderAll();
             renderPopularCoins();
           }
         } catch (e) { /* optional */ }
-      }, 600);
+      }, 800);
     }
 
   } catch (e) {
