@@ -1058,7 +1058,6 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.7</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -1078,8 +1077,6 @@
     </div>
 
     <div class="last-updated" id="last-updated">
-      <span class="live-dot" id="live-dot"></span>
-      <span id="last-updated-text">Обновление…</span>
       <button type="button" class="refresh-btn" id="refresh-btn" title="Обновить">↻ Обновить</button>
     </div>
 
@@ -1090,7 +1087,6 @@
       <div class="mkt-hero mood-mixed" id="mkt-hero">
         <div class="mkt-hero-top">
           <div class="mkt-hero-label">Рынок сегодня</div>
-          <div class="mkt-hero-mood" id="mkt-hero-mood">—</div>
         </div>
         <div class="mkt-hero-pair" id="mkt-hero-pair">
           <div class="mkt-hero-coin" data-pin="btc">
@@ -1116,7 +1112,6 @@
 
       <div class="section-head" style="margin-top:2px;">
         <div class="section-title">Главные</div>
-        <div class="section-hint">BTC · ETH · SOL</div>
       </div>
       <div class="featured-stack" id="featured-coins"></div>
 
@@ -1484,7 +1479,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.7";
+const APP_VERSION = "1.9.8";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -1990,18 +1985,11 @@ function applyMarketData(data, { fromCache, source } = {}) {
   renderPopularCoins();
   if (typeof hideSplash === "function") hideSplash();
   if (!fromCache) updateLastUpdated();
-  else {
-    const textEl = document.getElementById("last-updated-text");
-    if (textEl) textEl.textContent = "Кэш · обновляем…";
-    const dotEl = document.getElementById("live-dot");
-    if (dotEl) dotEl.classList.add("stale");
-  }
   if (openCoinId) updateDetailHeader(openCoinId);
 }
 
 function showMarketError(msg) {
-  const el = document.getElementById("last-updated-text");
-  if (el) el.textContent = msg || "Не удалось загрузить рынок. Потяните вниз для обновления";
+  console.warn("market error:", msg || "load failed");
   const list = document.getElementById("market-list");
   if (list && !coins.length) {
     list.innerHTML = emptyStateHtml(
@@ -2252,29 +2240,8 @@ async function fetchMarket() {
 
 function updateLastUpdated() {
   lastUpdated = Date.now();
-  refreshLastUpdatedText();
 }
-
-function refreshLastUpdatedText() {
-  const textEl = document.getElementById("last-updated-text");
-  const dotEl = document.getElementById("live-dot");
-  if (!textEl) return;
-
-  const diff = Math.floor((Date.now() - lastUpdated) / 1000);
-  let text;
-  if (diff < 10) {
-    text = t("updatedJustNow");
-  } else if (diff < 60) {
-    text = diff + " " + t("updatedSecAgo");
-  } else {
-    text = Math.floor(diff / 60) + " " + t("updatedMinAgo");
-  }
-  textEl.textContent = t("updatedPrefix") + text;
-  if (dotEl) {
-    dotEl.classList.toggle("stale", diff >= 30);
-  }
-}
-setInterval(refreshLastUpdatedText, 1000);
+function refreshLastUpdatedText() { /* статус «Обновлено…» убран из UI */ }
 
 // === Функции портфолио ===
 function savePortfolio() {
@@ -3133,21 +3100,16 @@ function renderFeaturedCoins() {
 
 function renderMarketHero() {
   const hero = document.getElementById("mkt-hero");
-  const moodEl = document.getElementById("mkt-hero-mood");
-  if (!hero || !moodEl) return;
+  if (!hero) return;
 
+  // лёгкий фон по настроению рынка — без текстового бейджа
   const pool = coins.filter(c => !isStableCoin(c));
   const upN = pool.filter(c => (c.price_change_percentage_24h || 0) >= 0).length;
   const ratio = pool.length ? upN / pool.length : 0.5;
   let moodClass = "mixed";
-  let moodText = "Смешанный";
-  if (ratio >= 0.58) { moodClass = "up"; moodText = "🚀 Рост"; }
-  else if (ratio <= 0.42) { moodClass = "down"; moodText = "⚠️ Падение"; }
-  else { moodText = "⚖️ Смешанный"; }
-
-  hero.className = "mkt-hero mood-" + (moodClass === "mixed" ? "mixed" : moodClass);
-  moodEl.className = "mkt-hero-mood " + (moodClass === "mixed" ? "" : moodClass);
-  moodEl.textContent = moodText;
+  if (ratio >= 0.58) moodClass = "up";
+  else if (ratio <= 0.42) moodClass = "down";
+  hero.className = "mkt-hero mood-" + moodClass;
 
   const setPair = (sym, priceId, chgId) => {
     const c = findCoinBySymOrId(sym);
