@@ -153,9 +153,35 @@
   @keyframes flashUp { 0% { background: rgba(46,204,113,0.15); } 100% { background: transparent; } }
   @keyframes flashDown { 0% { background: rgba(231,76,60,0.15); } 100% { background: transparent; } }
 
-  .star-btn { background: none; border: none; cursor: pointer; margin-left: 8px; transition: transform 0.2s ease; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .star-btn { background: none; border: none; cursor: pointer; margin-left: 6px; transition: transform 0.2s ease; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .star-btn:active { transform: scale(1.4); }
   .star-active { color: #2d7ff9; } .star-inactive { color: #aaaaaa; }
+
+  /* Кнопка «в портфель» (избранное) */
+  .portfolio-add-btn {
+    flex-shrink: 0;
+    border: none;
+    cursor: pointer;
+    margin-left: 4px;
+    min-width: 34px; height: 34px;
+    padding: 0 8px;
+    border-radius: 10px;
+    background: rgba(45, 127, 249, 0.12);
+    color: #2d7ff9;
+    font-size: 11px; font-weight: 800;
+    display: none;
+    align-items: center; justify-content: center;
+    gap: 2px;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .portfolio-add-btn:active { transform: scale(0.92); }
+  .portfolio-add-btn.has-holding {
+    background: rgba(46, 204, 113, 0.14);
+    color: #27ae60;
+  }
+  .coin-card.show-portfolio-btn .portfolio-add-btn { display: inline-flex; }
+  .coin-card.show-portfolio-btn .coin-sparkline { width: 56px; }
+  .coin-card.show-portfolio-btn .coin-sparkline canvas { width: 56px; }
 
   .empty-state { text-align: center; color: var(--text-secondary); font-size: 14px; padding: 48px 20px; }
   .empty-logo {
@@ -1669,9 +1695,11 @@ const I18N = {
   save: "Сохранить",
   amount: "Количество",
   portfolioEmpty: "Портфель пуст.",
-  portfolioEmptyDesc: "Добавляй монеты через вкладку «Избранное».",
-  favoritesEmptyDesc: "Добавляй монеты из вкладки «Рынок», чтобы отслеживать их здесь",
+  portfolioEmptyDesc: "В «Избранном» нажми «+» у монеты, чтобы добавить в портфель.",
+  favoritesEmptyDesc: "Добавь монеты из «Рынок» (★). Тап — график, «+» — в портфель.",
   goToMarket: "Перейти в Рынок",
+  addToPortfolio: "В портфель",
+  editPortfolio: "Портфель",
   updatedJustNow: "только что",
   updatedMinAgo: "мин назад",
   updatedSecAgo: "сек назад",
@@ -1713,7 +1741,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.14";
+const APP_VERSION = "1.9.15";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -3090,7 +3118,8 @@ function buildCardEntry(coin) {
       <div class="coin-change"></div>
     </div>
     <div class="coin-sparkline"><canvas></canvas></div>
-    <button class="star-btn"></button>
+    <button type="button" class="portfolio-add-btn" title="В портфель" aria-label="В портфель">+</button>
+    <button type="button" class="star-btn"></button>
   `;
   const entry = {
     root,
@@ -3100,6 +3129,7 @@ function buildCardEntry(coin) {
     priceEl: root.querySelector(".coin-price"),
     changeEl: root.querySelector(".coin-change"),
     starBtn: root.querySelector(".star-btn"),
+    portfolioBtn: root.querySelector(".portfolio-add-btn"),
     sparklineCanvas: root.querySelector(".coin-sparkline canvas"),
     iconImg: root.querySelector(".coin-icon"),
     coinId: coin.id,
@@ -3114,12 +3144,17 @@ function buildCardEntry(coin) {
     localStorage.setItem("fav_coins", JSON.stringify([...favorites]));
     renderAll();
   });
+
+  // «+» / портфель — добавить или изменить позицию
+  entry.portfolioBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openPortfolioModal(entry.coinId);
+  });
+
+  // тап по карточке — всегда график (и из Избранного, и с Рынка)
   root.addEventListener("click", (e) => {
-    if (currentTab === "favorites") {
-      openPortfolioModal(entry.coinId);
-    } else {
-      openDetail(entry.coinId);
-    }
+    if (e.target.closest(".star-btn, .portfolio-add-btn")) return;
+    openDetail(entry.coinId);
   });
 
   return entry;
@@ -3139,19 +3174,36 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   entry.root.classList.toggle("tint-up", isUp);
   entry.root.classList.toggle("tint-down", !isUp);
 
+  // на вкладке «Избранное» показываем кнопку портфеля
+  const onFavs = currentTab === "favorites";
+  entry.root.classList.toggle("show-portfolio-btn", onFavs);
+
   const isFav = favorites.has(coin.id);
   entry.starBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
   entry.starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
 
-  // Мини-спарклайн (реальный или синтетический, с заливкой)
+  // Мини-спарклайн
   const spark = getSparkPrices(coin);
   if (entry.sparklineCanvas && spark && spark.length > 2) {
-    drawMiniSparkline(entry.sparklineCanvas, spark, isUp, { w: 76, h: 36 });
+    const sparkW = onFavs ? 56 : 76;
+    drawMiniSparkline(entry.sparklineCanvas, spark, isUp, { w: sparkW, h: 36 });
   }
 
-  // === Портфолио: holdings + PnL ===
+  // === Портфолио: holdings + PnL + кнопка ===
+  const amount = getHoldingAmount(coin.id);
+  if (entry.portfolioBtn) {
+    if (amount > 0) {
+      entry.portfolioBtn.textContent = "✎";
+      entry.portfolioBtn.title = t("editPortfolio") || "Изменить в портфеле";
+      entry.portfolioBtn.classList.add("has-holding");
+    } else {
+      entry.portfolioBtn.textContent = "+";
+      entry.portfolioBtn.title = t("addToPortfolio") || "В портфель";
+      entry.portfolioBtn.classList.remove("has-holding");
+    }
+  }
+
   if (entry.holdingsInfoEl) {
-    const amount = getHoldingAmount(coin.id);
     if (amount > 0) {
       const holdingsValue = amount * coin.current_price;
       const avg = getHoldingAvgPrice(coin.id);
@@ -3171,7 +3223,7 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   const prevPrice = prevPriceMap[coin.id];
   entry.root.classList.remove("flash-up", "flash-down");
   if (prevPrice !== undefined && coin.current_price !== prevPrice) {
-    void entry.root.offsetWidth; // форсируем перезапуск CSS-анимации
+    void entry.root.offsetWidth;
     entry.root.classList.add(coin.current_price > prevPrice ? "flash-up" : "flash-down");
   }
 }
