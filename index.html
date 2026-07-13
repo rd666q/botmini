@@ -35,11 +35,21 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; transition: background 0.3s ease, color 0.3s ease; -webkit-font-smoothing: antialiased; }
-  #app { padding: 16px 16px 90px; min-height: 100vh; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; transition: background 0.3s ease, color 0.3s ease; -webkit-font-smoothing: antialiased; height: 100%; }
+  html { height: 100%; overflow: hidden; }
+  #app {
+    padding: 16px 0 0;
+    height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
   .icon { display: inline-flex; align-items: center; justify-content: center; }
 
-  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; }
+  .top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; gap: 10px; flex-shrink: 0;
+    padding: 0 16px;
+  }
   .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
   .brand-logo {
     width: 36px; height: 36px; border-radius: 10px; object-fit: contain;
@@ -180,16 +190,143 @@
   .market-loading-rows { margin-top: 18px; }
   .market-loading-rows .skeleton { opacity: 0.55; height: 58px; }
 
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); display: flex; box-shadow: 0 -2px 12px var(--nav-shadow); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 10; transition: background 0.3s ease; }
-  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; font-size: 11px; font-weight: 600; color: #b0b3b8; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; position: relative; }
-  .nav-btn.active { color: var(--accent); transform: translateY(-2px); }
-  .nav-btn.active::after {
-    content: ""; position: absolute; bottom: -6px; width: 16px; height: 3px;
-    border-radius: 99px; background: var(--accent);
+  /* === Swipe pages === */
+  .pages-viewport {
+    flex: 1; min-height: 0;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    touch-action: pan-y;
   }
-
-  .section { display: none; } .section.visible { display: block; animation: fadeIn 0.3s ease; }
+  .pages-track {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    will-change: transform;
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .pages-track.is-dragging {
+    transition: none;
+  }
+  .section.page {
+    display: block !important;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: 0 16px calc(108px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .section { display: none; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* === iOS liquid glass bottom nav === */
+  .bottom-nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0 18px calc(10px + env(safe-area-inset-bottom));
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.3s ease;
+  }
+  .bottom-nav.is-hidden {
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+  }
+  .nav-glass {
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 400px;
+    padding: 5px;
+    border-radius: 999px;
+    /* liquid glass */
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow:
+      0 10px 40px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="dark"] .nav-glass {
+    background: rgba(22, 22, 24, 0.52);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.45),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -0.5px 0 rgba(0, 0, 0, 0.35);
+  }
+  .nav-indicator {
+    position: absolute;
+    top: 5px; bottom: 5px; left: 5px;
+    width: calc((100% - 10px) / 3);
+    border-radius: 999px;
+    background: rgba(45, 127, 249, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(45, 127, 249, 0.18);
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 0;
+    pointer-events: none;
+  }
+  [data-theme="dark"] .nav-indicator {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: -0.1px;
+    color: #8e8e93;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    padding: 9px 4px 8px;
+    border-radius: 999px;
+    transition: color 0.25s ease, transform 0.2s ease;
+  }
+  .nav-btn .icon { width: 22px; height: 22px; }
+  .nav-btn .icon svg { width: 21px; height: 21px; }
+  .nav-btn:active { transform: scale(0.94); }
+  .nav-btn.active {
+    color: #2d7ff9;
+    transform: none;
+  }
+  [data-theme="dark"] .nav-btn.active {
+    color: #ffffff;
+  }
+  .nav-btn.active::after { display: none; content: none; }
+  .nav-label {
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
+  }
 
   #detail-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 20; padding: 0 16px 24px; display: none; overflow-y: auto; animation: slideUp 0.3s ease; }
   #detail-screen.visible { display: block; }
@@ -901,7 +1038,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.4</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.5</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -910,7 +1047,10 @@
     </div>
   </div>
 
-  <div class="section visible" id="section-market">
+  <div class="pages-viewport" id="pages-viewport">
+  <div class="pages-track" id="pages-track">
+
+  <div class="section page visible" id="section-market">
     <div class="search-box">
       <span class="icon" id="search-icon"></span>
       <input type="text" id="search-input" placeholder="Найти криптовалюту...">
@@ -1030,21 +1170,27 @@
     </div>
     <div id="portfolio-holdings-list"></div>
   </div>
+
+  </div><!-- /.pages-track -->
+  </div><!-- /.pages-viewport -->
 </div>
 
 <div class="bottom-nav" id="bottom-nav">
-  <button class="nav-btn active" data-tab="market">
-    <span class="icon" id="nav-icon-market"></span>
-    <span class="nav-label" data-i18n="market">Рынок</span>
-  </button>
-  <button class="nav-btn" data-tab="favorites">
-    <span class="icon" id="nav-icon-fav"></span>
-    <span class="nav-label" data-i18n="favorites">Избранное</span>
-  </button>
-  <button class="nav-btn" data-tab="portfolio">
-    <span class="icon" id="nav-icon-portfolio"></span>
-    <span class="nav-label" data-i18n="portfolio">Мой портфель</span>
-  </button>
+  <div class="nav-glass" id="nav-glass">
+    <div class="nav-indicator" id="nav-indicator" aria-hidden="true"></div>
+    <button class="nav-btn active" data-tab="market" data-index="0">
+      <span class="icon" id="nav-icon-market"></span>
+      <span class="nav-label" data-i18n="market">Рынок</span>
+    </button>
+    <button class="nav-btn" data-tab="favorites" data-index="1">
+      <span class="icon" id="nav-icon-fav"></span>
+      <span class="nav-label" data-i18n="favorites">Избранное</span>
+    </button>
+    <button class="nav-btn" data-tab="portfolio" data-index="2">
+      <span class="icon" id="nav-icon-portfolio"></span>
+      <span class="nav-label" data-i18n="portfolio">Мой портфель</span>
+    </button>
+  </div>
 </div>
 
 <!-- экран деталей монеты -->
@@ -1311,7 +1457,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.4";
+const APP_VERSION = "1.9.5";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -3020,12 +3166,14 @@ function openDetail(coinId) {
   renderTimeframeSelector();
   loadAndDrawChart(coinId, selectedTf, true);
   document.getElementById("detail-screen").classList.add("visible");
-  document.getElementById("bottom-nav").style.display = "none";
+  const bn = document.getElementById("bottom-nav");
+  if (bn) { bn.classList.add("is-hidden"); bn.style.display = "none"; }
 }
 function closeDetail() {
   openCoinId = null;
   document.getElementById("detail-screen").classList.remove("visible");
-  document.getElementById("bottom-nav").style.display = "flex";
+  const bn = document.getElementById("bottom-nav");
+  if (bn) { bn.classList.remove("is-hidden"); bn.style.display = "flex"; }
 }
 document.getElementById("back-btn").addEventListener("click", closeDetail);
 
@@ -3496,40 +3644,194 @@ const NETWORK_LABELS = {
 function updateFilterActiveBar() { /* фильтры убраны */ }
 function syncFilterUI() { /* фильтры убраны — чипы на дашборде */ }
 
+// === Tabs: liquid glass + swipe ===
+const TAB_ORDER = ["market", "favorites", "portfolio"];
+let tabIndex = 0;
+let swipeLock = false;
+
+function tabIndexOf(name) {
+  const i = TAB_ORDER.indexOf(name);
+  return i >= 0 ? i : 0;
+}
+
+function getPageWidth() {
+  const viewport = document.getElementById("pages-viewport");
+  return (viewport && viewport.clientWidth) || window.innerWidth || 1;
+}
+
+function applyTrackTransform(index, withAnim, dragPx) {
+  const track = document.getElementById("pages-track");
+  if (!track) return;
+  if (!withAnim) track.classList.add("is-dragging");
+  else track.classList.remove("is-dragging");
+  const w = getPageWidth();
+  const extra = typeof dragPx === "number" ? dragPx : 0;
+  // px: % от track давал бы неверный сдвиг (track шире viewport)
+  track.style.transform = "translate3d(" + ((-index * w) + extra) + "px, 0, 0)";
+  if (!withAnim) void track.offsetWidth;
+}
+
+function updateNavUI(index) {
+  document.querySelectorAll(".nav-btn").forEach((b, i) => {
+    b.classList.toggle("active", i === index);
+  });
+  const indicator = document.getElementById("nav-indicator");
+  if (indicator) {
+    indicator.style.transform = "translate3d(" + (index * 100) + "%, 0, 0)";
+  }
+}
+
+function switchTab(tabName, opts) {
+  opts = opts || {};
+  const animate = opts.animate !== false;
+  const idx = typeof opts.index === "number" ? opts.index : tabIndexOf(tabName);
+  const clamped = Math.max(0, Math.min(TAB_ORDER.length - 1, idx));
+  tabIndex = clamped;
+  currentTab = TAB_ORDER[clamped];
+
+  applyTrackTransform(clamped, animate);
+  updateNavUI(clamped);
+
+  if (currentTab === "market") {
+    document.getElementById("page-title").textContent = "CryptoFood";
+  } else if (currentTab === "favorites") {
+    document.getElementById("page-title").textContent = t("favorites");
+  } else if (currentTab === "portfolio") {
+    document.getElementById("page-title").textContent = t("portfolio");
+    renderPortfolioPage();
+  }
+
+  // refresh lists for the visible tab
+  if (typeof renderAll === "function") {
+    try { renderAll(); } catch (e) {}
+  }
+}
+
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentTab = btn.dataset.tab;
-
-    document.getElementById("section-market").classList.toggle("visible", currentTab === "market");
-    document.getElementById("section-favorites").classList.toggle("visible", currentTab === "favorites");
-    document.getElementById("section-portfolio").classList.toggle("visible", currentTab === "portfolio");
-
-    if (currentTab === "market") {
-      document.getElementById("page-title").textContent = "CryptoFood";
-    } else if (currentTab === "favorites") {
-      document.getElementById("page-title").textContent = t("favorites");
-    } else if (currentTab === "portfolio") {
-      document.getElementById("page-title").textContent = t("portfolio");
-      renderPortfolioPage();
-    }
+    if (swipeLock) return;
+    switchTab(btn.dataset.tab, { animate: true });
   });
 });
 
+// Horizontal swipe between sections
+(function initTabSwipe() {
+  const viewport = document.getElementById("pages-viewport");
+  const track = document.getElementById("pages-track");
+  if (!viewport || !track) return;
+
+  let startX = 0, startY = 0, lastX = 0;
+  let active = false;
+  let decided = false; // axis locked
+  let horizontal = false;
+  let startIndex = 0;
+  const EDGE = 0.22; // fraction of width to commit page
+
+  function ignoreTarget(el) {
+    if (!el || !el.closest) return false;
+    if (el.closest("input, textarea, select, .h-rail, .market-filters-row, .timeframe-selector, .quick-chips")) return true;
+    return false;
+  }
+
+  function onStart(x, y, target) {
+    if (openCoinId) return;
+    if (ignoreTarget(target)) return;
+    active = true;
+    decided = false;
+    horizontal = false;
+    startX = lastX = x;
+    startY = y;
+    startIndex = tabIndex;
+    track.classList.add("is-dragging");
+  }
+
+  function onMove(x, y) {
+    if (!active) return;
+    const dx = x - startX;
+    const dy = y - startY;
+    lastX = x;
+
+    if (!decided) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      decided = true;
+      horizontal = Math.abs(dx) > Math.abs(dy) * 1.15;
+      if (!horizontal) {
+        active = false;
+        track.classList.remove("is-dragging");
+        applyTrackTransform(tabIndex, true);
+        return;
+      }
+    }
+    if (!horizontal) return;
+
+    let offset = dx;
+    if ((startIndex === 0 && dx > 0) || (startIndex === TAB_ORDER.length - 1 && dx < 0)) {
+      offset = dx * 0.32;
+    }
+    applyTrackTransform(startIndex, false, offset);
+  }
+
+  function onEnd() {
+    if (!active) return;
+    active = false;
+    track.classList.remove("is-dragging");
+    if (!horizontal) {
+      applyTrackTransform(tabIndex, true);
+      return;
+    }
+    const dx = lastX - startX;
+    const w = getPageWidth();
+    let next = startIndex;
+    if (dx <= -Math.max(48, w * EDGE)) next = startIndex + 1;
+    else if (dx >= Math.max(48, w * EDGE)) next = startIndex - 1;
+    next = Math.max(0, Math.min(TAB_ORDER.length - 1, next));
+    swipeLock = true;
+    switchTab(TAB_ORDER[next], { index: next, animate: true });
+    setTimeout(() => { swipeLock = false; }, 420);
+  }
+
+  viewport.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+  }, { passive: true });
+
+  viewport.addEventListener("touchmove", (e) => {
+    if (!active || e.touches.length !== 1) return;
+    onMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  viewport.addEventListener("touchend", onEnd, { passive: true });
+  viewport.addEventListener("touchcancel", onEnd, { passive: true });
+
+  let mouseDown = false;
+  viewport.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    mouseDown = true;
+    onStart(e.clientX, e.clientY, e.target);
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!mouseDown) return;
+    onMove(e.clientX, e.clientY);
+  });
+  window.addEventListener("mouseup", () => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    onEnd();
+  });
+
+  window.addEventListener("resize", () => {
+    applyTrackTransform(tabIndex, false);
+  });
+})();
+
 // Запуск
 function switchToMarketTab() {
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-  document.querySelector('.nav-btn[data-tab="market"]').classList.add("active");
-
-  document.getElementById("section-market").classList.add("visible");
-  document.getElementById("section-favorites").classList.remove("visible");
-  const love = document.getElementById("section-love"); if (love) love.classList.remove("visible");
-  const pf = document.getElementById("section-portfolio"); if (pf) pf.classList.remove("visible");
-
-  currentTab = "market";
-  document.getElementById("page-title").textContent = "CryptoFood";
+  switchTab("market", { animate: true });
 }
+
+// initial track position
+applyTrackTransform(0, false);
+updateNavUI(0);
 
 function showMarketLoading() {
   const marketList = document.getElementById("market-list");
