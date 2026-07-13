@@ -379,8 +379,28 @@
   }
   .section-hint { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
 
+
+  .src-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--pill-bg); color: var(--text-secondary);
+    text-transform: uppercase; margin-left: 4px;
+  }
+  .src-badge.binance { color: #f0b90b; background: rgba(240,185,11,0.12); }
+  .src-badge.coingecko { color: #8dc647; background: rgba(141,198,71,0.14); }
+  .src-badge.cache { color: #888; }
+  .refresh-btn {
+    margin-left: auto; border: none; cursor: pointer;
+    background: var(--pill-bg); color: var(--text); font-size: 11px; font-weight: 700;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .refresh-btn:active { transform: scale(0.96); }
+  .refresh-btn.busy { opacity: 0.6; pointer-events: none; }
+  .holding-pnl { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .holding-meta { font-size: 11px; color: var(--text-secondary); }
+
   .last-updated {
-    display: flex; align-items: center; gap: 7px;
+    display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
     font-size: 11px; color: var(--text-secondary); font-weight: 500;
     margin-bottom: 10px; padding-left: 2px; min-height: 16px;
     font-variant-numeric: tabular-nums;
@@ -516,7 +536,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov</div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.5.0</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -549,6 +569,8 @@
     <div class="last-updated" id="last-updated">
       <span class="live-dot" id="live-dot"></span>
       <span id="last-updated-text">Обновление…</span>
+      <span class="src-badge" id="src-badge" title="Источник данных">—</span>
+      <button type="button" class="refresh-btn" id="refresh-btn" title="Обновить">↻ Обновить</button>
     </div>
 
     <!-- Сортировка -->
@@ -571,7 +593,7 @@
       <div class="portfolio-hero-label">Стоимость портфеля</div>
       <div class="portfolio-hero-total" id="portfolio-total">$0</div>
       <div class="portfolio-hero-pnl" id="portfolio-change"></div>
-      <div class="portfolio-hero-period">изменение за 24 часа</div>
+      <div class="portfolio-hero-period" id="portfolio-fav-period">изменение за 24 часа</div>
     </div>
 
     <div class="section-head">
@@ -587,7 +609,7 @@
       <div class="portfolio-hero-label">Общая стоимость</div>
       <div class="portfolio-hero-total" id="portfolio-page-total">$0</div>
       <div class="portfolio-hero-pnl" id="portfolio-page-change"></div>
-      <div class="portfolio-hero-period">PnL за 24 часа</div>
+      <div class="portfolio-hero-period" id="portfolio-page-period">PnL (цена входа или 24ч)</div>
     </div>
 
     <div class="alloc-card" id="portfolio-alloc-card" style="display:none;">
@@ -690,8 +712,13 @@
     <div class="modal-title" id="portfolio-modal-title" data-i18n="editHolding">Редактировать позицию</div>
     
     <div style="margin: 16px 0;">
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;" data-i18n="amount">Количество</div>
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Количество</div>
       <input type="number" id="portfolio-modal-amount" step="any" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
+    </div>
+    <div style="margin: 0 0 16px;">
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Цена входа (USD)</div>
+      <input type="number" id="portfolio-modal-avg" step="any" placeholder="необязательно" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
+      <div style="font-size:11px; color:var(--text-secondary); margin-top:6px;">Для реального PnL укажи среднюю цену покупки</div>
     </div>
 
     <div class="modal-actions">
@@ -875,10 +902,24 @@ const REFRESH_BASE_MS = 18000;   // реже опрос — меньше 429
 const REFRESH_JITTER_MS = 5000;
 const MARKET_RETRIES = 0;        // 429/502 → сразу другой источник
 const CHART_RETRIES = 0;
-const MARKET_CACHE_KEY = "cf_market_cache_v3";
+const MARKET_CACHE_KEY = "cf_market_cache_v4";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
+const APP_VERSION = "1.5.0";
+
+// Сброс кэша рынка при обновлении версии приложения
+(function migrateAppVersion() {
+  try {
+    const prev = localStorage.getItem("cf_app_version");
+    if (prev !== APP_VERSION) {
+      localStorage.removeItem(MARKET_CACHE_KEY);
+      localStorage.setItem("cf_app_version", APP_VERSION);
+      console.log("CryptoFood updated to", APP_VERSION, "(cache cleared)");
+    }
+  } catch (e) {}
+})();
 
 let coins = [];
+let marketSource = "";
 let apiChartCache = {};
 let favorites = new Set(JSON.parse(localStorage.getItem("fav_coins") || "[]"));
 let searchQuery = "";
@@ -899,10 +940,33 @@ let themeColors = { text: "#999", bg: "#fff" };
 let lastUpdated = Date.now();
 let currentSort = localStorage.getItem("sort_mode") || "market_cap";
 
-// === Портфолио (минимальная версия) ===
-let portfolio = JSON.parse(localStorage.getItem("portfolio") || "{}");
+// === Портфолио: { coinId: { amount, avgPrice } } ===
+function migratePortfolio(raw) {
+  const out = {};
+  raw = raw || {};
+  for (const [id, v] of Object.entries(raw)) {
+    if (v && typeof v === "object" && ("amount" in v || "avgPrice" in v)) {
+      out[id] = { amount: Number(v.amount) || 0, avgPrice: Number(v.avgPrice) || 0 };
+    } else {
+      out[id] = { amount: Number(v) || 0, avgPrice: 0 };
+    }
+  }
+  return out;
+}
+let portfolio = migratePortfolio(JSON.parse(localStorage.getItem("portfolio") || "{}"));
 let editingPortfolioCoinId = null;
-let portfolioHistory = JSON.parse(localStorage.getItem("portfolio_history") || "[]"); // последние значения totalValue
+let portfolioHistory = JSON.parse(localStorage.getItem("portfolio_history") || "[]");
+
+function getHoldingAmount(coinId) {
+  const h = portfolio[coinId];
+  if (!h) return 0;
+  return typeof h === "object" ? (Number(h.amount) || 0) : (Number(h) || 0);
+}
+function getHoldingAvgPrice(coinId) {
+  const h = portfolio[coinId];
+  if (!h || typeof h !== "object") return 0;
+  return Number(h.avgPrice) || 0;
+}
 
 // реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
 const marketCardRegistry = new Map();
@@ -1167,9 +1231,30 @@ async function enrichCoinMarketData(coinId) {
   return fresh;
 }
 
-function applyMarketData(data, { fromCache } = {}) {
+function setSourceBadge(source) {
+  marketSource = source || "";
+  const badge = document.getElementById("src-badge");
+  if (!badge) return;
+  badge.className = "src-badge";
+  if (source === "binance") {
+    badge.textContent = "Binance";
+    badge.classList.add("binance");
+  } else if (source === "coingecko") {
+    badge.textContent = "CoinGecko";
+    badge.classList.add("coingecko");
+  } else if (source === "cache") {
+    badge.textContent = "Кэш";
+    badge.classList.add("cache");
+  } else {
+    badge.textContent = source || "—";
+  }
+}
+
+function applyMarketData(data, { fromCache, source } = {}) {
   if (!Array.isArray(data) || !data.length) return;
   coins = data;
+  if (source) setSourceBadge(fromCache ? "cache" : source);
+  else if (fromCache) setSourceBadge("cache");
   renderAll();
   renderPopularCoins();
   if (typeof hideSplash === "function") hideSplash();
@@ -1297,15 +1382,11 @@ async function fetchMarket() {
   isFetchingMarket = true;
   try {
     const { data, source } = await fetchMarketDirect(false);
-    applyMarketData(data);
+    applyMarketData(data, { source });
     saveMarketCache(data);
-    const textEl = document.getElementById("last-updated-text");
-    if (textEl && source) {
-      // короткая пометка источника в консоль
-      console.log("market source:", source);
-    }
+    console.log("market source:", source);
 
-    // sparkline / market_cap фоном с CoinGecko (не блокируем UI)
+    // sparkline / market_cap фоном с CoinGecko
     if (source === "binance") {
       setTimeout(async () => {
         try {
@@ -1314,11 +1395,8 @@ async function fetchMarket() {
             `&per_page=${PER_PAGE}&page=1&price_change_percentage=24h&sparkline=true`;
           const data = await fetchJsonWithRetry(url, 8000, 0);
           if (Array.isArray(data) && data.length) {
-            coins = normalizeMarketList(data);
+            applyMarketData(normalizeMarketList(data), { source: "coingecko" });
             saveMarketCache(coins);
-            renderAll();
-            renderPopularCoins();
-            if (openCoinId) updateDetailHeader(openCoinId);
           }
         } catch (e) { /* CG optional */ }
       }, 800);
@@ -1329,13 +1407,15 @@ async function fetchMarket() {
     if (!coins.length) {
       const cached = loadMarketCache();
       if (cached && cached.data) {
-        applyMarketData(cached.data, { fromCache: true });
+        applyMarketData(cached.data, { fromCache: true, source: "cache" });
       } else {
         showMarketError("Сеть/API недоступны. Попробуйте позже или потяните вниз");
       }
     }
   } finally {
     isFetchingMarket = false;
+    const rb = document.getElementById("refresh-btn");
+    if (rb) rb.classList.remove("busy");
   }
 }
 
@@ -1343,8 +1423,23 @@ async function fetchMarket() {
 (function bootstrapFromCache() {
   const cached = loadMarketCache();
   if (cached && cached.data && cached.data.length) {
-    applyMarketData(cached.data, { fromCache: true });
+    applyMarketData(cached.data, { fromCache: true, source: "cache" });
   }
+})();
+
+// Кнопка «Обновить»
+(function initRefreshBtn() {
+  const btn = document.getElementById("refresh-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    if (isFetchingMarket) return;
+    btn.classList.add("busy");
+    btn.textContent = "…";
+    fetchMarket().finally(() => {
+      btn.classList.remove("busy");
+      btn.textContent = "↻ Обновить";
+    });
+  });
 })();
 
 function updateLastUpdated() {
@@ -1380,11 +1475,10 @@ function savePortfolio() {
 
 function getPortfolioTotalValue() {
   let total = 0;
-  for (const [coinId, amount] of Object.entries(portfolio)) {
+  for (const coinId of Object.keys(portfolio)) {
+    const amount = getHoldingAmount(coinId);
     const coin = coins.find(c => c.id === coinId);
-    if (coin && amount > 0) {
-      total += coin.current_price * amount;
-    }
+    if (coin && amount > 0) total += coin.current_price * amount;
   }
   return total;
 }
@@ -1392,30 +1486,54 @@ function getPortfolioTotalValue() {
 function getPortfolio24hChange() {
   let totalValue = 0;
   let totalValueBefore = 0;
-
-  for (const [coinId, amount] of Object.entries(portfolio)) {
+  for (const coinId of Object.keys(portfolio)) {
+    const amount = getHoldingAmount(coinId);
     const coin = coins.find(c => c.id === coinId);
     if (coin && amount > 0) {
       const currentValue = coin.current_price * amount;
       const change24h = coin.price_change_percentage_24h || 0;
       const valueBefore = currentValue / (1 + change24h / 100);
-
       totalValue += currentValue;
       totalValueBefore += valueBefore;
     }
   }
-
   const change = totalValue - totalValueBefore;
   const changePercent = totalValueBefore > 0 ? (change / totalValueBefore) * 100 : 0;
-
-  return { change, changePercent, totalValue: totalValue };
+  return { change, changePercent, totalValue, mode: "24h" };
 }
 
-function setHolding(coinId, amount) {
+/** Реальный PnL по цене входа; если входа нет — fallback на 24ч */
+function getPortfolioPnL() {
+  let totalValue = 0;
+  let totalCost = 0;
+  let hasEntry = false;
+  for (const coinId of Object.keys(portfolio)) {
+    const amount = getHoldingAmount(coinId);
+    if (!(amount > 0)) continue;
+    const coin = coins.find(c => c.id === coinId);
+    if (!coin) continue;
+    totalValue += amount * coin.current_price;
+    const avg = getHoldingAvgPrice(coinId);
+    if (avg > 0) {
+      totalCost += amount * avg;
+      hasEntry = true;
+    }
+  }
+  if (!hasEntry) return getPortfolio24hChange();
+  const change = totalValue - totalCost;
+  const changePercent = totalCost > 0 ? (change / totalCost) * 100 : 0;
+  return { change, changePercent, totalValue, mode: "entry", totalCost };
+}
+
+function setHolding(coinId, amount, avgPrice) {
   if (amount <= 0) {
     delete portfolio[coinId];
   } else {
-    portfolio[coinId] = amount;
+    const prev = portfolio[coinId] && typeof portfolio[coinId] === "object" ? portfolio[coinId] : {};
+    const avg = avgPrice === undefined || avgPrice === null || isNaN(avgPrice)
+      ? (Number(prev.avgPrice) || 0)
+      : Number(avgPrice);
+    portfolio[coinId] = { amount: Number(amount), avgPrice: avg > 0 ? avg : 0 };
   }
   savePortfolio();
 }
@@ -1423,6 +1541,7 @@ function setHolding(coinId, amount) {
 // === Модалка портфолио ===
 const portfolioModalOverlay = document.getElementById("portfolio-modal-overlay");
 const portfolioModalAmount = document.getElementById("portfolio-modal-amount");
+const portfolioModalAvg = document.getElementById("portfolio-modal-avg");
 const portfolioModalSave = document.getElementById("portfolio-modal-save");
 const portfolioModalDelete = document.getElementById("portfolio-modal-delete");
 const portfolioModalClose = document.getElementById("portfolio-modal-close");
@@ -1433,7 +1552,11 @@ function openPortfolioModal(coinId) {
 
   editingPortfolioCoinId = coinId;
   document.getElementById("portfolio-modal-title").textContent = `${coin.name} (${coin.symbol.toUpperCase()})`;
-  portfolioModalAmount.value = portfolio[coinId] || "";
+  portfolioModalAmount.value = getHoldingAmount(coinId) || "";
+  if (portfolioModalAvg) {
+    const avg = getHoldingAvgPrice(coinId);
+    portfolioModalAvg.value = avg > 0 ? avg : (coin.current_price || "");
+  }
 
   portfolioModalOverlay.classList.add("visible");
   setTimeout(() => portfolioModalAmount.focus(), 100);
@@ -1447,7 +1570,8 @@ function closePortfolioModal() {
 portfolioModalSave.addEventListener("click", () => {
   if (!editingPortfolioCoinId) return;
   const amount = parseFloat(portfolioModalAmount.value);
-  setHolding(editingPortfolioCoinId, isNaN(amount) ? 0 : amount);
+  const avg = portfolioModalAvg ? parseFloat(portfolioModalAvg.value) : NaN;
+  setHolding(editingPortfolioCoinId, isNaN(amount) ? 0 : amount, isNaN(avg) ? 0 : avg);
   closePortfolioModal();
   renderAll();
 });
@@ -1468,7 +1592,7 @@ function updatePortfolioSummary() {
   const summaryEl = document.getElementById("portfolio-summary");
   if (!summaryEl) return;
 
-  const hasHoldings = Object.keys(portfolio).length > 0 && Object.values(portfolio).some(v => v > 0);
+  const hasHoldings = Object.keys(portfolio).some(id => getHoldingAmount(id) > 0);
 
   if (!hasHoldings) {
     summaryEl.style.display = "none";
@@ -1477,7 +1601,7 @@ function updatePortfolioSummary() {
 
   summaryEl.style.display = "block";
 
-  const { totalValue, change, changePercent } = getPortfolio24hChange();
+  const { totalValue, change, changePercent, mode } = getPortfolioPnL();
 
   document.getElementById("portfolio-total").textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
 
@@ -1487,8 +1611,9 @@ function updatePortfolioSummary() {
   changeEl.classList.toggle("is-up", isUp);
   changeEl.classList.toggle("is-down", !isUp);
   changeEl.style.color = "#fff";
+  const periodEl = document.getElementById("portfolio-fav-period");
+  if (periodEl) periodEl.textContent = mode === "entry" ? "PnL от цены входа" : "изменение за 24 часа";
 
-  // Сохраняем историю для графика PnL
   portfolioHistory.push(totalValue);
   if (portfolioHistory.length > 30) portfolioHistory.shift();
   localStorage.setItem("portfolio_history", JSON.stringify(portfolioHistory));
@@ -1499,13 +1624,18 @@ const ALLOC_COLORS = ["#2d7ff9", "#2ecc71", "#f39c12", "#9b59b6", "#e74c3c", "#1
 function getPortfolioAllocations() {
   const rows = [];
   let total = 0;
-  for (const [coinId, amount] of Object.entries(portfolio)) {
+  for (const coinId of Object.keys(portfolio)) {
+    const amount = getHoldingAmount(coinId);
     if (!(amount > 0)) continue;
     const coin = coins.find(c => c.id === coinId);
     if (!coin) continue;
     const value = amount * coin.current_price;
+    const avg = getHoldingAvgPrice(coinId);
+    const cost = avg > 0 ? amount * avg : 0;
+    const pnl = avg > 0 ? value - cost : null;
+    const pnlPct = avg > 0 && cost > 0 ? (pnl / cost) * 100 : null;
     total += value;
-    rows.push({ coinId, coin, amount, value });
+    rows.push({ coinId, coin, amount, value, avg, cost, pnl, pnlPct });
   }
   rows.sort((a, b) => b.value - a.value);
   rows.forEach((r, i) => {
@@ -1554,7 +1684,7 @@ function renderPortfolioPage() {
 
   if (!totalEl || !changeEl || !listEl) return;
 
-  const { totalValue, change, changePercent } = getPortfolio24hChange();
+  const { totalValue, change, changePercent, mode } = getPortfolioPnL();
   const { rows } = getPortfolioAllocations();
 
   totalEl.textContent = "$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -1564,6 +1694,12 @@ function renderPortfolioPage() {
   changeEl.classList.toggle("is-up", isUp);
   changeEl.classList.toggle("is-down", !isUp);
   changeEl.style.color = "#fff";
+  const periodEl = document.getElementById("portfolio-page-period");
+  if (periodEl) {
+    periodEl.textContent = mode === "entry"
+      ? "Реальный PnL от цены входа"
+      : "PnL за 24ч (укажи цену входа в позиции)";
+  }
 
   renderAllocationChart(rows);
 
@@ -1577,9 +1713,17 @@ function renderPortfolioPage() {
   }
 
   rows.forEach(r => {
-    const { coin, amount, value, pct, color, coinId } = r;
+    const { coin, amount, value, pct, color, coinId, avg, pnl, pnlPct } = r;
     const ch = coin.price_change_percentage_24h || 0;
     const chUp = ch >= 0;
+    let pnlHtml = `<div class="holding-meta">Вход не задан · 24ч ${chUp ? "▲" : "▼"} ${Math.abs(ch).toFixed(2)}%</div>`;
+    if (avg > 0 && pnl !== null) {
+      const up = pnl >= 0;
+      pnlHtml = `
+        <div class="holding-meta">Вход $${avg.toLocaleString("en-US", { maximumFractionDigits: 4 })}</div>
+        <div class="holding-pnl" style="color:${up ? "var(--up)" : "var(--down)"}">${up ? "▲" : "▼"} $${Math.abs(pnl).toFixed(2)} (${up ? "+" : ""}${pnlPct.toFixed(2)}%)</div>
+      `;
+    }
     const item = document.createElement("div");
     item.className = "coin-card";
     item.style.flexDirection = "column";
@@ -1596,7 +1740,7 @@ function renderPortfolioPage() {
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
           <div class="coin-price">$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}</div>
-          <div class="coin-change ${chUp ? "up" : "down"}">${chUp ? "▲" : "▼"} ${Math.abs(ch).toFixed(2)}%</div>
+          ${pnlHtml}
           <div class="holding-share">${pct.toFixed(1)}% портфеля</div>
           <button class="edit-holding-btn" style="font-size:11px; padding:3px 10px; border-radius:8px; background:var(--pill-bg); border:none; color:var(--text-secondary); margin-top:2px; font-weight:600;">${t("editHolding")}</button>
         </div>
@@ -1818,12 +1962,19 @@ function updateCardEntry(entry, coin, prevPriceMap) {
     drawMiniSparkline(entry.sparklineCanvas, coin.sparkline_in_7d.price, isUp);
   }
 
-  // === Портфолио: показываем holdings в строке ===
+  // === Портфолио: holdings + PnL ===
   if (entry.holdingsInfoEl) {
-    const amount = portfolio[coin.id] || 0;
+    const amount = getHoldingAmount(coin.id);
     if (amount > 0) {
       const holdingsValue = amount * coin.current_price;
-      entry.holdingsInfoEl.innerHTML = `${amount} ${coin.symbol.toUpperCase()} <span style="color:#666;">•</span> $${holdingsValue.toFixed(2)}`;
+      const avg = getHoldingAvgPrice(coin.id);
+      let extra = "";
+      if (avg > 0) {
+        const pnl = holdingsValue - amount * avg;
+        const up = pnl >= 0;
+        extra = ` <span style="color:${up ? "var(--up)" : "var(--down)"};font-weight:700;">${up ? "▲" : "▼"}${Math.abs(pnl).toFixed(2)}</span>`;
+      }
+      entry.holdingsInfoEl.innerHTML = `${amount} ${coin.symbol.toUpperCase()} · $${holdingsValue.toFixed(2)}${extra}`;
       entry.holdingsInfoEl.style.display = "block";
     } else {
       entry.holdingsInfoEl.style.display = "none";
