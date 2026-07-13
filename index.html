@@ -203,7 +203,8 @@
     height: 100%;
     width: 100%;
     will-change: transform;
-    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    /* более мягкий iOS-spring */
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .pages-track.is-dragging {
     transition: none;
@@ -219,6 +220,12 @@
     overscroll-behavior-y: contain;
     padding: 0 16px calc(108px + env(safe-area-inset-bottom));
     box-sizing: border-box;
+    /* лёгкая глубина при свайпе */
+    opacity: 1;
+    transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .section.page.is-away {
+    opacity: 0.82;
   }
   .section { display: none; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -278,7 +285,7 @@
     border-radius: 999px;
     background: rgba(45, 127, 249, 0.16);
     box-shadow: inset 0 0 0 1px rgba(45, 127, 249, 0.18);
-    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 0;
     pointer-events: none;
   }
@@ -1038,7 +1045,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.5</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.6</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -1129,7 +1136,7 @@
     </div>
   </div>
 
-  <div class="section" id="section-favorites">
+  <div class="section page" id="section-favorites">
     <div class="portfolio-hero" id="portfolio-summary" style="display:none;">
       <div class="portfolio-hero-label">Стоимость портфеля</div>
       <div class="portfolio-hero-total" id="portfolio-total">$0</div>
@@ -1145,7 +1152,7 @@
   </div>
 
   <!-- Вкладка "Мой портфель" -->
-  <div class="section" id="section-portfolio">
+  <div class="section page" id="section-portfolio">
     <div class="portfolio-hero" id="portfolio-page-summary">
       <div class="portfolio-hero-label">Общая стоимость</div>
       <div class="portfolio-hero-total" id="portfolio-page-total">$0</div>
@@ -1457,7 +1464,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.5";
+const APP_VERSION = "1.9.6";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -3136,7 +3143,7 @@ function renderAll() {
 
   updateMarketLayout();
 
-  // A: дашборд на главной
+  // A: дашборд / список рынка (всегда обновляем — вкладки рядом в swipe)
   if (!shouldShowMarketList()) {
     renderDashboard();
   } else {
@@ -3144,16 +3151,14 @@ function renderAll() {
     reconcileList(marketList, marketCardRegistry, getVisibleMarketCoins(), prevPriceMap, t("notFound"));
   }
 
+  // Избранное — всегда синхронизируем (страница всегда в DOM)
   const favList = document.getElementById("favorites-list");
   const favCoins = coins.filter(c => favorites.has(c.id));
   reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"), true);
 
-  // Обновляем summary портфолио
+  // Портфель: summary + полная страница
   updatePortfolioSummary();
-
-  if (currentTab === "portfolio") {
-    renderPortfolioPage();
-  }
+  renderPortfolioPage();
 }
 
 // ===== экран деталей =====
@@ -3681,6 +3686,12 @@ function updateNavUI(index) {
   }
 }
 
+function updatePageAwayState(activeIndex) {
+  document.querySelectorAll(".section.page").forEach((page, i) => {
+    page.classList.toggle("is-away", i !== activeIndex);
+  });
+}
+
 function switchTab(tabName, opts) {
   opts = opts || {};
   const animate = opts.animate !== false;
@@ -3691,6 +3702,7 @@ function switchTab(tabName, opts) {
 
   applyTrackTransform(clamped, animate);
   updateNavUI(clamped);
+  updatePageAwayState(clamped);
 
   if (currentTab === "market") {
     document.getElementById("page-title").textContent = "CryptoFood";
@@ -3698,12 +3710,18 @@ function switchTab(tabName, opts) {
     document.getElementById("page-title").textContent = t("favorites");
   } else if (currentTab === "portfolio") {
     document.getElementById("page-title").textContent = t("portfolio");
-    renderPortfolioPage();
   }
 
-  // refresh lists for the visible tab
-  if (typeof renderAll === "function") {
-    try { renderAll(); } catch (e) {}
+  // всегда обновляем контент избранного/портфеля
+  try {
+    const prevPriceMap = lastPrices;
+    const favList = document.getElementById("favorites-list");
+    const favCoins = coins.filter(c => favorites.has(c.id));
+    if (favList) reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"), true);
+    updatePortfolioSummary();
+    renderPortfolioPage();
+  } catch (e) {
+    console.warn("switchTab render:", e);
   }
 }
 
@@ -3787,7 +3805,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     next = Math.max(0, Math.min(TAB_ORDER.length - 1, next));
     swipeLock = true;
     switchTab(TAB_ORDER[next], { index: next, animate: true });
-    setTimeout(() => { swipeLock = false; }, 420);
+    setTimeout(() => { swipeLock = false; }, 560);
   }
 
   viewport.addEventListener("touchstart", (e) => {
@@ -3832,6 +3850,7 @@ function switchToMarketTab() {
 // initial track position
 applyTrackTransform(0, false);
 updateNavUI(0);
+updatePageAwayState(0);
 
 function showMarketLoading() {
   const marketList = document.getElementById("market-list");
