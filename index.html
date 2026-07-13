@@ -580,15 +580,6 @@
     transition: background 0.3s ease, color 0.3s ease;
   }
 
-  .timeframe-selector {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
   .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 30; display: none; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s ease; }
   .modal-overlay.visible { display: flex; }
   .modal-box { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp 0.25s ease; max-height: 90vh; overflow-y: auto; }
