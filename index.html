@@ -505,7 +505,7 @@
 
   .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 30; display: none; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s ease; }
   .modal-overlay.visible { display: flex; }
-  .modal-box { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp 0.25s ease; }
+  .modal-box { background: var(--card-bg); border-radius: 20px 20px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp 0.25s ease; max-height: 90vh; overflow-y: auto; }
   .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
   .modal-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4; }
   .modal-address { background: var(--pill-bg); border-radius: 12px; padding: 12px; font-size: 12px; word-break: break-all; margin-bottom: 14px; font-family: monospace; }
@@ -514,6 +514,33 @@
   .modal-btn-primary { background: #2d7ff9; color: #fff; }
   .modal-btn-secondary { background: var(--pill-bg); color: var(--text); }
   .modal-close-x { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer; }
+
+  /* Donate: две сети */
+  .donate-tabs {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .donate-tab {
+    flex: 1; border: 1.5px solid var(--card-border); background: var(--card-bg);
+    color: var(--text-secondary); font-size: 13px; font-weight: 700;
+    padding: 10px 8px; border-radius: 12px; cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .donate-tab.active {
+    color: #2d7ff9; border-color: rgba(45,127,249,0.45);
+    background: rgba(45,127,249,0.1);
+  }
+  .donate-tab .dt-sub {
+    display: block; margin-top: 3px; font-size: 10px; font-weight: 600; opacity: 0.75;
+  }
+  .donate-net-label {
+    font-size: 11px; font-weight: 700; color: var(--text-secondary);
+    letter-spacing: 0.3px; margin-bottom: 8px; text-transform: uppercase;
+  }
+  .donate-panel { display: none; }
+  .donate-panel.active { display: block; animation: fadeIn 0.25s ease; }
+  .donate-wallet-hint {
+    font-size: 12px; color: var(--text-secondary); margin: -6px 0 12px; line-height: 1.35;
+  }
 
   /* === Splash / Loading screen === */
   #splash {
@@ -1325,11 +1352,39 @@
   <div class="modal-box" style="position:relative">
     <button class="modal-close-x" id="donate-close">✕</button>
     <div class="modal-title"><span id="donate-icon-inline"></span> <span id="donate-title">Поддержать автора</span></div>
-    <div class="modal-desc" id="donate-desc">Если приложение понравилось — можно отправить немного TON автору по адресу:</div>
-    <div class="modal-address">UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz</div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="donate-copy">Скопировать</button>
-      <a class="modal-btn modal-btn-primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" id="donate-open" href="https://app.tonkeeper.com/transfer/UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz" target="_blank" rel="noopener">Открыть в кошельке</a>
+    <div class="modal-desc" id="donate-desc">Если приложение понравилось — можно отправить USDT. Выбери сеть:</div>
+
+    <div class="donate-tabs" role="tablist">
+      <button type="button" class="donate-tab active" data-donate="ton" id="donate-tab-ton">
+        USDT · TON
+        <span class="dt-sub">Tonkeeper</span>
+      </button>
+      <button type="button" class="donate-tab" data-donate="trc20" id="donate-tab-trc">
+        USDT · TRC20
+        <span class="dt-sub">Trust Wallet</span>
+      </button>
+    </div>
+
+    <!-- USDT on TON -->
+    <div class="donate-panel active" id="donate-panel-ton" data-donate-panel="ton">
+      <div class="donate-net-label">Адрес TON (USDT)</div>
+      <div class="donate-wallet-hint">Откроется в Tonkeeper с USDT jetton</div>
+      <div class="modal-address" id="donate-addr-ton">UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz</div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="donate-copy-ton">Скопировать</button>
+        <a class="modal-btn modal-btn-primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" id="donate-open-ton" href="#" target="_blank" rel="noopener">В Tonkeeper</a>
+      </div>
+    </div>
+
+    <!-- USDT TRC20 -->
+    <div class="donate-panel" id="donate-panel-trc20" data-donate-panel="trc20">
+      <div class="donate-net-label">Адрес TRC20 (USDT)</div>
+      <div class="donate-wallet-hint">Откроется в Trust Wallet · сеть TRON</div>
+      <div class="modal-address" id="donate-addr-trc">TXGgrH8iQ2NvTojjVEUK9Suj11LQFYTSHD</div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="donate-copy-trc">Скопировать</button>
+        <a class="modal-btn modal-btn-primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" id="donate-open-trc" href="#" target="_blank" rel="noopener">В Trust Wallet</a>
+      </div>
     </div>
   </div>
 </div>
@@ -1381,8 +1436,22 @@ function hideSplash() {
 setTimeout(hideSplash, SPLASH_MAX_MS);
 
 
+// Донат: USDT на TON (jetton) + USDT TRC20
 const TON_ADDRESS = "UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz";
-const TON_TRANSFER_URL = "https://app.tonkeeper.com/transfer/" + TON_ADDRESS;
+// Официальный USDT master на TON
+const TON_USDT_JETTON = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
+const TON_USDT_TRANSFER_URL =
+  "https://app.tonkeeper.com/transfer/" + TON_ADDRESS +
+  "?jetton=" + encodeURIComponent(TON_USDT_JETTON);
+
+const TRC20_USDT_ADDRESS = "TXGgrH8iQ2NvTojjVEUK9Suj11LQFYTSHD";
+// Trust Wallet: coin 195 = TRON, token_id = USDT TRC20 contract
+const TRC20_USDT_TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const TRC20_TRUST_URL =
+  "https://link.trustwallet.com/send?coin=195" +
+  "&address=" + encodeURIComponent(TRC20_USDT_ADDRESS) +
+  "&token_id=" + encodeURIComponent(TRC20_USDT_TOKEN);
+
 const SUPPORT_TG = "minion7";
 const SUPPORT_URL = "https://t.me/" + SUPPORT_TG;
 
@@ -1517,7 +1586,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.10";
+const APP_VERSION = "1.9.11";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -1796,24 +1865,96 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
   applyTheme(cur === "dark" ? "light" : "dark");
 });
 
-// Донат
+// Донат: USDT TON (Tonkeeper) + USDT TRC20 (Trust)
 const donateOverlay = document.getElementById("donate-overlay");
-document.getElementById("donate-btn").addEventListener("click", () => donateOverlay.classList.add("visible"));
-document.getElementById("donate-close").addEventListener("click", () => donateOverlay.classList.remove("visible"));
-donateOverlay.addEventListener("click", (e) => { if (e.target === donateOverlay) donateOverlay.classList.remove("visible"); });
-document.getElementById("donate-copy").addEventListener("click", async (e) => {
+let donateNetwork = "ton";
+
+function setDonateNetwork(net) {
+  donateNetwork = net === "trc20" ? "trc20" : "ton";
+  document.querySelectorAll(".donate-tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.donate === donateNetwork);
+  });
+  document.querySelectorAll(".donate-panel").forEach(panel => {
+    panel.classList.toggle("active", panel.dataset.donatePanel === donateNetwork);
+  });
+}
+
+async function copyTextFeedback(btn, text) {
+  const prev = btn.textContent;
   try {
-    await navigator.clipboard.writeText(TON_ADDRESS);
-    e.target.textContent = t("copied");
-    setTimeout(() => e.target.textContent = t("copy"), 1500);
-  } catch (err) { console.error(err); }
-});
-document.getElementById("donate-open").addEventListener("click", (e) => {
-  if (tg && typeof tg.openLink === "function") {
-    e.preventDefault();
-    tg.openLink(TON_TRANSFER_URL);
+    await navigator.clipboard.writeText(text);
+    btn.textContent = t("copied");
+  } catch (err) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;left:-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      btn.textContent = t("copied");
+    } catch (e2) {
+      btn.textContent = "Ошибка";
+    }
   }
+  setTimeout(() => { btn.textContent = prev; }, 1500);
+}
+
+function openExternalWallet(url) {
+  try {
+    if (tg && typeof tg.openLink === "function") {
+      tg.openLink(url);
+      return;
+    }
+  } catch (e) {}
+  window.open(url, "_blank", "noopener");
+}
+
+// ссылки на кошельки
+(function initDonateLinks() {
+  const tonOpen = document.getElementById("donate-open-ton");
+  const trcOpen = document.getElementById("donate-open-trc");
+  if (tonOpen) tonOpen.href = TON_USDT_TRANSFER_URL;
+  if (trcOpen) trcOpen.href = TRC20_TRUST_URL;
+})();
+
+document.getElementById("donate-btn").addEventListener("click", () => {
+  setDonateNetwork("ton");
+  donateOverlay.classList.add("visible");
 });
+document.getElementById("donate-close").addEventListener("click", () => donateOverlay.classList.remove("visible"));
+donateOverlay.addEventListener("click", (e) => {
+  if (e.target === donateOverlay) donateOverlay.classList.remove("visible");
+});
+
+document.querySelectorAll(".donate-tab").forEach(tab => {
+  tab.addEventListener("click", () => setDonateNetwork(tab.dataset.donate));
+});
+
+const copyTon = document.getElementById("donate-copy-ton");
+if (copyTon) {
+  copyTon.addEventListener("click", () => copyTextFeedback(copyTon, TON_ADDRESS));
+}
+const copyTrc = document.getElementById("donate-copy-trc");
+if (copyTrc) {
+  copyTrc.addEventListener("click", () => copyTextFeedback(copyTrc, TRC20_USDT_ADDRESS));
+}
+
+const openTon = document.getElementById("donate-open-ton");
+if (openTon) {
+  openTon.addEventListener("click", (e) => {
+    e.preventDefault();
+    openExternalWallet(TON_USDT_TRANSFER_URL);
+  });
+}
+const openTrc = document.getElementById("donate-open-trc");
+if (openTrc) {
+  openTrc.addEventListener("click", (e) => {
+    e.preventDefault();
+    openExternalWallet(TRC20_TRUST_URL);
+  });
+}
 
 // Техподдержка → Telegram @minion7
 function openSupportTelegram() {
