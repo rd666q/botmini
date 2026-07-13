@@ -211,8 +211,8 @@
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /* мягкий долгий spring — приятнее глазу */
-    transition: transform 0.68s cubic-bezier(0.16, 1, 0.3, 1);
+    /* плавнее, без «пружины» — меньше дёрганья */
+    transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1);
   }
   .pages-track.is-dragging {
     transition: none;
@@ -297,10 +297,12 @@
     border-radius: 999px;
     background: rgba(45, 127, 249, 0.16);
     box-shadow: inset 0 0 0 1px rgba(45, 127, 249, 0.18);
-    transition: transform 0.68s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1);
     z-index: 0;
     pointer-events: none;
     will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
   [data-theme="dark"] .nav-indicator {
     background: rgba(255, 255, 255, 0.12);
@@ -1142,7 +1144,6 @@
             <span class="sec-icon trend" id="dash-trending-icon" aria-hidden="true"></span>
             В тренде
           </div>
-          <div class="section-hint">по объёму</div>
         </div>
         <div class="h-rail" id="trending-rail"></div>
       </div>
@@ -1153,7 +1154,6 @@
             <span class="sec-icon star" id="dash-favs-icon" aria-hidden="true"></span>
             Избранное
           </div>
-          <div class="section-hint">быстрый доступ</div>
         </div>
         <div class="h-rail" id="favs-rail"></div>
       </div>
@@ -1166,7 +1166,6 @@
       <button type="button" class="back-home-btn" id="back-to-home">← На главную</button>
       <div class="section-head" style="margin-top:2px;">
         <div class="section-title" id="market-list-title">Все монеты</div>
-        <div class="section-hint" id="market-list-hint">рынок</div>
       </div>
       <div id="market-list"></div>
     </div>
@@ -1185,7 +1184,6 @@
         <span class="sec-icon star" id="page-favs-icon" aria-hidden="true"></span>
         Избранное
       </div>
-      <div class="section-hint">ваши монеты</div>
     </div>
     <div id="favorites-list"></div>
   </div>
@@ -1202,7 +1200,6 @@
     <div class="alloc-card" id="portfolio-alloc-card" style="display:none;">
       <div class="section-head" style="margin:0 0 12px;">
         <div class="section-title">Доли активов</div>
-        <div class="section-hint">распределение</div>
       </div>
       <div class="alloc-row">
         <div class="alloc-donut" id="portfolio-donut"></div>
@@ -1212,7 +1209,6 @@
 
     <div class="section-head">
       <div class="section-title" data-i18n="myAssets">Мои активы</div>
-      <div class="section-hint">позиции</div>
     </div>
     <div id="portfolio-holdings-list"></div>
   </div>
@@ -1521,7 +1517,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.9";
+const APP_VERSION = "1.9.10";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -2978,27 +2974,13 @@ function updateMarketLayout() {
   if (all) all.style.display = showList ? "block" : "none";
 
   const title = document.getElementById("market-list-title");
-  const hint = document.getElementById("market-list-hint");
-  if (title && hint) {
-    if (searchQuery) {
-      title.textContent = "Поиск";
-      hint.textContent = "результаты";
-    } else if (quickFilter === "growth") {
-      title.textContent = "Рост за 24ч";
-      hint.textContent = "лидеры";
-    } else if (quickFilter === "fall") {
-      title.textContent = "Падение за 24ч";
-      hint.textContent = "хуже всех";
-    } else if (quickFilter === "fav") {
-      title.textContent = "Избранное";
-      hint.textContent = "ваши ★";
-    } else if (quickFilter === "stables") {
-      title.textContent = "Стейблкоины";
-      hint.textContent = "USDT · USDC…";
-    } else {
-      title.textContent = "Все монеты";
-      hint.textContent = "без стейблов";
-    }
+  if (title) {
+    if (searchQuery) title.textContent = "Поиск";
+    else if (quickFilter === "growth") title.textContent = "Рост за 24ч";
+    else if (quickFilter === "fall") title.textContent = "Падение за 24ч";
+    else if (quickFilter === "fav") title.textContent = "Избранное";
+    else if (quickFilter === "stables") title.textContent = "Стейблкоины";
+    else title.textContent = "Все монеты";
   }
 }
 
@@ -3732,7 +3714,10 @@ function updateNavUI(index) {
   });
   const indicator = document.getElementById("nav-indicator");
   if (indicator) {
-    indicator.style.transform = "translate3d(" + (index * 100) + "%, 0, 0)";
+    // rAF — один кадр, без лишних layout thrash
+    requestAnimationFrame(() => {
+      indicator.style.transform = "translate3d(" + (index * 100) + "%, 0, 0)";
+    });
   }
 }
 
@@ -3873,7 +3858,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 
       swipeLock = true;
       switchTab(TAB_ORDER[next], { index: next, animate: true });
-      setTimeout(() => { swipeLock = false; }, 700);
+      setTimeout(() => { swipeLock = false; }, 550);
     }
 
     el.addEventListener("touchstart", (e) => {
