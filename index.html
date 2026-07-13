@@ -210,19 +210,32 @@
   .detail-header .icon-badge.lg { width: 48px; height: 48px; }
   .detail-icon { width: 62%; height: 62%; object-fit: contain; border-radius: 0; background: transparent; }
   .detail-title-row {
-    display: flex; align-items: center; gap: 8px; min-width: 0;
+    display: flex; align-items: center; gap: 10px; min-width: 0;
   }
   .detail-name { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; min-width: 0; }
   .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.4px; }
+  /* Звезда в той же «кнопке», что back / theme / donate */
   .detail-fav-btn {
-    background: none; border: none; cursor: pointer; padding: 4px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    width: 36px; height: 36px;
+    padding: 0;
+    cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    color: #aaaaaa; flex-shrink: 0;
-    transition: transform 0.2s ease, color 0.2s ease;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
-  .detail-fav-btn:active { transform: scale(1.25); }
-  .detail-fav-btn.active { color: #2d7ff9; }
-  .detail-fav-btn svg { width: 22px; height: 22px; display: block; }
+  .detail-fav-btn:active { transform: scale(0.9); }
+  .detail-fav-btn.active {
+    color: #2d7ff9;
+    background: rgba(45,127,249,0.12);
+    border-color: rgba(45,127,249,0.35);
+    box-shadow: 0 2px 10px rgba(45,127,249,0.18);
+  }
+  .detail-fav-btn svg { width: 18px; height: 18px; display: block; }
 
 
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.8px; font-variant-numeric: tabular-nums; }
@@ -888,7 +901,7 @@
       <img class="brand-logo" id="brand-logo" alt="CryptoFood" width="36" height="36">
       <div>
         <div class="tab-title" id="page-title">CryptoFood</div>
-        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.3</span></div>
+        <div class="brand-sub">Powered by Filatov · <span id="app-version-label">v1.9.4</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -1298,7 +1311,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.3";
+const APP_VERSION = "1.9.4";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
