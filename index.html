@@ -328,8 +328,18 @@
     border-radius: 999px;
     transition: color 0.25s ease, transform 0.2s ease;
   }
-  .nav-btn .icon { width: 22px; height: 22px; }
-  .nav-btn .icon svg { width: 21px; height: 21px; }
+  .nav-btn .icon {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .nav-btn .icon svg {
+    width: 20px; height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .nav-btn:active { transform: scale(0.94); }
   .nav-btn.active {
     color: #2d7ff9;
@@ -609,6 +619,17 @@
     font-size: 13px; font-weight: 800; letter-spacing: 0.2px;
     color: var(--text); text-transform: none;
   }
+  .section-title-with-icon {
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .sec-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+    background: rgba(45, 127, 249, 0.12); color: #2d7ff9;
+  }
+  .sec-icon svg { width: 15px; height: 15px; display: block; }
+  .sec-icon.star { background: rgba(45, 127, 249, 0.12); color: #2d7ff9; }
+  .sec-icon.trend { background: rgba(45, 127, 249, 0.12); color: #2d7ff9; }
   .section-hint { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
 
 
@@ -1117,7 +1138,10 @@
 
       <div class="dash-block" id="dash-trending">
         <div class="section-head">
-          <div class="section-title">🔥 В тренде</div>
+          <div class="section-title section-title-with-icon">
+            <span class="sec-icon trend" id="dash-trending-icon" aria-hidden="true"></span>
+            В тренде
+          </div>
           <div class="section-hint">по объёму</div>
         </div>
         <div class="h-rail" id="trending-rail"></div>
@@ -1125,7 +1149,10 @@
 
       <div class="dash-block" id="dash-favs">
         <div class="section-head">
-          <div class="section-title">⭐ Избранное</div>
+          <div class="section-title section-title-with-icon">
+            <span class="sec-icon star" id="dash-favs-icon" aria-hidden="true"></span>
+            Избранное
+          </div>
           <div class="section-hint">быстрый доступ</div>
         </div>
         <div class="h-rail" id="favs-rail"></div>
@@ -1154,7 +1181,10 @@
     </div>
 
     <div class="section-head">
-      <div class="section-title">Избранное</div>
+      <div class="section-title section-title-with-icon">
+        <span class="sec-icon star" id="page-favs-icon" aria-hidden="true"></span>
+        Избранное
+      </div>
       <div class="section-hint">ваши монеты</div>
     </div>
     <div id="favorites-list"></div>
@@ -1361,19 +1391,22 @@ const SUPPORT_TG = "minion7";
 const SUPPORT_URL = "https://t.me/" + SUPPORT_TG;
 
 const ICONS = {
-  chart: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
-  starOutline: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
+  // единый stroke-стиль (nav + секции)
+  chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
+  starOutline: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Outline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Filled: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
+  // тренд — стрелка вверх (как «В тренде»)
+  trending: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>`,
   back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`,
   search: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>`,
   moon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.7A8.5 8.5 0 019.3 3.5 9 9 0 1020.5 14.7z"/></svg>`,
   sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>`,
   gem: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8l3-5h8l3 5-7 12z"/><path d="M5 8h14M9 3l3 5 3-5M12 8l-2.5 12M12 8l2.5 12"/></svg>`,
-  // чат / техподдержка
   support: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>`,
-  portfolio: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>`,
-  filters: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>`,
+  // портфель — тот же stroke, что chart/star
+  portfolio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg>`,
+  filters: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>`,
 };
 
 document.getElementById("search-icon").innerHTML = ICONS.search;
@@ -1385,6 +1418,15 @@ document.getElementById("donate-icon-inline").innerHTML = ICONS.gem;
 document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
 const supportBtnEl = document.getElementById("support-btn");
 if (supportBtnEl) supportBtnEl.innerHTML = ICONS.support;
+// секции: единые иконки в синем квадрате
+["dash-trending-icon", "page-trend-icon"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = ICONS.trending;
+});
+["dash-favs-icon", "page-favs-icon"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = ICONS.starOutline;
+});
 
 // Логотип из splash → шапка и empty-states
 const APP_LOGO_SRC = "logo.jpg";
@@ -1479,7 +1521,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.8";
+const APP_VERSION = "1.9.9";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -3745,109 +3787,139 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
-// Horizontal swipe between sections
+// Horizontal swipe: контент + нижняя glass-панель вкладок
 (function initTabSwipe() {
-  const viewport = document.getElementById("pages-viewport");
   const track = document.getElementById("pages-track");
-  if (!viewport || !track) return;
+  if (!track) return;
 
-  let startX = 0, startY = 0, lastX = 0;
-  let active = false;
-  let decided = false; // axis locked
-  let horizontal = false;
-  let startIndex = 0;
-  const EDGE = 0.22; // fraction of width to commit page
+  const EDGE = 0.18;
+  let suppressClick = false;
 
-  function ignoreTarget(el) {
-    if (!el || !el.closest) return false;
-    if (el.closest("input, textarea, select, .h-rail, .market-filters-row, .timeframe-selector, .quick-chips")) return true;
-    return false;
-  }
+  function bindSwipeSurface(el, options) {
+    if (!el) return;
+    const skipContentGuards = !!(options && options.skipContentGuards);
 
-  function onStart(x, y, target) {
-    if (openCoinId) return;
-    if (ignoreTarget(target)) return;
-    active = true;
-    decided = false;
-    horizontal = false;
-    startX = lastX = x;
-    startY = y;
-    startIndex = tabIndex;
-    track.classList.add("is-dragging");
-  }
+    let startX = 0, startY = 0, lastX = 0;
+    let active = false;
+    let decided = false;
+    let horizontal = false;
+    let startIndex = 0;
 
-  function onMove(x, y) {
-    if (!active) return;
-    const dx = x - startX;
-    const dy = y - startY;
-    lastX = x;
+    function ignoreTarget(target) {
+      if (skipContentGuards) return false;
+      if (!target || !target.closest) return false;
+      if (target.closest("input, textarea, select, .h-rail, .market-filters-row, .timeframe-selector, .quick-chips")) return true;
+      return false;
+    }
 
-    if (!decided) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      decided = true;
-      horizontal = Math.abs(dx) > Math.abs(dy) * 1.15;
+    function onStart(x, y, target) {
+      if (openCoinId) return;
+      if (ignoreTarget(target)) return;
+      active = true;
+      decided = false;
+      horizontal = false;
+      startX = lastX = x;
+      startY = y;
+      startIndex = tabIndex;
+      track.classList.add("is-dragging");
+    }
+
+    function onMove(x, y) {
+      if (!active) return;
+      const dx = x - startX;
+      const dy = y - startY;
+      lastX = x;
+
+      if (!decided) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        decided = true;
+        horizontal = Math.abs(dx) > Math.abs(dy) * 1.05;
+        if (!horizontal) {
+          active = false;
+          track.classList.remove("is-dragging");
+          applyTrackTransform(tabIndex, true);
+          return;
+        }
+      }
+      if (!horizontal) return;
+
+      let offset = dx;
+      if ((startIndex === 0 && dx > 0) || (startIndex === TAB_ORDER.length - 1 && dx < 0)) {
+        offset = dx * 0.32;
+      }
+      applyTrackTransform(startIndex, false, offset);
+    }
+
+    function onEnd() {
+      if (!active) return;
+      active = false;
+      track.classList.remove("is-dragging");
       if (!horizontal) {
-        active = false;
-        track.classList.remove("is-dragging");
         applyTrackTransform(tabIndex, true);
         return;
       }
-    }
-    if (!horizontal) return;
+      const dx = lastX - startX;
+      const w = getPageWidth();
+      let next = startIndex;
+      const threshold = Math.max(40, w * EDGE);
+      if (dx <= -threshold) next = startIndex + 1;
+      else if (dx >= threshold) next = startIndex - 1;
+      next = Math.max(0, Math.min(TAB_ORDER.length - 1, next));
 
-    let offset = dx;
-    if ((startIndex === 0 && dx > 0) || (startIndex === TAB_ORDER.length - 1 && dx < 0)) {
-      offset = dx * 0.32;
+      if (next !== startIndex) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 450);
+      }
+
+      swipeLock = true;
+      switchTab(TAB_ORDER[next], { index: next, animate: true });
+      setTimeout(() => { swipeLock = false; }, 700);
     }
-    applyTrackTransform(startIndex, false, offset);
+
+    el.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+    }, { passive: true });
+
+    el.addEventListener("touchmove", (e) => {
+      if (!active || e.touches.length !== 1) return;
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    el.addEventListener("touchend", onEnd, { passive: true });
+    el.addEventListener("touchcancel", onEnd, { passive: true });
+
+    // мышь (десктоп)
+    let mouseDown = false;
+    el.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      mouseDown = true;
+      onStart(e.clientX, e.clientY, e.target);
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!mouseDown) return;
+      onMove(e.clientX, e.clientY);
+    });
+    window.addEventListener("mouseup", () => {
+      if (!mouseDown) return;
+      mouseDown = false;
+      onEnd();
+    });
   }
 
-  function onEnd() {
-    if (!active) return;
-    active = false;
-    track.classList.remove("is-dragging");
-    if (!horizontal) {
-      applyTrackTransform(tabIndex, true);
-      return;
-    }
-    const dx = lastX - startX;
-    const w = getPageWidth();
-    let next = startIndex;
-    if (dx <= -Math.max(48, w * EDGE)) next = startIndex + 1;
-    else if (dx >= Math.max(48, w * EDGE)) next = startIndex - 1;
-    next = Math.max(0, Math.min(TAB_ORDER.length - 1, next));
-    swipeLock = true;
-    switchTab(TAB_ORDER[next], { index: next, animate: true });
-    setTimeout(() => { swipeLock = false; }, 700);
-  }
+  // свайп по контенту
+  bindSwipeSurface(document.getElementById("pages-viewport"), { skipContentGuards: false });
+  // свайп по нижней glass-панели (Рынок / Избранное / Портфель)
+  bindSwipeSurface(document.getElementById("bottom-nav"), { skipContentGuards: true });
 
-  viewport.addEventListener("touchstart", (e) => {
-    if (e.touches.length !== 1) return;
-    onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
-  }, { passive: true });
-
-  viewport.addEventListener("touchmove", (e) => {
-    if (!active || e.touches.length !== 1) return;
-    onMove(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: true });
-
-  viewport.addEventListener("touchend", onEnd, { passive: true });
-  viewport.addEventListener("touchcancel", onEnd, { passive: true });
-
-  let mouseDown = false;
-  viewport.addEventListener("mousedown", (e) => {
-    if (e.button !== 0) return;
-    mouseDown = true;
-    onStart(e.clientX, e.clientY, e.target);
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!mouseDown) return;
-    onMove(e.clientX, e.clientY);
-  });
-  window.addEventListener("mouseup", () => {
-    if (!mouseDown) return;
-    mouseDown = false;
-    onEnd();
+  // не срабатывать click по вкладке, если только что был свайп
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      if (suppressClick || swipeLock) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
   });
 
   window.addEventListener("resize", () => {
