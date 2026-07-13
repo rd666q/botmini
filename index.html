@@ -1458,11 +1458,7 @@
   <div class="detail-price" id="detail-price"></div>
 
   <div class="detail-actions">
-    <button type="button" class="detail-action-btn primary" id="detail-alert-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-      Алерт по цене
-    </button>
-    <button type="button" class="detail-action-btn" id="detail-portfolio-btn">
+    <button type="button" class="detail-action-btn primary" id="detail-portfolio-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       В портфель
     </button>
@@ -1505,29 +1501,6 @@
     <div class="stat-card">
       <div class="stat-label" id="label-low" data-i18n="low24">Минимум за период</div>
       <div class="stat-value" id="stat-low">—</div>
-    </div>
-  </div>
-</div>
-
-<!-- Модалка алерта по цене (backend /watch) -->
-<div class="modal-overlay" id="alert-modal-overlay">
-  <div class="modal-box" style="position:relative">
-    <button class="modal-close-x" id="alert-modal-close">✕</button>
-    <div class="modal-title" id="alert-modal-title">🔔 Алерт по цене</div>
-    <div class="modal-desc" id="alert-modal-desc">Уведомим в Telegram, когда цена достигнет уровня</div>
-    <div class="alert-dir-row">
-      <button type="button" class="alert-dir-btn up active" data-dir="above" id="alert-dir-above">📈 Выше</button>
-      <button type="button" class="alert-dir-btn down" data-dir="below" id="alert-dir-below">📉 Ниже</button>
-    </div>
-    <div style="margin: 0 0 8px;">
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Целевая цена (USD)</div>
-      <input type="number" id="alert-modal-price" step="any" inputmode="decimal" placeholder="например 70000" style="width:100%; padding:12px; border-radius:12px; border:2px solid var(--pill-bg); background:var(--card-bg); color:var(--text); font-size:18px; font-weight:600;">
-      <div class="alert-hint" id="alert-modal-hint">Сейчас: —</div>
-    </div>
-    <div class="alert-status" id="alert-modal-status"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="alert-modal-cancel">Отмена</button>
-      <button class="modal-btn modal-btn-primary" id="alert-modal-save">Создать алерт</button>
     </div>
   </div>
 </div>
@@ -1661,11 +1634,8 @@ try {
 // ─── Analytics + Watch API (Cloudflare Worker) ───
 const API_BASE = "https://cryptofood-bot.jubirulja777.workers.dev";
 const ANALYTICS_URL = API_BASE + "/analytics";
-const WATCH_API_URL = API_BASE + "/watch";
 const ANALYTICS_SESSION_KEY = "cf_analytics_session_sent";
 let _analyticsSent = false;
-let alertModalCoinId = null;
-let alertModalDirection = "above";
 
 function collectTgUser() {
   try {
@@ -3801,136 +3771,6 @@ function renderAll() {
   updatePortfolioSummary();
   renderPortfolioPage();
 }
-
-// ===== алерты из mini-app (тот же backend, что /watch) =====
-function coinSymbolForWatch(coin) {
-  if (!coin) return "";
-  return String(coin.symbol || coin.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function openAlertModal(coinId) {
-  const coin = coins.find(c => c.id === coinId) || (openCoinId === coinId ? coins.find(c => c.id === openCoinId) : null);
-  if (!coin) return;
-  alertModalCoinId = coinId;
-  alertModalDirection = "above";
-  const title = document.getElementById("alert-modal-title");
-  const hint = document.getElementById("alert-modal-hint");
-  const status = document.getElementById("alert-modal-status");
-  const priceInput = document.getElementById("alert-modal-price");
-  if (title) title.textContent = "🔔 Алерт · " + (coin.symbol || "").toUpperCase();
-  if (hint) hint.textContent = "Сейчас: " + formatPrice(coin.current_price || 0);
-  if (status) { status.textContent = ""; status.className = "alert-status"; }
-  if (priceInput) {
-    const p = Number(coin.current_price) || 0;
-    // default target ~ ±3%
-    priceInput.value = p > 0 ? (p * 1.03).toPrecision(6).replace(/\.?0+$/, "") : "";
-  }
-  document.querySelectorAll(".alert-dir-btn").forEach(b => {
-    b.classList.toggle("active", b.dataset.dir === "above");
-  });
-  const ov = document.getElementById("alert-modal-overlay");
-  if (ov) ov.classList.add("visible");
-  try { hapticImpact("light"); } catch (e) {}
-  setTimeout(() => { try { priceInput && priceInput.focus(); } catch (e) {} }, 120);
-}
-
-function closeAlertModal() {
-  const ov = document.getElementById("alert-modal-overlay");
-  if (ov) ov.classList.remove("visible");
-  alertModalCoinId = null;
-}
-
-async function submitAlertFromModal() {
-  const status = document.getElementById("alert-modal-status");
-  const priceInput = document.getElementById("alert-modal-price");
-  const coin = coins.find(c => c.id === alertModalCoinId);
-  if (!coin) {
-    if (status) { status.textContent = "Монета не найдена"; status.className = "alert-status err"; }
-    return;
-  }
-  const target = parseFloat(String(priceInput && priceInput.value || "").replace(",", "."));
-  if (!(target > 0)) {
-    if (status) { status.textContent = "Введи корректную цену"; status.className = "alert-status err"; }
-    return;
-  }
-  const w = getTG();
-  const initData = (w && w.initData) || "";
-  if (!initData) {
-    if (status) {
-      status.textContent = "Открой приложение из Telegram-бота, чтобы создать алерт";
-      status.className = "alert-status err";
-    }
-    return;
-  }
-  if (status) { status.textContent = "Создаём…"; status.className = "alert-status"; }
-  const saveBtn = document.getElementById("alert-modal-save");
-  if (saveBtn) saveBtn.disabled = true;
-  try {
-    const res = await fetch(WATCH_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        initData: initData,
-        base: coinSymbolForWatch(coin),
-        direction: alertModalDirection,
-        target: target
-      })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) {
-      const err = (data && data.error) || ("http_" + res.status);
-      if (status) {
-        status.textContent = err === "invalid_init_data"
-          ? "Сессия Telegram устарела — переоткрой mini-app"
-          : "Не удалось создать алерт (" + err + ")";
-        status.className = "alert-status err";
-      }
-      return;
-    }
-    if (status) {
-      status.textContent = "✅ Алерт создан — придёт в Telegram";
-      status.className = "alert-status ok";
-    }
-    try { hapticImpact("medium"); } catch (e) {}
-    setTimeout(closeAlertModal, 900);
-  } catch (e) {
-    if (status) {
-      status.textContent = "Сеть недоступна. Попробуй ещё раз";
-      status.className = "alert-status err";
-    }
-  } finally {
-    if (saveBtn) saveBtn.disabled = false;
-  }
-}
-
-(function initAlertModal() {
-  const ov = document.getElementById("alert-modal-overlay");
-  if (!ov) return;
-  document.getElementById("alert-modal-close")?.addEventListener("click", closeAlertModal);
-  document.getElementById("alert-modal-cancel")?.addEventListener("click", closeAlertModal);
-  document.getElementById("alert-modal-save")?.addEventListener("click", submitAlertFromModal);
-  ov.addEventListener("click", (e) => { if (e.target === ov) closeAlertModal(); });
-  document.querySelectorAll(".alert-dir-btn").forEach(b => {
-    b.addEventListener("click", () => {
-      alertModalDirection = b.dataset.dir || "above";
-      document.querySelectorAll(".alert-dir-btn").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      const coin = coins.find(c => c.id === alertModalCoinId);
-      const priceInput = document.getElementById("alert-modal-price");
-      if (coin && priceInput && Number(coin.current_price) > 0) {
-        const p = Number(coin.current_price);
-        const mult = alertModalDirection === "above" ? 1.03 : 0.97;
-        priceInput.value = (p * mult).toPrecision(6).replace(/\.?0+$/, "");
-      }
-    });
-  });
-  document.getElementById("detail-alert-btn")?.addEventListener("click", () => {
-    if (openCoinId) openAlertModal(openCoinId);
-  });
-  document.getElementById("detail-portfolio-btn")?.addEventListener("click", () => {
-    if (openCoinId) openPortfolioModal(openCoinId);
-  });
-})();
 
 // ===== PnL карточка + share =====
 function buildPnlShareText() {
