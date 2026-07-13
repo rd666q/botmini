@@ -1407,22 +1407,72 @@
   s.onload = function () {
     try {
       const w = window.Telegram && window.Telegram.WebApp;
-      if (w) { w.ready(); w.expand(); if (w.setHeaderColor) w.setHeaderColor("secondary_bg_color"); }
+      if (w) {
+        w.ready();
+        w.expand();
+        if (w.setHeaderColor) w.setHeaderColor("secondary_bg_color");
+        // включаем haptics, если доступны
+        if (w.enableClosingConfirmation) { /* noop safe */ }
+      }
     } catch (e) {}
   };
   s.onerror = function () { console.warn("Telegram WebApp SDK недоступен — работаем как обычный сайт"); };
   document.head.appendChild(s);
 })();
 
-// Безопасная заглушка, если открыли не из Telegram
-const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : {
-  ready: function () {},
-  expand: function () {},
-  openLink: function (url) { window.open(url, "_blank", "noopener"); },
-  HapticFeedback: null,
-  setHeaderColor: function () {}
-};
-try { tg.ready(); tg.expand(); } catch (e) {}
+// Всегда актуальный WebApp (SDK грузится async — нельзя кэшировать stub)
+function getTG() {
+  return (window.Telegram && window.Telegram.WebApp) || null;
+}
+// совместимость со старым кодом: tg как Proxy на live WebApp
+const tg = new Proxy({}, {
+  get(_t, prop) {
+    const w = getTG();
+    if (!w) {
+      if (prop === "openLink") return (url) => window.open(url, "_blank", "noopener");
+      if (prop === "ready" || prop === "expand" || prop === "setHeaderColor") return function () {};
+      if (prop === "HapticFeedback") return null;
+      return undefined;
+    }
+    const v = w[prop];
+    return typeof v === "function" ? v.bind(w) : v;
+  }
+});
+try {
+  const w = getTG();
+  if (w) { w.ready(); w.expand(); }
+} catch (e) {}
+
+/** Вибро как в Tonkeeper: selectionChanged при шаге по графику */
+function hapticSelection() {
+  try {
+    const h = getTG() && getTG().HapticFeedback;
+    if (h && typeof h.selectionChanged === "function") {
+      h.selectionChanged();
+      return;
+    }
+    if (h && typeof h.impactOccurred === "function") {
+      h.impactOccurred("soft");
+      return;
+    }
+  } catch (e) {}
+  try {
+    if (navigator.vibrate) navigator.vibrate(7);
+  } catch (e2) {}
+}
+
+function hapticImpact(style) {
+  try {
+    const h = getTG() && getTG().HapticFeedback;
+    if (h && typeof h.impactOccurred === "function") {
+      h.impactOccurred(style || "light");
+      return;
+    }
+  } catch (e) {}
+  try {
+    if (navigator.vibrate) navigator.vibrate(10);
+  } catch (e2) {}
+}
 
 // Splash: короткий, не ждём API
 const splashEl = document.getElementById("splash");
@@ -1595,7 +1645,7 @@ const MARKET_RETRIES = 0;        // 429/502 → сразу другой исто
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
-const APP_VERSION = "1.9.12";
+const APP_VERSION = "1.9.13";
 const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tusd", "usdd", "frax", "usdp", "tusd"]);
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
@@ -3722,14 +3772,15 @@ function drawDetailChart(crosshairIndex) {
 
 function hideCrosshair() {
   lastCrosshairIndex = null;
-  document.getElementById("crosshair-tooltip").classList.remove("visible");
-}
-
-function vibrate() {
-  if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === "function") {
-    tg.HapticFeedback.impactOccurred("light");
-  } else if (navigator.vibrate) {
-    navigator.vibrate(10);
+  const tooltip = document.getElementById("crosshair-tooltip");
+  if (tooltip) tooltip.classList.remove("visible");
+  // вернуть «живую» цену в шапке
+  if (openCoinId) {
+    const coin = coins.find(c => c.id === openCoinId);
+    if (coin) {
+      const priceEl = document.getElementById("detail-price");
+      if (priceEl) priceEl.textContent = formatPrice(coin.current_price);
+    }
   }
 }
 
@@ -3737,15 +3788,17 @@ function updateCrosshairAtX(clientX) {
   const points = currentChartPoints;
   if (points.length < 2) return;
   const canvas = document.getElementById("detail-canvas");
+  if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
   const padX = 8;
   const relX = Math.min(rect.width - padX, Math.max(padX, clientX - rect.left));
-  const ratio = (relX - padX) / (rect.width - padX * 2);
+  const ratio = (relX - padX) / Math.max(1, rect.width - padX * 2);
   const index = Math.round(ratio * (points.length - 1));
   const clampedIndex = Math.max(0, Math.min(points.length - 1, index));
 
+  // как в Tonkeeper: тик вибрации на каждый новый шаг цены
   if (clampedIndex !== lastCrosshairIndex) {
-    vibrate();
+    hapticSelection();
     lastCrosshairIndex = clampedIndex;
   }
 
@@ -3755,12 +3808,17 @@ function updateCrosshairAtX(clientX) {
   const tooltip = document.getElementById("crosshair-tooltip");
   const d = new Date(pt.t);
   const locale = "ru-RU";
-  const tf = TIMEFRAMES.find(x => x.key === selectedTf);
+  const tf = TIMEFRAMES.find(x => x.key === selectedTf) || { days: 1 };
   const timeStr = tf.days <= 1
     ? d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
     : d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: tf.days > 30 ? "2-digit" : undefined });
-  tooltip.textContent = formatPrice(pt.p) + "  ·  " + timeStr;
-  tooltip.classList.add("visible");
+  if (tooltip) {
+    tooltip.textContent = formatPrice(pt.p) + "  ·  " + timeStr;
+    tooltip.classList.add("visible");
+  }
+  // цена в шапке следует за пальцем
+  const priceEl = document.getElementById("detail-price");
+  if (priceEl) priceEl.textContent = formatPrice(pt.p);
 }
 
 const detailCanvas = document.getElementById("detail-canvas");
@@ -3780,43 +3838,53 @@ function scheduleCrosshairUpdate(clientX) {
   });
 }
 
-detailCanvas.addEventListener("touchstart", (e) => {
-  isPointerActive = true;
-  scheduleCrosshairUpdate(e.touches[0].clientX);
-}, { passive: true });
+if (detailCanvas) {
+  detailCanvas.addEventListener("touchstart", (e) => {
+    isPointerActive = true;
+    hapticImpact("light"); // старт касания
+    scheduleCrosshairUpdate(e.touches[0].clientX);
+  }, { passive: true });
 
-detailCanvas.addEventListener("touchmove", (e) => {
-  if (!isPointerActive) return;
-  e.preventDefault();
-  scheduleCrosshairUpdate(e.touches[0].clientX);
-}, { passive: false });
+  detailCanvas.addEventListener("touchmove", (e) => {
+    if (!isPointerActive) return;
+    e.preventDefault();
+    scheduleCrosshairUpdate(e.touches[0].clientX);
+  }, { passive: false });
 
-detailCanvas.addEventListener("touchend", () => {
-  isPointerActive = false;
-  hideCrosshair();
-  drawDetailChart();
-}, { passive: true });
+  detailCanvas.addEventListener("touchend", () => {
+    isPointerActive = false;
+    hideCrosshair();
+    drawDetailChart();
+  }, { passive: true });
 
-detailCanvas.addEventListener("mousedown", (e) => {
-  isPointerActive = true;
-  scheduleCrosshairUpdate(e.clientX);
-});
-detailCanvas.addEventListener("mousemove", (e) => {
-  if (!isPointerActive) return;
-  scheduleCrosshairUpdate(e.clientX);
-});
-window.addEventListener("mouseup", () => {
-  if (!isPointerActive) return;
-  isPointerActive = false;
-  hideCrosshair();
-  drawDetailChart();
-});
-detailCanvas.addEventListener("mouseleave", () => {
-  if (!isPointerActive) return;
-  isPointerActive = false;
-  hideCrosshair();
-  drawDetailChart();
-});
+  detailCanvas.addEventListener("touchcancel", () => {
+    isPointerActive = false;
+    hideCrosshair();
+    drawDetailChart();
+  }, { passive: true });
+
+  detailCanvas.addEventListener("mousedown", (e) => {
+    isPointerActive = true;
+    hapticImpact("light");
+    scheduleCrosshairUpdate(e.clientX);
+  });
+  detailCanvas.addEventListener("mousemove", (e) => {
+    if (!isPointerActive) return;
+    scheduleCrosshairUpdate(e.clientX);
+  });
+  window.addEventListener("mouseup", () => {
+    if (!isPointerActive) return;
+    isPointerActive = false;
+    hideCrosshair();
+    drawDetailChart();
+  });
+  detailCanvas.addEventListener("mouseleave", () => {
+    if (!isPointerActive) return;
+    isPointerActive = false;
+    hideCrosshair();
+    drawDetailChart();
+  });
+}
 
 // Поиск + фильтры
 document.getElementById("search-input").addEventListener("input", (e) => {
