@@ -1540,7 +1540,7 @@
     <div class="modal-desc">Карточка портфеля CryptoFood</div>
     <div class="share-card-preview"><canvas id="share-pnl-canvas" width="720" height="900"></canvas></div>
     <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="share-copy-text">Текст</button>
+      <button class="modal-btn modal-btn-secondary" id="share-modal-close-btn">Закрыть</button>
       <button class="modal-btn modal-btn-primary" id="share-do-btn">Поделиться</button>
     </div>
   </div>
@@ -4065,65 +4065,68 @@ function closeShareModal() {
 }
 
 async function sharePnlCard() {
+  // Только картинка-карточка, без текстового сообщения
   const canvas = drawPnlShareCard() || document.getElementById("share-pnl-canvas");
-  const text = buildPnlShareText();
+  if (!canvas) return;
+
+  let blob = null;
   try {
-    if (canvas && canvas.toBlob && navigator.share && navigator.canShare) {
-      const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-      if (blob) {
-        const file = new File([blob], "cryptofood-pnl.png", { type: "image/png" });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: "CryptoFood PnL", text: text });
-          return;
-        }
-      }
+    if (canvas.toBlob) {
+      blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
     }
   } catch (e) {}
+  if (!blob) {
+    try {
+      const dataUrl = canvas.toDataURL("image/png");
+      const bin = atob(dataUrl.split(",")[1]);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      blob = new Blob([arr], { type: "image/png" });
+    } catch (e2) {}
+  }
+  if (!blob) return;
+
+  const file = new File([blob], "cryptofood-pnl.png", { type: "image/png" });
+
   try {
-    if (navigator.share) {
-      await navigator.share({ title: "CryptoFood PnL", text: text });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // без text/title — иначе Telegram дублирует текстовым сообщением
+      await navigator.share({ files: [file] });
+      try { hapticImpact("light"); } catch (e) {}
       return;
     }
-  } catch (e2) {}
-  // fallback: open image
-  try {
-    if (canvas) {
-      const url = canvas.toDataURL("image/png");
-      const w = getTG();
-      if (w && w.openLink) w.openLink(url);
-      else window.open(url, "_blank");
-    }
-  } catch (e3) {}
-}
-
-async function copyPnlText() {
-  const text = buildPnlShareText();
-  try {
-    await navigator.clipboard.writeText(text);
-    try { hapticSelection(); } catch (e) {}
-    const btn = document.getElementById("share-copy-text");
-    if (btn) {
-      const prev = btn.textContent;
-      btn.textContent = "Скопировано";
-      setTimeout(() => { btn.textContent = prev; }, 1200);
-    }
   } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
+
+  // fallback: скачать PNG
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cryptofood-pnl.png";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      try { URL.revokeObjectURL(url); } catch (e) {}
+      try { a.remove(); } catch (e2) {}
+    }, 1500);
+    try { hapticSelection(); } catch (e3) {}
+  } catch (e4) {
     try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    } catch (e2) {}
+      const dataUrl = canvas.toDataURL("image/png");
+      const w = getTG();
+      if (w && w.openLink) w.openLink(dataUrl);
+      else window.open(dataUrl, "_blank");
+    } catch (e5) {}
   }
 }
 
 (function initShareModal() {
   document.getElementById("portfolio-share-btn")?.addEventListener("click", openShareModal);
   document.getElementById("share-modal-close")?.addEventListener("click", closeShareModal);
+  document.getElementById("share-modal-close-btn")?.addEventListener("click", closeShareModal);
   document.getElementById("share-do-btn")?.addEventListener("click", sharePnlCard);
-  document.getElementById("share-copy-text")?.addEventListener("click", copyPnlText);
   const ov = document.getElementById("share-modal-overlay");
   if (ov) ov.addEventListener("click", (e) => { if (e.target === ov) closeShareModal(); });
 })();
