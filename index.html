@@ -67,6 +67,13 @@
 
   .coin-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
   .coin-icon { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; object-fit: cover; background: #eee; }
+  .coin-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: #fff; letter-spacing: -0.3px;
+  }
+  .coin-avatar.sm { width: 32px; height: 32px; font-size: 12px; margin: 0 auto 6px; }
+  .coin-avatar.lg { width: 48px; height: 48px; font-size: 18px; }
   .coin-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .coin-name { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
   .coin-symbol { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 500; letter-spacing: 0.3px; }
@@ -905,11 +912,112 @@ const popularCardRegistry = new Map();
 function getAvatarColor(symbol) {
   // Простой детерминированный цвет по символу
   let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+  const s = String(symbol || "");
+  for (let i = 0; i < s.length; i++) {
+    hash = s.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 65%, 55%)`;
+}
+
+// Надёжные URL иконок: CoinGecko часто отваливается → запасные CDN → буква
+const ICON_ID_TO_SYM = {
+  bitcoin: "btc", ethereum: "eth", binancecoin: "bnb", solana: "sol", ripple: "xrp",
+  cardano: "ada", dogecoin: "doge", tron: "trx", "the-open-network": "ton",
+  "usd-coin": "usdc", tether: "usdt", "avalanche-2": "avax", chainlink: "link",
+  polkadot: "dot", litecoin: "ltc", "shiba-inu": "shib", "matic-network": "matic",
+  polygon: "matic", uniswap: "uni", stellar: "xlm", cosmos: "atom", monero: "xmr",
+  "bitcoin-cash": "bch", near: "near", aptos: "apt", sui: "sui", pepe: "pepe",
+  "wrapped-bitcoin": "wbtc", "ethereum-classic": "etc", "leo-token": "leo",
+  okb: "okb", "crypto-com-chain": "cro", "internet-computer": "icp",
+  "hedera-hashgraph": "hbar", filecoin: "fil", "blockstack": "stx", render: "render",
+  injective: "inj", "arbitrum": "arb", optimism: "op", "mantle": "mnt",
+  "first-digital-usd": "fdusd", "ethena-usde": "usde", dai: "dai",
+};
+
+function normalizeIconSymbol(coin) {
+  const id = (coin && coin.id ? String(coin.id) : "").toLowerCase();
+  if (ICON_ID_TO_SYM[id]) return ICON_ID_TO_SYM[id];
+  const sym = (coin && coin.symbol ? String(coin.symbol) : "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return sym || "generic";
+}
+
+function getCoinIconCandidates(coin) {
+  const sym = normalizeIconSymbol(coin);
+  const list = [];
+  const primary = coin && coin.image ? String(coin.image).trim() : "";
+  if (primary && primary.startsWith("http")) list.push(primary);
+
+  // spothq icons на jsDelivr — обычно стабильнее CoinGecko CDN
+  if (sym && sym !== "generic") {
+    list.push(`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${sym}.png`);
+    list.push(`https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${sym}.png`);
+    list.push(`https://assets.coincap.io/assets/icons/${sym}@2x.png`);
+  }
+  // дедуп
+  return [...new Set(list)];
+}
+
+function makeLetterAvatar(symbol, sizeClass) {
+  const el = document.createElement("div");
+  el.className = "coin-avatar" + (sizeClass ? " " + sizeClass : "");
+  el.style.background = getAvatarColor(symbol);
+  el.textContent = String(symbol || "?").slice(0, 1).toUpperCase();
+  el.setAttribute("aria-hidden", "true");
+  return el;
+}
+
+/**
+ * Вешает на <img> цепочку fallback. Никогда не оставляет «битую картинку».
+ * sizeClass: "" | "sm" | "lg" для letter-avatar
+ */
+function bindCoinIcon(img, coin, sizeClass) {
+  if (!img) return;
+  const candidates = getCoinIconCandidates(coin);
+  let idx = 0;
+  let settled = false;
+
+  const placeAvatar = () => {
+    if (settled) return;
+    settled = true;
+    img.style.display = "none";
+    img.removeAttribute("src");
+    // не плодим аватары при повторных onerror
+    const parent = img.parentNode;
+    if (!parent) return;
+    const existing = parent.querySelector(".coin-avatar");
+    if (existing) {
+      existing.style.background = getAvatarColor(coin.symbol);
+      existing.textContent = String(coin.symbol || "?").slice(0, 1).toUpperCase();
+      existing.style.display = "flex";
+      return;
+    }
+    parent.insertBefore(makeLetterAvatar(coin.symbol, sizeClass), img);
+  };
+
+  const tryNext = () => {
+    if (settled) return;
+    if (idx >= candidates.length) {
+      placeAvatar();
+      return;
+    }
+    const url = candidates[idx++];
+    img.style.display = "";
+    // сброс кэша «битого» src
+    img.src = url;
+  };
+
+  img.decoding = "async";
+  img.loading = img.loading || "lazy";
+  img.alt = (coin && coin.symbol ? String(coin.symbol).toUpperCase() : "") + " icon";
+  img.onerror = tryNext;
+  img.onload = () => { settled = true; };
+
+  if (!candidates.length) {
+    placeAvatar();
+  } else {
+    tryNext();
+  }
 }
 
 function computeThemeColors() {
@@ -1430,7 +1538,7 @@ function renderPortfolioPage() {
     item.innerHTML = `
       <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
         <div class="coin-left">
-          <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img class="coin-icon" alt="" loading="lazy" decoding="async">
           <div class="coin-info">
             <div class="coin-name" style="max-width:140px;">${coin.name}</div>
             <div class="coin-symbol">${amount} ${coin.symbol.toUpperCase()}</div>
@@ -1445,6 +1553,7 @@ function renderPortfolioPage() {
       </div>
       <div class="holding-bar"><i style="width:${Math.max(pct, 1.5)}%; background:${color}"></i></div>
     `;
+    bindCoinIcon(item.querySelector(".coin-icon"), coin, "");
 
     item.addEventListener("click", (e) => {
       if (e.target.closest(".edit-holding-btn")) {
@@ -1487,14 +1596,17 @@ function buildPopularCard(coin) {
   const root = document.createElement("div");
   root.className = "pop-card";
   root.innerHTML = `
-    <img src="${coin.image}" style="width: 32px; height: 32px; border-radius: 50%; margin-bottom: 6px;" loading="lazy" decoding="async" alt="">
+    <img class="pop-icon" style="width: 32px; height: 32px; border-radius: 50%; margin-bottom: 6px; object-fit:cover; background:#eee;" loading="lazy" decoding="async" alt="">
     <div class="pop-sym">${coin.symbol.toUpperCase()}</div>
     <div class="pop-price"></div>
     <div class="pop-change"></div>
   `;
+  const iconImg = root.querySelector(".pop-icon");
+  bindCoinIcon(iconImg, coin, "sm");
   root.addEventListener("click", () => openDetail(coin.id));
   return {
     root,
+    iconImg,
     priceEl: root.querySelector(".pop-price"),
     changeEl: root.querySelector(".pop-change"),
   };
@@ -1586,7 +1698,7 @@ function buildCardEntry(coin) {
   root.className = "coin-card";
   root.innerHTML = `
     <div class="coin-left">
-      <img class="coin-icon" src="${coin.image}" alt="" loading="lazy" decoding="async">
+      <img class="coin-icon" alt="" loading="lazy" decoding="async">
       <div class="coin-info">
         <div class="coin-name"></div>
         <div class="coin-symbol"></div>
@@ -1609,19 +1721,13 @@ function buildCardEntry(coin) {
     changeEl: root.querySelector(".coin-change"),
     starBtn: root.querySelector(".star-btn"),
     sparklineCanvas: root.querySelector(".coin-sparkline canvas"),
+    iconImg: root.querySelector(".coin-icon"),
     coinId: coin.id,
     lastLocalPrice: null,
   };
 
-  // Иконка с fallback на букву
-  const iconImg = root.querySelector(".coin-icon");
-  iconImg.onerror = () => {
-    iconImg.style.display = "none";
-    const fallback = document.createElement("div");
-    fallback.style.cssText = `width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white;background:${getAvatarColor(coin.symbol)};flex-shrink:0;`;
-    fallback.textContent = coin.symbol.slice(0, 1).toUpperCase();
-    iconImg.parentNode.insertBefore(fallback, iconImg);
-  };
+  // Иконка: CoinGecko → jsDelivr → CoinCap → буква
+  bindCoinIcon(entry.iconImg, coin, "");
 
   entry.starBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -1830,7 +1936,16 @@ function renderTimeframeSelector() {
 function updateDetailHeader(coinId) {
   const coin = coins.find(c => c.id === coinId);
   if (!coin) return;
-  document.getElementById("detail-icon").src = coin.image;
+  const detailIcon = document.getElementById("detail-icon");
+  // пересоздаём bind при смене монеты
+  if (detailIcon) {
+    detailIcon.style.display = "";
+    const parent = detailIcon.parentNode;
+    if (parent) {
+      parent.querySelectorAll(".coin-avatar").forEach(a => a.remove());
+    }
+    bindCoinIcon(detailIcon, coin, "lg");
+  }
   document.getElementById("detail-name").textContent = coin.name;
   document.getElementById("detail-symbol").textContent = coin.symbol;
   const stickyName = document.getElementById("detail-sticky-name");
