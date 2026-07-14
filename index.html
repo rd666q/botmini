@@ -8,7 +8,6 @@
 <meta http-equiv="x-dns-prefetch-control" content="on">
 <link rel="preload" href="logo.jpg" as="image">
 <script>
-  // Тема до отрисовки splash — без мигания светлого фона
   try {
     if (localStorage.getItem("theme") === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
@@ -35,10 +34,10 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  /* смена темы — мгновенно (без transition на body: иначе лаг на всех карточках) */
+  
   body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; -webkit-font-smoothing: antialiased; height: 100%; }
   html { height: 100%; overflow: hidden; }
-  /* на время applyTheme отключаем все transition/animation — главный фикс «зависания» */
+  
   html.theme-instant,
   html.theme-instant *,
   html.theme-instant *::before,
@@ -88,7 +87,7 @@
   @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .coin-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-  /* Единый стиль всех иконок монет */
+  
   .icon-badge {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
     display: inline-flex; align-items: center; justify-content: center;
@@ -157,7 +156,7 @@
   .star-btn:active { transform: scale(1.4); }
   .star-active { color: #2d7ff9; } .star-inactive { color: #aaaaaa; }
 
-  /* Кнопка «в портфель» (избранное) */
+  
   .portfolio-add-btn {
     flex-shrink: 0;
     border: none;
@@ -206,7 +205,7 @@
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-  /* Явная загрузка — не «зависло», а понятный статус */
+  
   .market-loading {
     text-align: center;
     padding: 36px 20px 28px;
@@ -228,14 +227,14 @@
   .market-loading-rows { margin-top: 18px; }
   .market-loading-rows .skeleton { opacity: 0.55; height: 58px; }
 
-  /* === Swipe pages (GPU-friendly, без дёрганья картинок) === */
+  
   .pages-viewport {
     flex: 1; min-height: 0;
     overflow: hidden;
     position: relative;
     width: 100%;
     touch-action: pan-y;
-    /* изолируем repaint при сдвиге */
+    
     contain: layout style;
   }
   .pages-track {
@@ -246,7 +245,7 @@
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /* плавнее, без «пружины» — меньше дёрганья */
+    
     transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1);
   }
   .pages-track.is-dragging {
@@ -263,7 +262,7 @@
     overscroll-behavior-y: contain;
     padding: 0 16px calc(108px + env(safe-area-inset-bottom));
     box-sizing: border-box;
-    /* без opacity-анимации — она дёргает иконки/текст */
+    
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
@@ -271,13 +270,13 @@
   }
   .section.page img,
   .section.page canvas {
-    /* меньше перерисовки при сдвиге соседней вкладки */
+    
     transform: translateZ(0);
   }
   .section { display: none; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-  /* === iOS liquid glass bottom nav === */
+  
   .bottom-nav {
     position: fixed;
     left: 0; right: 0; bottom: 0;
@@ -305,7 +304,7 @@
     max-width: 400px;
     padding: 5px;
     border-radius: 999px;
-    /* liquid glass */
+    
     background: rgba(255, 255, 255, 0.55);
     backdrop-filter: blur(28px) saturate(180%);
     -webkit-backdrop-filter: blur(28px) saturate(180%);
@@ -418,7 +417,7 @@
   }
   .detail-name { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; min-width: 0; }
   .detail-symbol { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.4px; }
-  /* Звезда в той же «кнопке», что back / theme / donate */
+  
   .detail-fav-btn {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -441,10 +440,9 @@
   }
   .detail-fav-btn svg { width: 18px; height: 18px; display: block; }
 
-
   .detail-price { font-size: 34px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.8px; font-variant-numeric: tabular-nums; }
 
-  /* Timeframe — segmented control как в Tonkeeper */
+  
   .timeframe-selector {
     position: relative;
     display: flex;
@@ -543,7 +541,7 @@
   .stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.2px; }
   .stat-value { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
 
-  /* === Новая карточка 24h Change + Star (в стиле примера) === */
+  
   .perf-card {
     background: var(--card-bg);
     border-radius: 16px;
@@ -618,7 +616,7 @@
   .modal-btn-secondary { background: var(--pill-bg); color: var(--text); }
   .modal-close-x { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer; }
 
-  /* Donate: две сети */
+  
   .donate-tabs {
     display: flex; gap: 8px; margin-bottom: 14px;
   }
@@ -645,7 +643,7 @@
     font-size: 12px; color: var(--text-secondary); margin: -6px 0 12px; line-height: 1.35;
   }
 
-  /* === Splash / Loading screen === */
+  
   #splash {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -742,7 +740,7 @@
     40% { transform: scale(1.15); opacity: 1; }
   }
 
-  /* === Visual v2: sections, live, portfolio hero === */
+  
   .section-head {
     display: flex; align-items: baseline; justify-content: space-between;
     margin: 4px 0 10px; padding: 0 2px;
@@ -764,7 +762,6 @@
   .sec-icon.trend { background: rgba(45, 127, 249, 0.12); color: #2d7ff9; }
   .section-hint { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
 
-
   .src-badge {
     font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
     padding: 2px 8px; border-radius: 999px;
@@ -784,7 +781,7 @@
   .holding-pnl { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .holding-meta { font-size: 11px; color: var(--text-secondary); }
 
-  /* === Filters tab === */
+  
   .filter-page { padding-bottom: 8px; }
   .filter-hero {
     background: linear-gradient(135deg, rgba(45,127,249,0.18), rgba(45,127,249,0.05));
@@ -858,7 +855,6 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-
   .filters-toggle {
     border: none; cursor: pointer;
     background: var(--pill-bg); color: var(--text);
@@ -916,7 +912,6 @@
     70% { box-shadow: 0 0 0 8px rgba(45,127,249,0); }
     100% { box-shadow: 0 0 0 0 rgba(45,127,249,0); }
   }
-
 
   .last-updated {
     display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
@@ -990,71 +985,6 @@
   .portfolio-hero-period {
     font-size: 11px; opacity: 0.75; margin-top: 8px; font-weight: 500; position: relative;
   }
-  .portfolio-hero-actions {
-    display: flex; gap: 8px; margin-top: 14px; position: relative; flex-wrap: wrap;
-  }
-  .portfolio-share-btn {
-    border: none; cursor: pointer;
-    background: rgba(255,255,255,0.18);
-    color: #fff; font-weight: 700; font-size: 13px;
-    padding: 9px 14px; border-radius: 12px;
-    display: inline-flex; align-items: center; gap: 7px;
-    backdrop-filter: blur(8px);
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-  .portfolio-share-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.28); }
-  .portfolio-share-btn svg { width: 16px; height: 16px; }
-
-  .detail-actions {
-    display: flex; gap: 8px; margin: 12px 0 4px;
-  }
-  .detail-action-btn {
-    flex: 1; border: none; cursor: pointer;
-    background: var(--card-bg); color: var(--text);
-    border: 1px solid var(--card-border);
-    box-shadow: 0 2px 8px var(--shadow);
-    border-radius: 14px; padding: 12px 10px;
-    font-weight: 700; font-size: 13px;
-    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-  .detail-action-btn:active { transform: scale(0.97); }
-  .detail-action-btn.primary {
-    background: linear-gradient(145deg, #1a56d6 0%, #2d7ff9 100%);
-    color: #fff; border: none;
-    box-shadow: 0 6px 16px rgba(45,127,249,0.28);
-  }
-  .detail-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-  .alert-dir-row { display: flex; gap: 8px; margin: 10px 0 14px; }
-  .alert-dir-btn {
-    flex: 1; border: 2px solid var(--pill-bg); background: var(--pill-bg);
-    color: var(--text); border-radius: 12px; padding: 12px 8px;
-    font-weight: 700; font-size: 13px; cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, transform 0.15s;
-  }
-  .alert-dir-btn:active { transform: scale(0.97); }
-  .alert-dir-btn.active.up {
-    border-color: var(--up); background: rgba(46,204,113,0.12); color: var(--up);
-  }
-  .alert-dir-btn.active.down {
-    border-color: var(--down); background: rgba(231,76,60,0.12); color: var(--down);
-  }
-  .alert-hint {
-    font-size: 12px; color: var(--text-secondary); margin-top: 8px; line-height: 1.4;
-  }
-  .alert-status {
-    font-size: 13px; font-weight: 600; margin-top: 10px; min-height: 18px;
-  }
-  .alert-status.ok { color: var(--up); }
-  .alert-status.err { color: var(--down); }
-
-  .share-card-preview {
-    width: 100%; border-radius: 16px; overflow: hidden;
-    box-shadow: 0 8px 24px var(--shadow); margin: 12px 0;
-    border: 1px solid var(--card-border);
-  }
-  .share-card-preview canvas { width: 100%; height: auto; display: block; }
 
   .alloc-card {
     background: var(--card-bg); border-radius: 16px; padding: 16px;
@@ -1097,7 +1027,7 @@
     box-shadow: 0 4px 14px var(--shadow);
   }
 
-  /* === Dashboard A + list polish C === */
+  
   .brand-sub { opacity: 0.72; }
   .coin-card.tint-up {
     background: linear-gradient(135deg, var(--card-bg) 55%, rgba(46,204,113,0.08) 100%);
@@ -1257,7 +1187,6 @@
 </head>
 <body>
 
-<!-- Splash screen -->
 <div id="splash" aria-hidden="false">
   <div class="splash-glow"></div>
   <div class="splash-logo-wrap">
@@ -1268,7 +1197,6 @@
   <div class="splash-sub">Криптоаналитика · портфель · PnL</div>
   <div class="splash-dots" aria-hidden="true"><span></span><span></span><span></span></div>
 </div>
-
 
 <div id="app">
   <div class="top-bar">
@@ -1300,7 +1228,7 @@
 
     <div id="popular-coins" style="display:none;"></div>
 
-    <!-- A: дашборд (не сразу весь список) -->
+    
     <div id="market-home">
       <div class="mkt-hero mood-mixed" id="mkt-hero">
         <div class="mkt-hero-top">
@@ -1356,7 +1284,7 @@
       <button type="button" class="view-all-btn" id="view-all-coins">Все монеты →</button>
     </div>
 
-    <!-- C: полный список (по кнопке / поиску / чипам) -->
+    
     <div id="market-all" style="display:none;">
       <button type="button" class="back-home-btn" id="back-to-home">← На главную</button>
       <div class="section-head" style="margin-top:2px;">
@@ -1383,19 +1311,13 @@
     <div id="favorites-list"></div>
   </div>
 
-  <!-- Вкладка "Мой портфель" -->
+  
   <div class="section page" id="section-portfolio">
     <div class="portfolio-hero" id="portfolio-page-summary">
       <div class="portfolio-hero-label">Общая стоимость</div>
       <div class="portfolio-hero-total" id="portfolio-page-total">$0</div>
       <div class="portfolio-hero-pnl" id="portfolio-page-change"></div>
       <div class="portfolio-hero-period" id="portfolio-page-period">PnL (цена входа или 24ч)</div>
-      <div class="portfolio-hero-actions">
-        <button type="button" class="portfolio-share-btn" id="portfolio-share-btn" aria-label="Поделиться PnL">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
-          Поделиться PnL
-        </button>
-      </div>
     </div>
 
     <div class="alloc-card" id="portfolio-alloc-card" style="display:none;">
@@ -1414,8 +1336,8 @@
     <div id="portfolio-holdings-list"></div>
   </div>
 
-  </div><!-- /.pages-track -->
-  </div><!-- /.pages-viewport -->
+  </div>
+  </div>
 </div>
 
 <div class="bottom-nav" id="bottom-nav">
@@ -1436,7 +1358,6 @@
   </div>
 </div>
 
-<!-- экран деталей монеты -->
 <div id="detail-screen">
   <div class="detail-sticky">
     <button class="back-btn" id="back-btn"></button>
@@ -1457,14 +1378,11 @@
   </div>
   <div class="detail-price" id="detail-price"></div>
 
-  <div class="detail-actions">
-    <button type="button" class="detail-action-btn primary" id="detail-portfolio-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-      В портфель
-    </button>
-  </div>
+  <button type="button" class="modal-btn modal-btn-primary" id="detail-portfolio-btn" style="width:100%; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:6px;">
+    <span id="detail-portfolio-btn-label">+ В портфель</span>
+  </button>
 
-  <!-- === КРАСИВАЯ КАРТОЧКА 24h + ЗВЕЗДОЧКА (точно в то место, что ты обвел) === -->
+  
   <div id="perf-card" class="perf-card">
     <div class="perf-header">
       <span class="perf-label" id="perf-label">Изменение за период</span>
@@ -1475,7 +1393,7 @@
     </div>
   </div>
 
-  <!-- Timeframe селектор -->
+  
   <div class="timeframe-selector" id="timeframe-selector"></div>
 
   <div class="detail-chart-box">
@@ -1505,21 +1423,6 @@
   </div>
 </div>
 
-<!-- Модалка share PnL -->
-<div class="modal-overlay" id="share-modal-overlay">
-  <div class="modal-box" style="position:relative">
-    <button class="modal-close-x" id="share-modal-close">✕</button>
-    <div class="modal-title">Поделиться PnL</div>
-    <div class="modal-desc">Карточка портфеля CryptoFood</div>
-    <div class="share-card-preview"><canvas id="share-pnl-canvas" width="720" height="900"></canvas></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" id="share-modal-close-btn">Закрыть</button>
-      <button class="modal-btn modal-btn-primary" id="share-do-btn">Поделиться</button>
-    </div>
-  </div>
-</div>
-
-<!-- Модалка редактирования портфеля -->
 <div class="modal-overlay" id="portfolio-modal-overlay">
   <div class="modal-box" style="position:relative">
     <button class="modal-close-x" id="portfolio-modal-close">✕</button>
@@ -1542,7 +1445,6 @@
   </div>
 </div>
 
-<!-- модалка доната -->
 <div class="modal-overlay" id="donate-overlay">
   <div class="modal-box" style="position:relative">
     <button class="modal-close-x" id="donate-close">✕</button>
@@ -1560,7 +1462,7 @@
       </button>
     </div>
 
-    <!-- USDT on TON -->
+    
     <div class="donate-panel active" id="donate-panel-ton" data-donate-panel="ton">
       <div class="donate-net-label">Адрес TON (USDT)</div>
       <div class="donate-wallet-hint">Откроется в Tonkeeper с USDT jetton</div>
@@ -1571,7 +1473,7 @@
       </div>
     </div>
 
-    <!-- USDT TRC20 -->
+    
     <div class="donate-panel" id="donate-panel-trc20" data-donate-panel="trc20">
       <div class="donate-net-label">Адрес TRC20 (USDT)</div>
       <div class="donate-wallet-hint">Откроется в Trust Wallet · сеть TRON</div>
@@ -1585,7 +1487,6 @@
 </div>
 
 <script>
-// Telegram SDK грузим асинхронно — не блокируем открытие в Яндекс/Safari/если telegram.org тупит
 (function loadTelegramSdk() {
   const s = document.createElement("script");
   s.src = "https://telegram.org/js/telegram-web-app.js";
@@ -1597,22 +1498,17 @@
         w.ready();
         w.expand();
         if (w.setHeaderColor) w.setHeaderColor("secondary_bg_color");
-        // включаем haptics, если доступны
-        if (w.enableClosingConfirmation) { /* noop safe */ }
+        if (w.enableClosingConfirmation) {  }
       }
-      // SDK загрузился — отправляем аналитику (если ещё не отправили с user)
-      try { trackWebAppOpen("sdk_ready"); } catch (e2) {}
     } catch (e) {}
   };
   s.onerror = function () { console.warn("Telegram WebApp SDK недоступен — работаем как обычный сайт"); };
   document.head.appendChild(s);
 })();
 
-// Всегда актуальный WebApp (SDK грузится async — нельзя кэшировать stub)
 function getTG() {
   return (window.Telegram && window.Telegram.WebApp) || null;
 }
-// совместимость со старым кодом: tg как Proxy на live WebApp
 const tg = new Proxy({}, {
   get(_t, prop) {
     const w = getTG();
@@ -1631,121 +1527,6 @@ try {
   if (w) { w.ready(); w.expand(); }
 } catch (e) {}
 
-// ─── Analytics + Watch API (Cloudflare Worker) ───
-const API_BASE = "https://cryptofood-bot.jubirulja777.workers.dev";
-const ANALYTICS_URL = API_BASE + "/analytics";
-const ANALYTICS_SESSION_KEY = "cf_analytics_session_sent";
-let _analyticsSent = false;
-
-function collectTgUser() {
-  try {
-    const w = getTG();
-    const u = (w && w.initDataUnsafe && w.initDataUnsafe.user) || null;
-    if (!u) return null;
-    return {
-      id: u.id,
-      user_id: u.id,
-      username: u.username || null,
-      first_name: u.first_name || null,
-      last_name: u.last_name || null,
-      language_code: u.language_code || null,
-      is_premium: !!u.is_premium,
-      is_bot: !!u.is_bot,
-      photo_url: u.photo_url || null
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
-function collectClientMeta() {
-  const w = getTG();
-  let screen = null;
-  try {
-    screen = (window.screen && (window.screen.width + "x" + window.screen.height)) || null;
-  } catch (e) {}
-  let tz = null;
-  try {
-    tz = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
-  } catch (e2) {}
-  return {
-    platform: navigator.platform || null,
-    language: navigator.language || null,
-    languages: (navigator.languages || []).slice(0, 5),
-    user_agent: (navigator.userAgent || "").slice(0, 180),
-    screen: screen,
-    timezone: tz,
-    path: (location.pathname || "/") + (location.search || ""),
-    host: location.host || null,
-    tg_platform: (w && w.platform) || null,
-    tg_version: (w && w.version) || null,
-    color_scheme: (w && w.colorScheme) || null,
-    viewport_height: (w && w.viewportHeight) || window.innerHeight || null,
-    is_expanded: w ? !!w.isExpanded : null,
-    theme: (function () {
-      try { return localStorage.getItem("theme") || document.documentElement.getAttribute("data-theme") || "light"; }
-      catch (e) { return "light"; }
-    })()
-  };
-}
-
-function trackWebAppOpen(reason) {
-  // один раз за вкладку/сессию (чтобы sdk_ready + immediate не дублировали)
-  if (_analyticsSent) return;
-  try {
-    if (sessionStorage.getItem(ANALYTICS_SESSION_KEY) === "1") {
-      _analyticsSent = true;
-      return;
-    }
-  } catch (e) {}
-
-  const user = collectTgUser();
-  // если SDK ещё не дал user — подождём sdk_ready (кроме финального fallback)
-  if (!user && reason !== "fallback" && reason !== "sdk_ready") return;
-  if (!user && reason === "sdk_ready") {
-    // sdk ready but no user (opened outside Telegram) — всё равно логируем
-  }
-
-  const payload = {
-    event: "page_open",
-    event_type: "page_open",
-    source: "webapp",
-    reason: reason || "open",
-    user: user || {},
-    client: collectClientMeta(),
-    path: location.pathname || "/",
-    referrer: document.referrer || null,
-    ts: new Date().toISOString()
-  };
-
-  _analyticsSent = true;
-  try { sessionStorage.setItem(ANALYTICS_SESSION_KEY, "1"); } catch (e) {}
-
-  const body = JSON.stringify(payload);
-  try {
-    if (navigator.sendBeacon) {
-      const blob = new Blob([body], { type: "application/json" });
-      if (navigator.sendBeacon(ANALYTICS_URL, blob)) return;
-    }
-  } catch (e) {}
-  try {
-    fetch(ANALYTICS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body,
-      keepalive: true,
-      mode: "cors"
-    }).catch(function () {});
-  } catch (e2) {}
-}
-
-// сразу (если SDK уже есть) + fallback через 2.5с
-try { trackWebAppOpen("immediate"); } catch (e) {}
-setTimeout(function () {
-  try { trackWebAppOpen("fallback"); } catch (e) {}
-}, 2500);
-
-/** Вибро как в Tonkeeper: selectionChanged при шаге по графику */
 function hapticSelection() {
   try {
     const h = getTG() && getTG().HapticFeedback;
@@ -1776,7 +1557,6 @@ function hapticImpact(style) {
   } catch (e2) {}
 }
 
-// Splash: короткий, не ждём API
 const splashEl = document.getElementById("splash");
 const SPLASH_MIN_MS = 600;
 const SPLASH_MAX_MS = 1600;
@@ -1796,17 +1576,13 @@ function hideSplash() {
 }
 setTimeout(hideSplash, SPLASH_MAX_MS);
 
-
-// Донат: USDT на TON (jetton) + USDT TRC20
 const TON_ADDRESS = "UQA2J8eM5e8o_sLVKAscwxmkjccHr_nZNnN_7gGa0IXEnFZz";
-// Официальный USDT master на TON
 const TON_USDT_JETTON = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
 const TON_USDT_TRANSFER_URL =
   "https://app.tonkeeper.com/transfer/" + TON_ADDRESS +
   "?jetton=" + encodeURIComponent(TON_USDT_JETTON);
 
 const TRC20_USDT_ADDRESS = "TXGgrH8iQ2NvTojjVEUK9Suj11LQFYTSHD";
-// Trust Wallet: coin 195 = TRON, token_id = USDT TRC20 contract
 const TRC20_USDT_TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const TRC20_TRUST_URL =
   "https://link.trustwallet.com/send?coin=195" +
@@ -1817,12 +1593,10 @@ const SUPPORT_TG = "minion7";
 const SUPPORT_URL = "https://t.me/" + SUPPORT_TG;
 
 const ICONS = {
-  // единый stroke-стиль (nav + секции)
   chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3"/></svg>`,
   starOutline: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Outline: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
   star18Filled: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2.5 15 9.2 22 9.8 16.8 14.6 18.2 21.5 12 17.9 5.8 21.5 7.2 14.6 2 9.8 9 9.2"/></svg>`,
-  // тренд — стрелка вверх (как «В тренде»)
   trending: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>`,
   back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`,
   search: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>`,
@@ -1830,7 +1604,6 @@ const ICONS = {
   sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/></svg>`,
   gem: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8l3-5h8l3 5-7 12z"/><path d="M5 8h14M9 3l3 5 3-5M12 8l-2.5 12M12 8l2.5 12"/></svg>`,
   support: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>`,
-  // портфель — тот же stroke, что chart/star
   portfolio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 12h20"/></svg>`,
   filters: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>`,
 };
@@ -1844,7 +1617,6 @@ document.getElementById("donate-icon-inline").innerHTML = ICONS.gem;
 document.getElementById("nav-icon-portfolio").innerHTML = ICONS.portfolio;
 const supportBtnEl = document.getElementById("support-btn");
 if (supportBtnEl) supportBtnEl.innerHTML = ICONS.support;
-// секции: единые иконки в синем квадрате
 ["dash-trending-icon", "page-trend-icon"].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.innerHTML = ICONS.trending;
@@ -1854,7 +1626,6 @@ if (supportBtnEl) supportBtnEl.innerHTML = ICONS.support;
   if (el) el.innerHTML = ICONS.starOutline;
 });
 
-// Логотип из splash → шапка и empty-states
 const APP_LOGO_SRC = "logo.jpg";
 const brandLogoEl = document.getElementById("brand-logo");
 if (brandLogoEl) {
@@ -1872,8 +1643,6 @@ function emptyStateHtml(title, desc, showBtn) {
   return `<div class="empty-state">${logo}<div class="empty-title">${title}</div><div class="empty-desc">${desc}</div>${btn}</div>`;
 }
 
-
-// Все тексты интерфейса — только на русском
 const I18N = {
   market: "Рынок",
   favorites: "Избранное",
@@ -1924,7 +1693,6 @@ const I18N = {
   decline: "Падение"
 };
 
-// Таймфреймы как в Tonkeeper: 1ч, 1Д, 1Н, 1М, 6М, 1Г
 const TF_LABELS = { "1h":"1ч", "1d":"1Д", "1w":"1Н", "1mo":"1М", "6mo":"6М", "1y":"1Г" };
 
 function t(key) { return I18N[key] || key; }
@@ -1938,14 +1706,13 @@ const TIMEFRAMES = [
   { key: "1y",  type: "api", days: 365 },
 ];
 
-// ---- настройки нагрузки и производительности ----
-const PER_PAGE = 40;           // CoinGecko fallback
-const TOP_BY_VOLUME = 38;      // топ по объёму с Binance
-const MAX_MARKET_COINS = 58;   // потолок списка (топ + приоритетные сети)
-const VISIBLE_LIMIT = 28;      // сколько карточек рисуем без поиска — меньше DOM
-const REFRESH_BASE_MS = 25000;   // реже опрос — меньше 429
+const PER_PAGE = 40;
+const TOP_BY_VOLUME = 38;
+const MAX_MARKET_COINS = 58;
+const VISIBLE_LIMIT = 28;
+const REFRESH_BASE_MS = 25000;
 const REFRESH_JITTER_MS = 5000;
-const MARKET_RETRIES = 0;        // 429/502 → сразу другой источник
+const MARKET_RETRIES = 0;
 const CHART_RETRIES = 0;
 const MARKET_CACHE_KEY = "cf_market_cache_v5";
 const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1954,7 +1721,6 @@ const STABLE_SYMS = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "busd", "tu
 const PINNED_IDS = ["bitcoin", "ethereum", "solana"];
 const PINNED_SYMS = ["btc", "eth", "sol"];
 
-// Сброс кэша рынка при обновлении версии приложения
 (function migrateAppVersion() {
   try {
     const prev = localStorage.getItem("cf_app_version");
@@ -1980,9 +1746,8 @@ let currentNetworkFilter = "all";
 let isFetchingMarket = false;
 let pollTimeoutHandle = null;
 let chartRequestToken = 0;
-// A: home dashboard vs full list
-let marketViewMode = "home"; // "home" | "list"
-let quickFilter = "top"; // top | growth | fall | fav | stables
+let marketViewMode = "home";
+let quickFilter = "top";
 let showStablesOnly = false;
 
 let currentChartPoints = [];
@@ -1992,7 +1757,6 @@ let themeColors = { text: "#999", bg: "#fff" };
 let lastUpdated = Date.now();
 let currentSort = localStorage.getItem("sort_mode") || "market_cap";
 
-// === Портфолио: { coinId: { amount, avgPrice } } ===
 function migratePortfolio(raw) {
   const out = {};
   raw = raw || {};
@@ -2020,12 +1784,10 @@ function getHoldingAvgPrice(coinId) {
   return Number(h.avgPrice) || 0;
 }
 
-// реестры карточек для инкрементального обновления DOM (без пересоздания canvas/картинок на каждый тик)
 const marketCardRegistry = new Map();
 const favCardRegistry = new Map();
 const popularCardRegistry = new Map();
 
-// Брендовые цвета + единый fallback — иконки выглядят «как из одного набора»
 const BRAND_ICON_COLORS = {
   btc: "#F7931A", bitcoin: "#F7931A",
   eth: "#627EEA", ethereum: "#627EEA",
@@ -2070,7 +1832,6 @@ function getAvatarColor(symbol) {
   return `hsl(${hue}, 62%, 48%)`;
 }
 
-// Надёжные URL иконок: CoinGecko часто отваливается → запасные CDN → буква
 const ICON_ID_TO_SYM = {
   bitcoin: "btc", ethereum: "eth", binancecoin: "bnb", solana: "sol", ripple: "xrp",
   cardano: "ada", dogecoin: "doge", tron: "trx", "the-open-network": "ton",
@@ -2101,14 +1862,12 @@ function normalizeIconSymbol(coin) {
 function getCoinIconCandidates(coin) {
   const sym = normalizeIconSymbol(coin);
   const list = [];
-  // СНАЧАЛА стабильные CDN (jsDelivr) — CoinGecko CDN часто 429/битый
   if (sym && sym !== "generic") {
     list.push(`https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/128/color/${sym}.png`);
     list.push(`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${sym}.png`);
     list.push(`https://assets.coincap.io/assets/icons/${sym}@2x.png`);
   }
   const primary = coin && coin.image ? String(coin.image).trim() : "";
-  // CoinGecko image только если не coingecko CDN под блокировкой — всё равно в конец
   if (primary && primary.startsWith("http") && !primary.includes("coingecko.com")) {
     list.unshift(primary);
   } else if (primary && primary.startsWith("http")) {
@@ -2135,7 +1894,6 @@ function makeLetterAvatar(symbol, sizeClass) {
   return el;
 }
 
-/** Оборачивает <img> в единый .icon-badge (круг, рамка, тень) */
 function ensureIconBadge(img, sizeClass) {
   if (!img) return null;
   let badge = img.closest(".icon-badge");
@@ -2152,10 +1910,6 @@ function ensureIconBadge(img, sizeClass) {
   return badge;
 }
 
-/**
- * Вешает на <img> цепочку fallback + единый badge.
- * sizeClass: "" | "sm" | "lg"
- */
 function bindCoinIcon(img, coin, sizeClass) {
   if (!img) return;
   const badge = ensureIconBadge(img, sizeClass || "");
@@ -2211,7 +1965,6 @@ function bindCoinIcon(img, coin, sizeClass) {
 }
 
 function computeThemeColors() {
-  // тёмная/светлая — без getComputedStyle при каждом клике (дорого)
   const dark = document.documentElement.getAttribute("data-theme") === "dark";
   themeColors.text = dark ? "#888888" : "#9a9ea5";
   themeColors.bg = dark ? "#0a0a0a" : "#ffffff";
@@ -2225,7 +1978,6 @@ function applyTheme(theme, opts) {
   const root = document.documentElement;
   const next = isDark ? "dark" : "light";
 
-  // мгновенный flip: без CSS-transition на всём дереве
   root.classList.add("theme-instant");
   root.setAttribute("data-theme", next);
 
@@ -2239,14 +1991,12 @@ function applyTheme(theme, opts) {
 
   computeThemeColors();
 
-  // тяжёлую перерисовку canvas — после paint
   if (openCoinId && typeof drawDetailChart === "function" && !opts.skipChart) {
     requestAnimationFrame(() => {
       try { drawDetailChart(lastCrosshairIndex); } catch (e) {}
     });
   }
 
-  // вернуть transition на следующем кадре (после применения стилей)
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       root.classList.remove("theme-instant");
@@ -2255,7 +2005,6 @@ function applyTheme(theme, opts) {
   });
 }
 
-// init: без лишних redraw (атрибут уже мог быть выставлен в <head>)
 (function initTheme() {
   const saved = localStorage.getItem("theme") || "light";
   const root = document.documentElement;
@@ -2277,7 +2026,6 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
   applyTheme(cur === "dark" ? "light" : "dark");
 });
 
-// Донат: USDT TON (Tonkeeper) + USDT TRC20 (Trust)
 const donateOverlay = document.getElementById("donate-overlay");
 let donateNetwork = "ton";
 
@@ -2323,7 +2071,6 @@ function openExternalWallet(url) {
   window.open(url, "_blank", "noopener");
 }
 
-// ссылки на кошельки
 (function initDonateLinks() {
   const tonOpen = document.getElementById("donate-open-ton");
   const trcOpen = document.getElementById("donate-open-trc");
@@ -2368,7 +2115,6 @@ if (openTrc) {
   });
 }
 
-// Техподдержка → Telegram @minion7
 function openSupportTelegram() {
   try {
     if (tg && typeof tg.openTelegramLink === "function") {
@@ -2401,7 +2147,6 @@ function fetchWithTimeout(url, ms, options) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// 429/502 — сразу fail (не долбим CoinGecko), иначе 1 быстрый retry
 async function fetchJsonWithRetry(url, timeoutMs, retries) {
   let attempt = 0;
   let delay = 400;
@@ -2412,7 +2157,6 @@ async function fetchJsonWithRetry(url, timeoutMs, retries) {
         cache: "no-store",
         mode: "cors",
       });
-      // rate-limit / gateway — не ждём, переключаемся на другой источник
       if (res.status === 429 || res.status === 502 || res.status === 503) {
         throw new Error("HTTP " + res.status);
       }
@@ -2454,7 +2198,6 @@ function loadMarketCache() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.data) || !parsed.data.length) return null;
-    // кэш без капитализации (старый Binance) — выбрасываем, чтобы не показывать $0
     const withCap = parsed.data.filter(c => Number(c.market_cap) > 0).length;
     if (withCap < Math.min(5, parsed.data.length)) {
       localStorage.removeItem(MARKET_CACHE_KEY);
@@ -2464,7 +2207,6 @@ function loadMarketCache() {
   } catch (e) { return null; }
 }
 
-/** Подтянуть market_cap / volume с CoinGecko, если их нет (после Binance) */
 async function enrichCoinMarketData(coinId) {
   if (!coinId) return null;
   let fresh = null;
@@ -2493,7 +2235,6 @@ async function enrichCoinMarketData(coinId) {
 
 function setSourceBadge(source) {
   marketSource = source || "";
-  // бейдж Binance/CoinGecko убран из UI
 }
 
 function isStableCoin(c) {
@@ -2538,7 +2279,6 @@ function getSparkPrices(coin) {
   if (coin && coin.sparkline_in_7d && Array.isArray(coin.sparkline_in_7d.price) && coin.sparkline_in_7d.price.length > 2) {
     return downsampleSpark(coin.sparkline_in_7d.price, 40);
   }
-  // Реалистичный мини-график (не «дуга вниз/вверх»): тренд + волны + шум
   const price = Number(coin && coin.current_price) || 0;
   const ch = (Number(coin && coin.price_change_percentage_24h) || 0) / 100;
   if (!(price > 0)) return null;
@@ -2551,14 +2291,11 @@ function getSparkPrices(coin) {
 
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1);
-    // ease-in-out тренд open → close
     const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const trend = open + (price - open) * ease;
-    // несколько частот — «живой» рынок
     const w1 = Math.sin((seed % 97) * 0.07 + t * (9 + (seed % 5))) * 0.55;
     const w2 = Math.sin((seed % 53) * 0.11 + t * (17 + (seed % 7))) * 0.28;
     const w3 = Math.cos((seed % 31) * 0.13 + t * (4.5 + (seed % 3))) * 0.17;
-    // лёгкий mid-swing
     const midBump = Math.sin(t * Math.PI) * span * 0.12 * (((seed >> 3) % 5) - 2) / 2;
     pts.push(trend + (w1 + w2 + w3) * noiseAmp + midBump);
   }
@@ -2592,7 +2329,6 @@ function showMarketError(msg) {
   if (typeof hideSplash === "function") hideSplash();
 }
 
-// Символ → id CoinGecko (чтобы капитализация/графики не ломались на fallback)
 const BINANCE_TO_CG_ID = {
   btc: "bitcoin", eth: "ethereum", bnb: "binancecoin", sol: "solana", xrp: "ripple",
   ada: "cardano", doge: "dogecoin", trx: "tron", ton: "the-open-network",
@@ -2603,14 +2339,11 @@ const BINANCE_TO_CG_ID = {
   arb: "arbitrum", op: "optimism", fil: "filecoin", icp: "internet-computer",
   hbar: "hedera-hashgraph", inj: "injective-protocol", render: "render-token",
   bch: "bitcoin-cash", xmr: "monero", dai: "dai",
-  // TON ecosystem
   not: "notcoin", dogs: "dogs-2", hmstr: "hamster-kombat", cati: "catizen",
   major: "major", x: "x-empire", cat: "simonscat",
-  // SOL ecosystem
   jup: "jupiter-exchange-solana", ray: "raydium", wif: "dogwifcoin", bonk: "bonk",
   pyth: "pyth-network", jto: "jito-governance-token", orca: "orca", tnsr: "tensor",
   w: "wormhole",
-  // other popular
   sei: "sei-network", strk: "starknet", manta: "manta-network",
   floki: "floki", people: "constitutiondao", ord: "ordinals",
   "1000sats": "sats-ordinals", sats: "sats-ordinals",
@@ -2621,7 +2354,6 @@ const BINANCE_TO_CG_ID = {
   imx: "immutable-x", gala: "gala", ape: "apecoin",
 };
 
-// Человекочитаемые имена (иначе в списке «HMSTR» вместо названия)
 const COIN_DISPLAY_NAMES = {
   ton: "Toncoin", not: "Notcoin", dogs: "DOGS", hmstr: "Hamster Kombat",
   cati: "Catizen", major: "Major", x: "X Empire", cat: "Simon's Cat",
@@ -2634,18 +2366,10 @@ const COIN_DISPLAY_NAMES = {
   bttc: "BitTorrent", jst: "JUST", sun: "SUN",
 };
 
-/**
- * Всегда подмешиваем монеты ключевых сетей (TON, SOL…),
- * даже если они не в топе по объёму. Объём списка ограничен — без лишнего DOM.
- */
 const PRIORITY_SYMBOLS = [
-  // TON
   "ton", "not", "dogs", "hmstr", "cati", "major", "x", "cat",
-  // SOL
   "sol", "jup", "ray", "wif", "bonk", "pyth", "jto", "orca", "tnsr", "w",
-  // TRON
   "trx", "bttc", "jst", "sun",
-  // majors / L2
   "btc", "eth", "bnb", "xrp", "ada", "doge", "avax", "link", "dot",
   "near", "apt", "sui", "pepe", "arb", "op", "inj", "sei", "fil", "atom",
   "ltc", "shib", "uni", "xlm", "bch", "strk", "floki", "ena", "wld",
@@ -2674,7 +2398,6 @@ function mapBinanceToMarkets(tickers) {
   const usdt = (Array.isArray(tickers) ? tickers : []).filter(t => {
     if (!t.symbol || !t.symbol.endsWith("USDT") || t.symbol.includes("_")) return false;
     const base = t.symbol.slice(0, -4);
-    // отсекаем levered-токены
     if (/(?:UP|DOWN|BULL|BEAR)$/i.test(base)) return false;
     return true;
   });
@@ -2684,7 +2407,6 @@ function mapBinanceToMarkets(tickers) {
     bySym.set(t.symbol.replace(/USDT$/, "").toLowerCase(), t);
   }
 
-  // 1) топ по объёму — основной рынок
   const top = usdt
     .slice()
     .sort((a, b) => Number(b.quoteVolume || 0) - Number(a.quoteVolume || 0))
@@ -2695,7 +2417,6 @@ function mapBinanceToMarkets(tickers) {
     selected.set(t.symbol.replace(/USDT$/, "").toLowerCase(), t);
   }
 
-  // 2) добираем TON / SOL / TRON и др., если их не было в топе
   for (const sym of PRIORITY_SYMBOLS) {
     if (selected.size >= MAX_MARKET_COINS) break;
     if (!selected.has(sym) && bySym.has(sym)) {
@@ -2712,19 +2433,16 @@ function normalizeMarketList(list) {
   return (Array.isArray(list) ? list : []).map(c => ensureCoinIcon({ ...c }));
 }
 
-// Только прямые API: Binance (стабильно) → CoinGecko (если доступен)
 async function fetchMarketDirect(withSparkline) {
   const errors = [];
   const spark = withSparkline ? "true" : "false";
 
-  // 1) Binance — стабилен в РБ/СНГ, иконки с jsDelivr
   try {
     const raw = await fetchJsonWithRetry("https://api.binance.com/api/v3/ticker/24hr", 10000, 0);
     const data = mapBinanceToMarkets(raw);
     if (data.length) return { data, source: "binance" };
   } catch (e) { errors.push("bn:" + (e && e.message)); }
 
-  // 2) CoinGecko (капитализация/sparkline; иногда 429)
   try {
     const url =
       `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc` +
@@ -2739,14 +2457,12 @@ async function fetchMarketDirect(withSparkline) {
 }
 
 async function fetchChartData(coinId, days) {
-  // 1) CoinGecko
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=${encodeURIComponent(days)}`;
     const json = await fetchJsonWithRetry(url, 10000, 0);
     if (json && json.prices) return json;
   } catch (e) {}
 
-  // 2) Binance klines
   try {
     let base = (coinId || "").toLowerCase();
     const rev = Object.entries(BINANCE_TO_CG_ID).find(([, id]) => id === base);
@@ -2768,7 +2484,6 @@ async function fetchMarket() {
   if (isFetchingMarket) return;
   if (document.hidden) return;
   isFetchingMarket = true;
-  // лоадер только если списка ещё нет (не мигаем при refresh)
   if (!coins.length && !document.querySelector("#market-list .coin-card")) {
     showMarketLoading();
   }
@@ -2777,7 +2492,6 @@ async function fetchMarket() {
     applyMarketData(data, { source });
     saveMarketCache(data);
     console.log("market source:", source);
-    // sparklines не грузим сразу — быстрее первый рендер (график есть в деталях)
 
   } catch (e) {
     console.error("Ошибка загрузки рынка:", e);
@@ -2801,12 +2515,10 @@ async function fetchMarket() {
     isFetchingMarket = false;
     const rb = document.getElementById("refresh-btn");
     if (rb) rb.classList.remove("busy");
-    // на всякий случай снести loader/skeleton
     document.querySelectorAll("#market-list .skeleton, #market-list .market-loading").forEach(el => el.remove());
   }
 }
 
-// Мгновенный показ из кэша при старте
 (function bootstrapFromCache() {
   const cached = loadMarketCache();
   if (cached && cached.data && cached.data.length) {
@@ -2814,7 +2526,6 @@ async function fetchMarket() {
   }
 })();
 
-// Кнопка «Обновить»
 (function initRefreshBtn() {
   const btn = document.getElementById("refresh-btn");
   if (!btn) return;
@@ -2832,9 +2543,8 @@ async function fetchMarket() {
 function updateLastUpdated() {
   lastUpdated = Date.now();
 }
-function refreshLastUpdatedText() { /* статус «Обновлено…» убран из UI */ }
+function refreshLastUpdatedText() {  }
 
-// === Функции портфолио ===
 function savePortfolio() {
   localStorage.setItem("portfolio", JSON.stringify(portfolio));
 }
@@ -2868,7 +2578,6 @@ function getPortfolio24hChange() {
   return { change, changePercent, totalValue, mode: "24h" };
 }
 
-/** Реальный PnL по цене входа; если входа нет — fallback на 24ч */
 function getPortfolioPnL() {
   let totalValue = 0;
   let totalCost = 0;
@@ -2904,7 +2613,6 @@ function setHolding(coinId, amount, avgPrice) {
   savePortfolio();
 }
 
-// === Модалка портфолио ===
 const portfolioModalOverlay = document.getElementById("portfolio-modal-overlay");
 const portfolioModalAmount = document.getElementById("portfolio-modal-amount");
 const portfolioModalAvg = document.getElementById("portfolio-modal-avg");
@@ -2938,6 +2646,7 @@ portfolioModalSave.addEventListener("click", () => {
   const amount = parseFloat(portfolioModalAmount.value);
   const avg = portfolioModalAvg ? parseFloat(portfolioModalAvg.value) : NaN;
   setHolding(editingPortfolioCoinId, isNaN(amount) ? 0 : amount, isNaN(avg) ? 0 : avg);
+  if (typeof updateDetailPortfolioButton === "function") updateDetailPortfolioButton(editingPortfolioCoinId);
   closePortfolioModal();
   renderAll();
 });
@@ -2945,6 +2654,7 @@ portfolioModalSave.addEventListener("click", () => {
 portfolioModalDelete.addEventListener("click", () => {
   if (!editingPortfolioCoinId) return;
   setHolding(editingPortfolioCoinId, 0);
+  if (typeof updateDetailPortfolioButton === "function") updateDetailPortfolioButton(editingPortfolioCoinId);
   closePortfolioModal();
   renderAll();
 });
@@ -3067,9 +2777,6 @@ function renderPortfolioPage() {
       : "PnL за 24ч (укажи цену входа в позиции)";
   }
 
-  const shareBtn = document.getElementById("portfolio-share-btn");
-  if (shareBtn) shareBtn.style.display = rows.length ? "inline-flex" : "none";
-
   renderAllocationChart(rows);
 
   listEl.innerHTML = "";
@@ -3139,7 +2846,6 @@ function scheduleNextPoll() {
   }, delay);
 }
 
-// когда пользователь возвращается в приложение — сразу подтягиваем свежие цены
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) fetchMarket();
 });
@@ -3157,7 +2863,6 @@ function formatBig(n) {
   return "$" + Math.round(v).toLocaleString("en-US");
 }
 
-// Популярные монеты (без короны 👑) — инкрементальное обновление, без пересоздания <img> на каждый тик
 function buildPopularCard(coin) {
   const root = document.createElement("div");
   root.className = "pop-card";
@@ -3187,12 +2892,11 @@ function updatePopularCard(entry, coin) {
 }
 function renderPopularCoins() {
   const container = document.getElementById("popular-coins");
-  if (!container || container.style.display === "none") return; // топ скрыт — не тратим время
+  if (!container || container.style.display === "none") return;
   const top6 = coins.slice(0, 6);
   const idsKey = top6.map(c => c.id).join(",");
 
   if (container.dataset.ids !== idsKey) {
-    // состав топ-6 изменился — пересобираем один раз
     popularCardRegistry.clear();
     container.dataset.ids = idsKey;
     container.innerHTML = "";
@@ -3235,7 +2939,6 @@ function drawMiniSparkline(canvas, prices, isPositive, opts) {
   const padY = 4;
   const min = Math.min(...prices);
   const max = Math.max(...prices);
-  // чуть расширяем range, чтобы линия не липла к краям
   const padRange = (max - min) * 0.08 || Math.abs(max) * 0.002 || 1;
   const lo = min - padRange;
   const hi = max + padRange;
@@ -3269,7 +2972,6 @@ function drawMiniSparkline(canvas, prices, isPositive, opts) {
     }
   }
 
-  // заливка под кривой
   smoothPath(ctx, pts);
   const last = pts[pts.length - 1];
   const first = pts[0];
@@ -3283,7 +2985,6 @@ function drawMiniSparkline(canvas, prices, isPositive, opts) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // линия
   smoothPath(ctx, pts);
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
@@ -3291,7 +2992,6 @@ function drawMiniSparkline(canvas, prices, isPositive, opts) {
   ctx.lineCap = "round";
   ctx.stroke();
 
-  // точка на конце + лёгкое свечение
   ctx.beginPath();
   ctx.arc(last[0], last[1], 3.2, 0, Math.PI * 2);
   ctx.fillStyle = color;
@@ -3306,11 +3006,6 @@ function drawMiniSparkline(canvas, prices, isPositive, opts) {
   ctx.strokeStyle = "rgba(255,255,255,0.35)";
   ctx.stroke();
 }
-
-// ---- инкрементальный рендер списка монет ----
-// Вместо пересоздания всех карточек (картинки + canvas) на каждый опрос API,
-// держим карточки в реестре и точечно обновляем только то, что изменилось.
-// Это главная причина "зависаний" при частом обновлении цен на слабых телефонах.
 
 function buildCardEntry(coin) {
   const root = document.createElement("div");
@@ -3356,13 +3051,11 @@ function buildCardEntry(coin) {
     renderAll();
   });
 
-  // «+» / портфель — добавить или изменить позицию
   entry.portfolioBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     openPortfolioModal(entry.coinId);
   });
 
-  // тап по карточке — всегда график (и из Избранного, и с Рынка)
   root.addEventListener("click", (e) => {
     if (e.target.closest(".star-btn, .portfolio-add-btn")) return;
     openDetail(entry.coinId);
@@ -3381,11 +3074,9 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   entry.changeEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(change24h || 0).toFixed(2) + '%';
   entry.changeEl.className = "coin-change " + (isUp ? "up" : "down");
 
-  // C: лёгкий градиент карточки по направлению
   entry.root.classList.toggle("tint-up", isUp);
   entry.root.classList.toggle("tint-down", !isUp);
 
-  // на вкладке «Избранное» показываем кнопку портфеля
   const onFavs = currentTab === "favorites";
   entry.root.classList.toggle("show-portfolio-btn", onFavs);
 
@@ -3393,14 +3084,12 @@ function updateCardEntry(entry, coin, prevPriceMap) {
   entry.starBtn.className = "star-btn " + (isFav ? "star-active" : "star-inactive");
   entry.starBtn.innerHTML = isFav ? ICONS.star18Filled : ICONS.star18Outline;
 
-  // Мини-спарклайн
   const spark = getSparkPrices(coin);
   if (entry.sparklineCanvas && spark && spark.length > 2) {
     const sparkW = onFavs ? 56 : 76;
     drawMiniSparkline(entry.sparklineCanvas, spark, isUp, { w: sparkW, h: 36 });
   }
 
-  // === Портфолио: holdings + PnL + кнопка ===
   const amount = getHoldingAmount(coin.id);
   if (entry.portfolioBtn) {
     if (amount > 0) {
@@ -3441,7 +3130,6 @@ function updateCardEntry(entry, coin, prevPriceMap) {
 
 function clearListPlaceholders(container) {
   if (!container) return;
-  // убираем skeleton / loader — иначе остаются «пустые» полоски как будто зависло
   container.querySelectorAll(".skeleton, .market-loading, .empty-state").forEach(el => el.remove());
 }
 
@@ -3487,7 +3175,6 @@ function reconcileList(container, registry, list, prevPriceMap, emptyText, isFav
     }
   });
 
-  // skeleton/loader не в registry — вычищаем вручную (иначе «пустые» полоски)
   container.querySelectorAll(".skeleton, .market-loading").forEach(el => el.remove());
 }
 
@@ -3509,19 +3196,16 @@ function getVisibleMarketCoins() {
     networkFilterFn(c)
   );
 
-  // C: стейблы скрыты по умолчанию (кроме поиска и режима «Стейблы»)
   if (showStablesOnly) {
     list = list.filter(isStableCoin);
   } else if (!q) {
     list = list.filter(c => !isStableCoin(c));
   }
 
-  // Чип «Избранное» в режиме списка
   if (quickFilter === "fav" && !q) {
     list = list.filter(c => favorites.has(c.id));
   }
 
-  // Сортировка: market_cap → volume fallback (у Binance cap=0)
   if (currentSort === "change_desc") {
     list.sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
   } else if (currentSort === "change_asc") {
@@ -3577,7 +3261,6 @@ function openMarketHome() {
   searchQuery = "";
   const input = document.getElementById("search-input");
   if (input) input.value = "";
-  // сброс «специальных» чипов списка, на home остаётся top
   quickFilter = "top";
   showStablesOnly = false;
   currentSort = localStorage.getItem("sort_mode") || "market_cap";
@@ -3654,7 +3337,6 @@ function renderFeaturedCoins() {
     const c = findCoinBySymOrId(sym) || findCoinBySymOrId(PINNED_IDS[i]);
     if (c) pinned.push(c);
   });
-  // если нет — топ-3 нестейбла по объёму
   if (!pinned.length) {
     coins.filter(c => !isStableCoin(c))
       .slice()
@@ -3706,7 +3388,6 @@ function renderMarketHero() {
   const hero = document.getElementById("mkt-hero");
   if (!hero) return;
 
-  // лёгкий фон по настроению рынка — без текстового бейджа
   const pool = coins.filter(c => !isStableCoin(c));
   const upN = pool.filter(c => (c.price_change_percentage_24h || 0) >= 0).length;
   const ratio = pool.length ? upN / pool.length : 0.5;
@@ -3754,7 +3435,6 @@ function renderAll() {
 
   updateMarketLayout();
 
-  // A: дашборд / список рынка (всегда обновляем — вкладки рядом в swipe)
   if (!shouldShowMarketList()) {
     renderDashboard();
   } else {
@@ -3762,216 +3442,13 @@ function renderAll() {
     reconcileList(marketList, marketCardRegistry, getVisibleMarketCoins(), prevPriceMap, t("notFound"));
   }
 
-  // Избранное — всегда синхронизируем (страница всегда в DOM)
   const favList = document.getElementById("favorites-list");
   const favCoins = coins.filter(c => favorites.has(c.id));
   reconcileList(favList, favCardRegistry, favCoins, prevPriceMap, t("emptyFav"), true);
 
-  // Портфель: summary + полная страница
   updatePortfolioSummary();
   renderPortfolioPage();
 }
-
-// ===== PnL карточка + share =====
-function buildPnlShareText() {
-  const { totalValue, change, changePercent, mode } = getPortfolioPnL();
-  const { rows } = getPortfolioAllocations();
-  const isUp = change >= 0;
-  const lines = [
-    "🍽 CryptoFood · Portfolio",
-    "━━━━━━━━━━━━━━━━",
-    "💰 $" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 }),
-    (isUp ? "🟢 " : "🔴 ") + (isUp ? "+" : "") + changePercent.toFixed(2) + "%  ·  $" + Math.abs(change).toFixed(2),
-    mode === "entry" ? "PnL от цены входа" : "PnL за 24ч",
-    ""
-  ];
-  rows.slice(0, 6).forEach(r => {
-    lines.push("• " + r.coin.symbol.toUpperCase() + "  $" + r.value.toFixed(2) + "  (" + r.pct.toFixed(1) + "%)");
-  });
-  lines.push("", "via CryptoFood bot");
-  return lines.join("\n");
-}
-
-function drawPnlShareCard() {
-  const canvas = document.getElementById("share-pnl-canvas");
-  if (!canvas) return null;
-  const { totalValue, change, changePercent, mode } = getPortfolioPnL();
-  const { rows } = getPortfolioAllocations();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const W = 720, H = 900;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width = "100%";
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  const isUp = change >= 0;
-  const grd = ctx.createLinearGradient(0, 0, W, H);
-  grd.addColorStop(0, "#0b1f4a");
-  grd.addColorStop(0.45, "#163a8a");
-  grd.addColorStop(1, "#2d7ff9");
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, W, H);
-
-  // soft orbs
-  ctx.fillStyle = "rgba(255,255,255,0.08)";
-  ctx.beginPath(); ctx.arc(560, 120, 140, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(80, 780, 160, 0, Math.PI * 2); ctx.fill();
-
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.font = "600 28px -apple-system, Segoe UI, sans-serif";
-  ctx.fillText("CryptoFood", 48, 72);
-  ctx.font = "500 20px -apple-system, Segoe UI, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.65)";
-  ctx.fillText("Portfolio PnL", 48, 108);
-
-  ctx.fillStyle = "#fff";
-  ctx.font = "800 64px -apple-system, Segoe UI, sans-serif";
-  ctx.fillText("$" + totalValue.toLocaleString("en-US", { maximumFractionDigits: 2 }), 48, 210);
-
-  // pnl pill
-  const pill = (isUp ? "▲ +" : "▼ ") + Math.abs(changePercent).toFixed(2) + "%   " +
-    (isUp ? "+" : "-") + "$" + Math.abs(change).toFixed(2);
-  ctx.font = "700 26px -apple-system, Segoe UI, sans-serif";
-  const tw = ctx.measureText(pill).width;
-  ctx.fillStyle = isUp ? "rgba(46,204,113,0.28)" : "rgba(231,76,60,0.3)";
-  roundRect(ctx, 48, 240, tw + 36, 52, 26);
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.fillText(pill, 66, 274);
-
-  ctx.fillStyle = "rgba(255,255,255,0.6)";
-  ctx.font = "500 18px -apple-system, Segoe UI, sans-serif";
-  ctx.fillText(mode === "entry" ? "Realized from entry price" : "24h change estimate", 48, 330);
-
-  // holdings card
-  const cardY = 370;
-  ctx.fillStyle = "rgba(255,255,255,0.1)";
-  roundRect(ctx, 40, cardY, W - 80, 420, 24);
-  ctx.fill();
-
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.font = "700 18px -apple-system, Segoe UI, sans-serif";
-  ctx.fillText("ASSETS", 64, cardY + 40);
-
-  let y = cardY + 80;
-  rows.slice(0, 6).forEach((r, i) => {
-    ctx.fillStyle = "#fff";
-    ctx.font = "700 24px -apple-system, Segoe UI, sans-serif";
-    ctx.fillText(r.coin.symbol.toUpperCase(), 64, y);
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
-    ctx.font = "600 22px -apple-system, Segoe UI, sans-serif";
-    const val = "$" + r.value.toLocaleString("en-US", { maximumFractionDigits: 2 });
-    const vw = ctx.measureText(val).width;
-    ctx.fillText(val, W - 64 - vw, y);
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    roundRect(ctx, 64, y + 14, W - 128, 6, 3);
-    ctx.fill();
-    ctx.fillStyle = r.color || "#5aa0ff";
-    roundRect(ctx, 64, y + 14, Math.max(8, (W - 128) * (r.pct / 100)), 6, 3);
-    ctx.fill();
-    y += 58;
-  });
-
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.font = "500 16px -apple-system, Segoe UI, sans-serif";
-  ctx.fillText("t.me · CryptoFood", 48, H - 40);
-  return canvas;
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
-}
-
-function openShareModal() {
-  const { rows } = getPortfolioAllocations();
-  if (!rows.length) return;
-  drawPnlShareCard();
-  const ov = document.getElementById("share-modal-overlay");
-  if (ov) ov.classList.add("visible");
-  try { hapticImpact("light"); } catch (e) {}
-}
-
-function closeShareModal() {
-  const ov = document.getElementById("share-modal-overlay");
-  if (ov) ov.classList.remove("visible");
-}
-
-async function sharePnlCard() {
-  // Только картинка-карточка, без текстового сообщения
-  const canvas = drawPnlShareCard() || document.getElementById("share-pnl-canvas");
-  if (!canvas) return;
-
-  let blob = null;
-  try {
-    if (canvas.toBlob) {
-      blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
-    }
-  } catch (e) {}
-  if (!blob) {
-    try {
-      const dataUrl = canvas.toDataURL("image/png");
-      const bin = atob(dataUrl.split(",")[1]);
-      const arr = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-      blob = new Blob([arr], { type: "image/png" });
-    } catch (e2) {}
-  }
-  if (!blob) return;
-
-  const file = new File([blob], "cryptofood-pnl.png", { type: "image/png" });
-
-  try {
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      // без text/title — иначе Telegram дублирует текстовым сообщением
-      await navigator.share({ files: [file] });
-      try { hapticImpact("light"); } catch (e) {}
-      return;
-    }
-  } catch (e) {
-    if (e && e.name === "AbortError") return;
-  }
-
-  // fallback: скачать PNG
-  try {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cryptofood-pnl.png";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      try { URL.revokeObjectURL(url); } catch (e) {}
-      try { a.remove(); } catch (e2) {}
-    }, 1500);
-    try { hapticSelection(); } catch (e3) {}
-  } catch (e4) {
-    try {
-      const dataUrl = canvas.toDataURL("image/png");
-      const w = getTG();
-      if (w && w.openLink) w.openLink(dataUrl);
-      else window.open(dataUrl, "_blank");
-    } catch (e5) {}
-  }
-}
-
-(function initShareModal() {
-  document.getElementById("portfolio-share-btn")?.addEventListener("click", openShareModal);
-  document.getElementById("share-modal-close")?.addEventListener("click", closeShareModal);
-  document.getElementById("share-modal-close-btn")?.addEventListener("click", closeShareModal);
-  document.getElementById("share-do-btn")?.addEventListener("click", sharePnlCard);
-  const ov = document.getElementById("share-modal-overlay");
-  if (ov) ov.addEventListener("click", (e) => { if (e.target === ov) closeShareModal(); });
-})();
-
-// ===== экран деталей =====
 
 function openDetail(coinId) {
   openCoinId = coinId;
@@ -4050,7 +3527,6 @@ function renderTimeframeSelector() {
     container.appendChild(btn);
   });
 
-  // индикатор под активной кнопкой (после layout)
   requestAnimationFrame(() => {
     const active = container.querySelector(".tf-btn.active");
     moveTfIndicator(container, active, false);
@@ -4073,7 +3549,6 @@ function toggleFavorite(coinId) {
   else favorites.add(coinId);
   try { localStorage.setItem("fav_coins", JSON.stringify([...favorites])); } catch (e) {}
   updateDetailFavButtons(coinId);
-  // обновить звёзды в списках
   if (typeof renderAll === "function") renderAll();
   try {
     if (tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === "function") {
@@ -4086,7 +3561,6 @@ function updateDetailHeader(coinId) {
   const coin = coins.find(c => c.id === coinId);
   if (!coin) return;
   const detailIcon = document.getElementById("detail-icon");
-  // пересоздаём bind при смене монеты
   if (detailIcon) {
     detailIcon.style.display = "";
     const parent = detailIcon.parentNode;
@@ -4107,10 +3581,11 @@ function updateDetailHeader(coinId) {
   animateNumberText(priceEl, detailLastPrice, coin.current_price, 600, formatPrice);
   detailLastPrice = coin.current_price;
 
+  updateDetailPortfolioButton(coinId);
+
   document.getElementById("stat-marketcap").textContent = formatBig(coin.market_cap);
   document.getElementById("stat-volume").textContent = formatBig(coin.total_volume);
 
-  // Если mcap нет (Binance/кэш) — догружаем с CoinGecko
   if (!(Number(coin.market_cap) > 0) || !(Number(coin.total_volume) > 0)) {
     enrichCoinMarketData(coinId).then(fresh => {
       if (!fresh || openCoinId !== coinId) return;
@@ -4124,7 +3599,24 @@ function updateDetailHeader(coinId) {
   }
 }
 
-// Звёздочка только рядом с названием (не в шапке)
+function updateDetailPortfolioButton(coinId) {
+  const btn = document.getElementById("detail-portfolio-btn");
+  const label = document.getElementById("detail-portfolio-btn-label");
+  if (!btn || !label) return;
+  const amount = getHoldingAmount(coinId);
+  label.textContent = amount > 0 ? (t("editPortfolio") || "Изменить в портфеле") : (t("addToPortfolio") || "+ В портфель");
+}
+
+(function initDetailPortfolioButton() {
+  const btn = document.getElementById("detail-portfolio-btn");
+  if (!btn) return;
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (openCoinId) openPortfolioModal(openCoinId);
+  });
+})();
+
 (function initDetailFavButtons() {
   const mainBtn = document.getElementById("detail-fav-btn");
   if (!mainBtn) return;
@@ -4172,7 +3664,6 @@ function setChartLoading(state) {
   if (el) el.classList.toggle("visible", !!state);
 }
 
-/** Нормализуем серию к N точкам (для морфа) */
 function resamplePrices(points, n) {
   if (!points || points.length < 2) return null;
   const out = [];
@@ -4190,9 +3681,6 @@ function resamplePrices(points, n) {
 
 let chartMorphRAF = null;
 
-/**
- * Плавный морф графика (как в Tonkeeper): интерполяция старых → новых точек.
- */
 function animateChartTransition(fromPoints, toPoints, durationMs) {
   if (chartMorphRAF) {
     cancelAnimationFrame(chartMorphRAF);
@@ -4206,7 +3694,6 @@ function animateChartTransition(fromPoints, toPoints, durationMs) {
     drawDetailChart();
     return Promise.resolve();
   }
-  // если нет «откуда» — просто draw с CSS-анимацией
   if (!from) {
     currentChartPoints = toPoints;
     playChartBoxMorph();
@@ -4220,7 +3707,6 @@ function animateChartTransition(fromPoints, toPoints, durationMs) {
   return new Promise(resolve => {
     function frame(now) {
       const u = Math.min(1, (now - t0) / dur);
-      // ease-out cubic
       const e = 1 - Math.pow(1 - u, 3);
       const mid = [];
       for (let i = 0; i < N; i++) {
@@ -4272,7 +3758,6 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
   if (!needFetch) {
     fullData = cached.data;
   } else {
-    // мягкий loader — не на весь экран, только лёгкий оверлей
     if (showLoader) setChartLoading(true);
     try {
       const days = tf.type === "api-window" ? 1 : tf.days;
@@ -4309,7 +3794,6 @@ async function loadAndDrawChart(coinId, tfKey, showLoader) {
 
   hideCrosshair();
 
-  // морф старого графика → нового
   if (prevPoints && points.length > 1) {
     playChartBoxMorph();
     await animateChartTransition(prevPoints, points, 400);
@@ -4340,7 +3824,6 @@ function prepareHiDPICanvas(canvas) {
   return { ctx, w: cssW, h: cssH };
 }
 
-// Только 2 ценовых уровня: максимум и минимум за период
 function drawDetailChart(crosshairIndex) {
   const canvas = document.getElementById("detail-canvas");
   const { ctx, w, h } = prepareHiDPICanvas(canvas);
@@ -4394,18 +3877,14 @@ function drawDetailChart(crosshairIndex) {
   ctx.lineCap = "round";
   ctx.stroke();
 
-  // Подписи только максимума и минимума
   ctx.font = "600 11px -apple-system, sans-serif";
   ctx.fillStyle = textColor || "#999";
   ctx.textBaseline = "middle";
   ctx.fillText(formatPrice(max), padX, padTop - 12);
 
-  // точка минимума на линии, чтобы подпись минимума не перекрывала график —
-  // рисуем минимум под графиком, у нижнего края
   const minLabel = formatPrice(min);
   ctx.fillText(minLabel, padX, h - padBottom + 2);
 
-  // конечная точка
   const lastPt = xy[xy.length - 1];
   ctx.beginPath();
   ctx.arc(lastPt[0], lastPt[1], 4, 0, Math.PI * 2);
@@ -4415,7 +3894,6 @@ function drawDetailChart(crosshairIndex) {
   ctx.strokeStyle = bgColor || "#fff";
   ctx.stroke();
 
-  // Крестовина (при тапе/клике)
   if (crosshairIndex !== undefined && crosshairIndex !== null && xy[crosshairIndex]) {
     const [cx, cy] = xy[crosshairIndex];
     ctx.save();
@@ -4443,7 +3921,6 @@ function hideCrosshair() {
   lastCrosshairIndex = null;
   const tooltip = document.getElementById("crosshair-tooltip");
   if (tooltip) tooltip.classList.remove("visible");
-  // вернуть «живую» цену в шапке
   if (openCoinId) {
     const coin = coins.find(c => c.id === openCoinId);
     if (coin) {
@@ -4465,7 +3942,6 @@ function updateCrosshairAtX(clientX) {
   const index = Math.round(ratio * (points.length - 1));
   const clampedIndex = Math.max(0, Math.min(points.length - 1, index));
 
-  // как в Tonkeeper: тик вибрации на каждый новый шаг цены
   if (clampedIndex !== lastCrosshairIndex) {
     hapticSelection();
     lastCrosshairIndex = clampedIndex;
@@ -4485,7 +3961,6 @@ function updateCrosshairAtX(clientX) {
     tooltip.textContent = formatPrice(pt.p) + "  ·  " + timeStr;
     tooltip.classList.add("visible");
   }
-  // цена в шапке следует за пальцем
   const priceEl = document.getElementById("detail-price");
   if (priceEl) priceEl.textContent = formatPrice(pt.p);
 }
@@ -4495,8 +3970,6 @@ let isPointerActive = false;
 let crosshairRAFPending = false;
 let pendingClientX = null;
 
-// touchmove/mousemove могут стрелять чаще, чем экран успевает перерисовываться —
-// собираем события в один кадр через requestAnimationFrame, чтобы жест был плавным
 function scheduleCrosshairUpdate(clientX) {
   pendingClientX = clientX;
   if (crosshairRAFPending) return;
@@ -4510,7 +3983,7 @@ function scheduleCrosshairUpdate(clientX) {
 if (detailCanvas) {
   detailCanvas.addEventListener("touchstart", (e) => {
     isPointerActive = true;
-    hapticImpact("light"); // старт касания
+    hapticImpact("light");
     scheduleCrosshairUpdate(e.touches[0].clientX);
   }, { passive: true });
 
@@ -4555,13 +4028,11 @@ if (detailCanvas) {
   });
 }
 
-// Поиск + фильтры
 document.getElementById("search-input").addEventListener("input", (e) => {
   const value = e.target.value.trim().toLowerCase();
   if (searchDebounceHandle) clearTimeout(searchDebounceHandle);
   searchDebounceHandle = setTimeout(() => {
     searchQuery = value;
-    // поиск всегда показывает список; очистка — возврат на дашборд (если не были в list вручную)
     if (value) marketViewMode = "list";
     else if (!value && quickFilter === "top" && !showStablesOnly) marketViewMode = "home";
     updateMarketLayout();
@@ -4569,7 +4040,6 @@ document.getElementById("search-input").addEventListener("input", (e) => {
   }, 150);
 });
 
-// A: чипы, «Все монеты», назад
 (function initMarketDashboardNav() {
   const chips = document.getElementById("quick-chips");
   if (chips) {
@@ -4613,10 +4083,9 @@ const NETWORK_LABELS = {
   trc20: "TRC20",
 };
 
-function updateFilterActiveBar() { /* фильтры убраны */ }
-function syncFilterUI() { /* фильтры убраны — чипы на дашборде */ }
+function updateFilterActiveBar() {  }
+function syncFilterUI() {  }
 
-// === Tabs: liquid glass + swipe ===
 const TAB_ORDER = ["market", "favorites", "portfolio"];
 let tabIndex = 0;
 let swipeLock = false;
@@ -4638,7 +4107,6 @@ function applyTrackTransform(index, withAnim, dragPx) {
   else track.classList.remove("is-dragging");
   const w = getPageWidth();
   const extra = typeof dragPx === "number" ? dragPx : 0;
-  // целые px — меньше субпиксельного дрожания иконок
   const x = Math.round((-index * w) + extra);
   track.style.transform = "translate3d(" + x + "px, 0, 0)";
   if (!withAnim) void track.offsetWidth;
@@ -4650,7 +4118,6 @@ function updateNavUI(index) {
   });
   const indicator = document.getElementById("nav-indicator");
   if (indicator) {
-    // rAF — один кадр, без лишних layout thrash
     requestAnimationFrame(() => {
       indicator.style.transform = "translate3d(" + (index * 100) + "%, 0, 0)";
     });
@@ -4668,7 +4135,6 @@ function refreshActiveTabContent() {
     updatePortfolioSummary();
     if (currentTab === "portfolio") renderPortfolioPage();
     else if (currentTab === "favorites") {
-      // summary избранного
       updatePortfolioSummary();
     }
   } catch (e) {
@@ -4684,7 +4150,6 @@ function switchTab(tabName, opts) {
   tabIndex = clamped;
   currentTab = TAB_ORDER[clamped];
 
-  // сначала анимация (без тяжёлого DOM)
   applyTrackTransform(clamped, animate);
   updateNavUI(clamped);
 
@@ -4696,7 +4161,6 @@ function switchTab(tabName, opts) {
     document.getElementById("page-title").textContent = t("portfolio");
   }
 
-  // тяжёлый рендер — после старта анимации, чтобы не дёргать кадры
   if (tabContentTimer) clearTimeout(tabContentTimer);
   tabContentTimer = setTimeout(refreshActiveTabContent, animate ? 90 : 0);
 }
@@ -4708,7 +4172,6 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
-// Horizontal swipe: контент + нижняя glass-панель вкладок
 (function initTabSwipe() {
   const track = document.getElementById("pages-track");
   if (!track) return;
@@ -4810,7 +4273,6 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     el.addEventListener("touchend", onEnd, { passive: true });
     el.addEventListener("touchcancel", onEnd, { passive: true });
 
-    // мышь (десктоп)
     let mouseDown = false;
     el.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
@@ -4828,12 +4290,9 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     });
   }
 
-  // свайп по контенту
   bindSwipeSurface(document.getElementById("pages-viewport"), { skipContentGuards: false });
-  // свайп по нижней glass-панели (Рынок / Избранное / Портфель)
   bindSwipeSurface(document.getElementById("bottom-nav"), { skipContentGuards: true });
 
-  // не срабатывать click по вкладке, если только что был свайп
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
       if (suppressClick || swipeLock) {
@@ -4848,12 +4307,10 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 })();
 
-// Запуск
 function switchToMarketTab() {
   switchTab("market", { animate: true });
 }
 
-// initial track position
 applyTrackTransform(0, false);
 updateNavUI(0);
 
@@ -4874,7 +4331,6 @@ function showMarketLoading() {
         </div>
       </div>`;
   }
-  // лоадер и на дашборде (главная)
   const featured = document.getElementById("featured-coins");
   if (featured && !coins.length) {
     featured.innerHTML = `
@@ -4885,46 +4341,13 @@ function showMarketLoading() {
   }
 }
 
-// совместимость со старым именем
 function showSkeletons() { showMarketLoading(); }
 
 showMarketLoading();
 syncFilterUI();
+fetchMarket();
+scheduleNextPoll();
 
-// Deep-link: ?coin=btc / #btc — открыть монету после загрузки рынка
-function resolveCoinQuery(q) {
-  if (!q) return null;
-  const s = String(q).toLowerCase().trim();
-  return coins.find(c =>
-    c.id === s ||
-    c.symbol === s ||
-    c.id === (s === "btc" ? "bitcoin" : s === "eth" ? "ethereum" : s === "sol" ? "solana" : s) ||
-    (c.symbol && c.symbol.toLowerCase() === s)
-  );
-}
-
-async function bootWithDeepLink() {
-  await fetchMarket();
-  scheduleNextPoll();
-  try {
-    const params = new URLSearchParams(location.search || "");
-    let q = params.get("coin") || params.get("symbol");
-    if (!q && location.hash) q = location.hash.replace(/^#/, "");
-    // Telegram startapp param
-    const w = getTG();
-    if (!q && w && w.initDataUnsafe && w.initDataUnsafe.start_param) {
-      q = String(w.initDataUnsafe.start_param).replace(/^coin[_-]?/i, "");
-    }
-    if (!q) return;
-    const coin = resolveCoinQuery(q);
-    if (coin) {
-      setTimeout(() => openDetail(coin.id), 350);
-    }
-  } catch (e) {}
-}
-bootWithDeepLink();
-
-// === Pull-to-refresh (простой) ===
 let pullStartY = 0;
 const marketSectionForPull = document.getElementById("section-market");
 if (marketSectionForPull) {
